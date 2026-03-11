@@ -14,6 +14,7 @@
 | 1.21.8 | 维护中 | - |
 
 ## 文档
-- [规则说明 (中文版)](docs\rules.md)
+- [规则说明 (中文版)](docs/rules.md)
 
-- [规则说明 (英文版)](docs\rules_en.md)
+- [规则说明 (英文版)](docs/rules_en.md)
+
