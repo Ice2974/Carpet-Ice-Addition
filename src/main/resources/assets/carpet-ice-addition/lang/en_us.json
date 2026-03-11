@@ -1,0 +1,8 @@
+{
+  "carpet.category.Ice": "Ice",
+  "carpet.rule.safeScaffoldingBreak.name": "\u811a\u624b\u67b6\u9632\u8bef\u89e6",
+  "carpet.rule.safeScaffoldingBreak.desc": "Require holding scaffolding or an empty main hand to break scaffolding.",
+  "carpet.rule.crafterStopsWhenOutputBlocked.name": "\u5408\u6210\u5668\u8f93\u51fa\u963b\u585e\u65f6\u505c\u6b62\u5408\u6210",
+  "carpet.rule.crafterStopsWhenOutputBlocked.desc": "Prevent the crafter from crafting when its output points to a valid auto-accepting container that cannot fully accept the crafted result and recipe remainders.",
+  "message.carpet-ice-addition.safe_scaffolding_break": "Hold scaffolding or empty your main hand to break scaffolding."
+}
