@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "${id}",
+  "version": "${version}",
+  "name": "${name}",
+  "description": "Server-first Carpet extension focused on technical survival quality-of-life rules.",
+  "authors": [
+    "ice2974"
+  ],
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.ice2974.carpeticeaddition.CarpetIceAdditionMod"
+    ]
+  },
+  "mixins": [
+    "carpet-ice-addition.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.18.4",
+    "minecraft": "1.21.8",
+    "fabric-api": "0.133.4+1.21.8",
+    "carpet": ">=1.4.177"
+  }
+}

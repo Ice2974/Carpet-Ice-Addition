@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "package": "com.ice2974.carpeticeaddition.mixins",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "CrafterBlockMixin",
+    "SafeScaffoldingBreakMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
