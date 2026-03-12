@@ -14,5 +14,4 @@
 | 1.21.8 | 	Maintained |   |
 
 ## Documentation
-- [Rules (Chinese)](rules.md)
-- [Rules (English)](rules_en.md)
+- [Rules](rules_en.md)
