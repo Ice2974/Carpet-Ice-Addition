@@ -1,0 +1,39 @@
+# Java
+*.class
+*.jar
+*.war
+*.ear
+build/
+
+# gradle
+.gradle/
+.gradle-home/
+build/
+out/
+lout/
+classes/
+publish/
+
+# git
+.shelf/
+
+# idea
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# vscode
+.settings/
+.vscode/
+bin/
+.classpath
+.project
+*.code-workspace
+
+# fabric
+run/
+logs/
+
+# others
+快速构建.bat
