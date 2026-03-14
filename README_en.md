@@ -14,4 +14,4 @@
 | 1.21.8 | 	Maintained |   |
 
 ## Documentation
-- [Rules](rules_en.md)
+- [Rules](docs/rules_en.md)
