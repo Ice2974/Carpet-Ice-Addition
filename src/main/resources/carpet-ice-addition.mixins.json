@@ -4,6 +4,8 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "CrafterBlockMixin",
+    "JukeboxManagerRecordWorldEventMixin",
+    "ServerWorldRecordWorldEventMixin",
     "SafeScaffoldingBreakMixin"
   ],
   "injectors": {

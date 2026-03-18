@@ -2,6 +2,7 @@ package com.ice2974.carpeticeaddition.settings;
 
 import carpet.api.settings.Rule;
 
+import static carpet.api.settings.RuleCategory.BUGFIX;
 import static carpet.api.settings.RuleCategory.FEATURE;
 import static carpet.api.settings.RuleCategory.SURVIVAL;
 
@@ -17,4 +18,7 @@ public final class CarpetIceAdditionSettings {
 
     @Rule(categories = {ICE, FEATURE})
     public static boolean crafterStopsWhenOutputBlocked = false;
+
+    @Rule(categories = {ICE, BUGFIX})
+    public static boolean recordWorldEventFix = false;
 }

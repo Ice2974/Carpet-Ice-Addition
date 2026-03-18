@@ -1,4 +1,4 @@
-## 脚手架防误触 (safeScaffoldingBreak)
+﻿## 脚手架防误触 (safeScaffoldingBreak)
 
 玩家只有在主手拿着脚手架或者主手为空手时才能破坏脚手架。如果玩家尝试持其他物品破坏脚手架，系统将阻止该操作，并在 **Action Bar** 上显示提示。
 
@@ -15,3 +15,12 @@
 - 默认值: `false`
 - 参考选项: `false`, `true`
 - 分类: `ICE`, `FEATURE`
+
+## 唱片世界事件时序修复 (recordWorldEventFix)
+
+修复了将唱片快速放入唱片机后又迅速取出时，音乐仍可能继续播放，且多个唱片音频可能重叠的问题，详见 MC-112245。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `BUGFIX`

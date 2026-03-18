@@ -4,5 +4,7 @@
   "carpet.rule.safeScaffoldingBreak.desc": "Require holding scaffolding or an empty main hand to break scaffolding.",
   "carpet.rule.crafterStopsWhenOutputBlocked.name": "\u5408\u6210\u5668\u8f93\u51fa\u963b\u585e\u65f6\u505c\u6b62\u5408\u6210",
   "carpet.rule.crafterStopsWhenOutputBlocked.desc": "Prevent the crafter from crafting when its output points to a valid auto-accepting container that cannot fully accept the crafted result and recipe remainders.",
+  "carpet.rule.recordWorldEventFix.name": "\u5531\u7247\u4e16\u754c\u4e8b\u4ef6\u65f6\u5e8f\u4fee\u590d",
+  "carpet.rule.recordWorldEventFix.desc": "Fixes the issue where a music disc can keep playing after being quickly inserted into and removed from a jukebox, which may also cause overlapping disc audio. See MC-112245.",
   "message.carpet-ice-addition.safe_scaffolding_break": "Hold scaffolding or empty your main hand to break scaffolding."
 }

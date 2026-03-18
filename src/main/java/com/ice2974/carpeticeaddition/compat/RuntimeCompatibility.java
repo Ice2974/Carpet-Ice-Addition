@@ -47,6 +47,10 @@ public final class RuntimeCompatibility {
         return loader.compatible && carpet.compatible && fabricApi.compatible;
     }
 
+    public boolean shouldEnableRecordWorldEventFix() {
+        return loader.compatible && carpet.compatible && fabricApi.compatible;
+    }
+
     public boolean isInFallbackMode() {
         return !loader.compatible || !fabricApi.compatible || !carpet.compatible;
     }

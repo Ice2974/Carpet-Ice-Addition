@@ -15,3 +15,12 @@ Stops crafting when the output container cannot fully accept the crafted result,
 - Default: `false`
 - Possible values: `false`, `true`
 - Categories: `ICE`, `FEATURE`
+
+## Record World Event Timing Fix (recordWorldEventFix)
+
+Fixes the issue where a music disc can keep playing after being quickly inserted into and removed from a jukebox, which may also cause overlapping disc audio. See MC-112245.
+
+- Type: `boolean`
+- Default: `false`
+- Possible values: `false`, `true`
+- Categories: `ICE`, `BUGFIX`
