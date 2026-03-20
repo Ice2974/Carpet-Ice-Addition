@@ -24,3 +24,12 @@ Fixes the issue where a music disc can keep playing after being quickly inserted
 - Default: `false`
 - Possible values: `false`, `true`
 - Categories: `ICE`, `BUGFIX`
+
+## Disable Particle Packets (disableParticlesPackets)
+
+Disables the sending of particle packets to reduce bandwidth usage and traffic consumption (this rule is ported from Carpet-TCTC-Addition). When enabled, clients will no longer receive server-sent particle packets.
+
+- Type: `boolean`
+- Default: `false`
+- Possible values: `false`, `true`
+- Categories: `ICE`, `CLIENT`

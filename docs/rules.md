@@ -24,3 +24,12 @@
 - 默认值: `false`
 - 可选值: `false`, `true`
 - 分类: `ICE`, `BUGFIX`
+
+## 禁用粒子包发送 (disableParticlesPackets)
+
+禁用粒子数据包发送以减少带宽占用和流量消耗（该规则移植自 Carpet-TCTC-Addition）。开启后，客户端将不再接收服务端发送的粒子包。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `CLIENT`
