@@ -2,11 +2,21 @@
   "schemaVersion": 1,
   "id": "${id}",
   "version": "${version}",
+  
   "name": "${name}",
-  "description": "Server-first Carpet extension focused on technical survival quality-of-life rules.",
+  "description": "A fabric-carpet extension mod.",
   "authors": [
-    "ice2974"
+    "Ice2974"
   ],
+    "contact": {
+    "homepage": "https://github.com/Ice2974/Carpet-Ice-Addition/",
+    "sources": "https://github.com/Ice2974/Carpet-Ice-Addition/",
+    "issues": "https://github.com/fxmorin/carpet-fixes/issues"
+  },
+
+  "license": "GPL-3.0",
+  "icon": "assets/carpet-ice-addition/icon.png",
+
   "environment": "*",
   "entrypoints": {
     "main": [
@@ -18,8 +28,8 @@
   ],
   "depends": {
     "fabricloader": ">=0.18.4",
-    "minecraft": "1.21.8",
-    "fabric-api": ">=0.133.4+1.21.8",
+    "minecraft": ">=1.21.7 <=1.21.8",
+    "fabric-api": ">=0.129.0+1.21.7",
     "carpet": ">=1.4.177"
   }
 }

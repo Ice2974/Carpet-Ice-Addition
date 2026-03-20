@@ -56,7 +56,8 @@ java {
     targetCompatibility = JavaVersion.VERSION_21
 }
 
-def releaseJarBaseName = "Carpet-Ice-Addition-v${project.mod_version}-mc${project.minecraft_version}"
+def releaseMinecraftLabel = project.findProperty('release_minecraft_range') ?: project.minecraft_version
+def releaseJarBaseName = "Carpet-Ice-Addition-v${project.mod_version}-mc${releaseMinecraftLabel}"
 
 tasks.named('remapJar') {
     archiveFileName = "${releaseJarBaseName}.jar"

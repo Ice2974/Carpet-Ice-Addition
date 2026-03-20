@@ -21,6 +21,7 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
     private static final AtomicBoolean SAFE_SCAFFOLDING_BREAK_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean CRAFTER_OUTPUT_RULE_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean RECORD_WORLD_EVENT_FIX_ERROR_REPORTED = new AtomicBoolean(false);
+    private static final AtomicBoolean DISABLE_PARTICLES_PACKETS_ERROR_REPORTED = new AtomicBoolean(false);
     private static String version;
     private static RuntimeCompatibility compatibility;
 
@@ -58,6 +59,10 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
         return compatibility == null || compatibility.shouldEnableRecordWorldEventFix();
     }
 
+    public static boolean shouldEnableDisableParticlesPackets() {
+        return compatibility == null || compatibility.shouldEnableDisableParticlesPackets();
+    }
+
     public static void reportFeatureCompatibilityIssue(String featureName, Throwable throwable) {
         AtomicBoolean flag;
         if ("safeScaffoldingBreak".equals(featureName)) {
@@ -66,6 +71,8 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
             flag = CRAFTER_OUTPUT_RULE_ERROR_REPORTED;
         } else if ("recordWorldEventFix".equals(featureName)) {
             flag = RECORD_WORLD_EVENT_FIX_ERROR_REPORTED;
+        } else if ("disableParticlesPackets".equals(featureName)) {
+            flag = DISABLE_PARTICLES_PACKETS_ERROR_REPORTED;
         } else {
             LOGGER.warn("[Carpet Ice Addition] Compatibility issue in feature {}: {}", featureName, throwable.toString());
             return;
@@ -95,6 +102,10 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
                     "\u5531\u7247\u4e16\u754c\u4e8b\u4ef6\u65f6\u5e8f\u4fee\u590d",
                     "carpet.rule.recordWorldEventFix.desc",
                     "\u4fee\u590d\u4e86\u5c06\u5531\u7247\u5feb\u901f\u653e\u5165\u5531\u7247\u673a\u540e\u53c8\u8fc5\u901f\u53d6\u51fa\u65f6\uff0c\u97f3\u4e50\u4ecd\u53ef\u80fd\u7ee7\u7eed\u64ad\u653e\uff0c\u4e14\u591a\u4e2a\u5531\u7247\u97f3\u9891\u53ef\u80fd\u91cd\u53e0\u7684\u95ee\u9898\uff0c\u8be6\u89c1 MC-112245\u3002",
+                    "carpet.rule.disableParticlesPackets.name",
+                    "\u7981\u7528\u7c92\u5b50\u5305\u53d1\u9001",
+                    "carpet.rule.disableParticlesPackets.desc",
+                    "\u7981\u7528\u7c92\u5b50\u6570\u636e\u5305\u53d1\u9001\u4ee5\u51cf\u5c11\u5e26\u5bbd\u5360\u7528\u548c\u6d41\u91cf\u6d88\u8017\uff08\u8be5\u89c4\u5219\u79fb\u690d\u81eaCarpet-TCTC-Addition\uff09",
                     "message.carpet-ice-addition.safe_scaffolding_break",
                     "\u4f60\u5fc5\u987b\u624b\u6301\u811a\u624b\u67b6\u6216\u7a7a\u624b\u624d\u80fd\u7834\u574f\u811a\u624b\u67b6"
             );
@@ -114,6 +125,10 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
                 "\u5531\u7247\u4e16\u754c\u4e8b\u4ef6\u65f6\u5e8f\u4fee\u590d",
                 "carpet.rule.recordWorldEventFix.desc",
                 "Fixes the issue where a music disc can keep playing after being quickly inserted into and removed from a jukebox, which may also cause overlapping disc audio. See MC-112245.",
+                "carpet.rule.disableParticlesPackets.name",
+                "\u7981\u7528\u7c92\u5b50\u5305\u53d1\u9001",
+                "carpet.rule.disableParticlesPackets.desc",
+                "Disables the sending of particle packets to reduce bandwidth usage and traffic consumption (this rule is ported from Carpet-TCTC-Addition).",
                 "message.carpet-ice-addition.safe_scaffolding_break",
                 "Hold scaffolding or empty your main hand to break scaffolding."
         );

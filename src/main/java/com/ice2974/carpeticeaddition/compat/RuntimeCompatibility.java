@@ -10,7 +10,7 @@ import java.util.regex.Pattern;
 
 public final class RuntimeCompatibility {
     private static final String LOADER_MIN = "0.18.4";
-    private static final String FABRIC_API_MIN = "0.133.4+1.21.8";
+    private static final String FABRIC_API_MIN = "0.129.0+1.21.7";
     private static final String CARPET_MIN = "1.4.177";
 
     private final CheckResult loader;
@@ -48,6 +48,10 @@ public final class RuntimeCompatibility {
     }
 
     public boolean shouldEnableRecordWorldEventFix() {
+        return loader.compatible && carpet.compatible && fabricApi.compatible;
+    }
+
+    public boolean shouldEnableDisableParticlesPackets() {
         return loader.compatible && carpet.compatible && fabricApi.compatible;
     }
 

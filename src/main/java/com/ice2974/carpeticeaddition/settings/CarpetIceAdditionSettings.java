@@ -3,6 +3,7 @@ package com.ice2974.carpeticeaddition.settings;
 import carpet.api.settings.Rule;
 
 import static carpet.api.settings.RuleCategory.BUGFIX;
+import static carpet.api.settings.RuleCategory.CLIENT;
 import static carpet.api.settings.RuleCategory.FEATURE;
 import static carpet.api.settings.RuleCategory.SURVIVAL;
 
@@ -21,4 +22,7 @@ public final class CarpetIceAdditionSettings {
 
     @Rule(categories = {ICE, BUGFIX})
     public static boolean recordWorldEventFix = false;
+
+    @Rule(categories = {ICE, CLIENT})
+    public static boolean disableParticlesPackets = false;
 }
