@@ -1,6 +1,7 @@
 ﻿# Gradle
 .gradle/
 .gradle-home/
+gradle/wrapper/*.zip
 **/build/
 out/
 classes/
