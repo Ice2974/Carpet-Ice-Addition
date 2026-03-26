@@ -1,41 +1,35 @@
-# Java
-*.class
-*.jar
-*.war
-*.ear
-build/
-
-# gradle
+﻿# Gradle
 .gradle/
 .gradle-home/
-gradle/wrapper/gradle-9.2.1-bin.zip
-build/
+**/build/
 out/
-lout/
 classes/
 publish/
 
-# git
-.shelf/
+# Test
+run/
+logs/
+crash-reports/
+hs_err_pid*
+replay_pid*
 
-# idea
+# Java
+*.class
+*.war
+*.ear
+
+# IDE
 .idea/
 *.iml
-*.ipr
-*.iws
-
-# vscode
-.settings/
 .vscode/
-bin/
+.settings/
 .classpath
 .project
 *.code-workspace
+bin/
 
-# fabric
-run/
-logs/
+# Git
+.shelf/
 
 # others
-构建.bat
 开发日志.md
