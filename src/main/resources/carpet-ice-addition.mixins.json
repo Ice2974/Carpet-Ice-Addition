@@ -1,0 +1,16 @@
+{
+  "required": false,
+  "package": "com.ice2974.carpeticeaddition.mixins",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "CrafterBlockMixin",
+    "JukeboxManagerRecordWorldEventMixin",
+    "MobSpawnerLogicMixin",
+    "ServerWorldRecordWorldEventMixin",
+    "SafeScaffoldingBreakMixin",
+    "TrialSpawnerDataMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
