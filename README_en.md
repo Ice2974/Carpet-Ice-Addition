@@ -2,11 +2,10 @@
 [中文](README.md) | **English**
 
 ## Dependencies
-| name | version |
+| name | link |
 | --- | --- |
-| Fabric Loader | >=0.18.4 |
-| Fabric API | >=0.133.4 |
-| Carpet | >=1.4.177 |
+| Fabric API | [Modrinth](https://modrinth.com/mod/fabric-api) |
+| Carpet | [Modrinth](https://modrinth.com/mod/carpet) |
 
 ## 版本支持
 | Game Version | Development Status | Last Supported Version |
