@@ -27,7 +27,7 @@ Fixes the issue where a music disc can keep playing after being quickly inserted
 
 ## Spawners Ignore Invisible Players (spawnersIgnoreInvisiblePlayers)
 
-When enabled, invisible players do not activate normal spawners, trial spawners, or ominous trial spawners. If visible players are nearby, spawning can still be activated normally.
+Invisible players do not activate normal spawners, trial spawners, or ominous trial spawners. If visible players are nearby, spawning can still be activated normally.
 
 - Type: `boolean`
 - Default: `false`

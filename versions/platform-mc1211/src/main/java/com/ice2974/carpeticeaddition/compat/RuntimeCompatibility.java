@@ -59,6 +59,10 @@ public final class RuntimeCompatibility {
         return loader.compatible && fabricApi.compatible && carpet.compatible;
     }
 
+    public boolean shouldEnableDisableKelpNaturalGrowth() {
+        return loader.compatible && fabricApi.compatible && carpet.compatible;
+    }
+
     private static CheckResult checkLoaderVersion() {
         try {
             String version = FabricLoader.getInstance().getModContainer("fabricloader")

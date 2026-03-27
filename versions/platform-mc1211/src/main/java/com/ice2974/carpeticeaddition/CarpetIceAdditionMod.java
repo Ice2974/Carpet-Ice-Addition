@@ -22,6 +22,7 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
     private static final AtomicBoolean CRAFTER_OUTPUT_RULE_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean RECORD_WORLD_EVENT_FIX_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean SPAWNERS_IGNORE_INVISIBLE_PLAYERS_ERROR_REPORTED = new AtomicBoolean(false);
+    private static final AtomicBoolean DISABLE_KELP_NATURAL_GROWTH_ERROR_REPORTED = new AtomicBoolean(false);
 
     private static String version;
     private static RuntimeCompatibility compatibility;
@@ -73,6 +74,10 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
         return compatibility == null || compatibility.shouldEnableSpawnersIgnoreInvisiblePlayers();
     }
 
+    public static boolean shouldEnableDisableKelpNaturalGrowth() {
+        return compatibility == null || compatibility.shouldEnableDisableKelpNaturalGrowth();
+    }
+
     public static void reportFeatureCompatibilityIssue(String featureName, Throwable throwable) {
         AtomicBoolean flag;
         if ("safeScaffoldingBreak".equals(featureName)) {
@@ -83,6 +88,8 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
             flag = RECORD_WORLD_EVENT_FIX_ERROR_REPORTED;
         } else if ("spawnersIgnoreInvisiblePlayers".equals(featureName)) {
             flag = SPAWNERS_IGNORE_INVISIBLE_PLAYERS_ERROR_REPORTED;
+        } else if ("disableKelpNaturalGrowth".equals(featureName)) {
+            flag = DISABLE_KELP_NATURAL_GROWTH_ERROR_REPORTED;
         } else {
             LOGGER.warn("[Carpet Ice Addition] Compatibility issue in feature {}: {}", featureName, throwable.toString());
             return;

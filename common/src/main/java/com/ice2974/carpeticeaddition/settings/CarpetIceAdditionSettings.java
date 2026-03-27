@@ -24,4 +24,7 @@ public final class CarpetIceAdditionSettings {
 
     @Rule(categories = {ICE, FEATURE})
     public static boolean spawnersIgnoreInvisiblePlayers = false;
+
+    @Rule(categories = {ICE, FEATURE})
+    public static boolean disableKelpNaturalGrowth = false;
 }

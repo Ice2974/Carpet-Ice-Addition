@@ -5,6 +5,7 @@
   "mixins": [
     "CrafterBlockMixin",
     "JukeboxManagerRecordWorldEventMixin",
+    "KelpNaturalGrowthMixin",
     "MobSpawnerLogicMixin",
     "SafeScaffoldingBreakMixin",
     "ServerWorldRecordWorldEventMixin",
