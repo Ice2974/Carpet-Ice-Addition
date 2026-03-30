@@ -1,0 +1,101 @@
+plugins {
+    id 'fabric-loom' version '1.10.5'
+    id 'maven-publish'
+}
+
+base {
+    archivesName = "${project.archives_base_name}-mc1213"
+}
+
+dependencies {
+    implementation project(':common')
+
+    minecraft "com.mojang:minecraft:${project.mc1213_minecraft_version}"
+    mappings "net.fabricmc:yarn:${project.mc1213_yarn_mappings}:v2"
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.mc1213_fabric_version}"
+    modImplementation "carpet:fabric-carpet:${project.mc1213_carpet_version}"
+}
+
+sourceSets {
+    main {
+        resources {
+            srcDir project(':common').file('src/main/resources')
+        }
+    }
+}
+
+processResources {
+    inputs.property 'version', project.version
+    inputs.property 'minecraft_range', project.mc1213_release_minecraft_range
+    inputs.property 'minecraft_dependency', project.mc1213_minecraft_dependency
+    inputs.property 'fabric_version', project.mc1213_fabric_version
+    inputs.property 'fabric_dependency', project.mc1213_fabric_dependency
+    inputs.property 'carpet_version', project.mc1213_carpet_version
+    inputs.property 'carpet_dependency', project.mc1213_carpet_dependency
+
+    filesMatching('fabric.mod.json') {
+        expand(
+                version: project.version,
+                id: project.mod_id,
+                name: project.mod_name,
+                minecraft_range: project.mc1213_release_minecraft_range,
+                minecraft_dependency: project.mc1213_minecraft_dependency,
+                fabric_version: project.mc1213_fabric_version,
+                fabric_dependency: project.mc1213_fabric_dependency,
+                carpet_version: project.mc1213_carpet_version,
+                carpet_dependency: project.mc1213_carpet_dependency
+        )
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 21
+}
+
+java {
+    withSourcesJar()
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+tasks.named('jar') {
+    from(project(':common').sourceSets.main.output.classesDirs)
+}
+
+def releaseMinecraftRange = project.mc1213_release_minecraft_range.toString().trim()
+def compareMcVersions = { String left, String right ->
+    def leftParts = left.tokenize('.').collect { part -> part.toInteger() }
+    def rightParts = right.tokenize('.').collect { part -> part.toInteger() }
+    def maxLength = Math.max(leftParts.size(), rightParts.size())
+    for (int i = 0; i < maxLength; i++) {
+        def leftValue = i < leftParts.size() ? leftParts[i] : 0
+        def rightValue = i < rightParts.size() ? rightParts[i] : 0
+        if (leftValue != rightValue) {
+            return leftValue <=> rightValue
+        }
+    }
+    return 0
+}
+def releaseRangeParts = releaseMinecraftRange.split(/\s*[~-]\s*/).toList().findAll { !it.isBlank() }
+def releaseMinecraftLabel = releaseRangeParts.size() > 1
+        ? releaseRangeParts.sort { a, b -> compareMcVersions(a, b) }.last()
+        : releaseMinecraftRange
+def releaseJarBaseName = "Carpet-Ice-Addition-v${project.mod_version}-mc${releaseMinecraftLabel}"
+
+tasks.named('remapJar') {
+    archiveFileName = "${releaseJarBaseName}.jar"
+}
+
+tasks.named('remapSourcesJar') {
+    archiveFileName = "${releaseJarBaseName}-sources.jar"
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+        }
+    }
+}

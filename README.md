@@ -11,10 +11,11 @@
 | 游戏版本 | 开发状态 | 最后支持版本 |
 | --- | --- | --- |
 | 1.21-1.21.1 | 维护中 |   |
+| 1.21.2-1.21.3 | 维护中 |   |
 | 1.21.7-1.21.8 | 维护中 |   |
 
 ## 下载
-- [Github Releases](https://github.com/Ice2974/Carpet-Ice-Addition/releases)
+- [Github](https://github.com/Ice2974/Carpet-Ice-Addition/releases)
 
 ## 文档
 - [规则](docs/rules.md)
