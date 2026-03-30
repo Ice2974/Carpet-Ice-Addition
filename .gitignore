@@ -33,4 +33,5 @@ bin/
 .shelf/
 
 # others
+.tmp/
 开发日志.md
