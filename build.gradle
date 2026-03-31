@@ -5,6 +5,10 @@ allprojects {
     repositories {
         maven { url = 'https://maven.fabricmc.net/' }
         maven { url = 'https://masa.dy.fi/maven' }
+        maven {
+            url = 'https://api.modrinth.com/maven'
+            content { includeGroup 'maven.modrinth' }
+        }
         mavenCentral()
     }
 }
