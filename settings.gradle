@@ -10,8 +10,10 @@ rootProject.name = 'carpet-ice-addition'
 include 'common'
 include 'versions:platform-mc1211'
 include 'versions:platform-mc1213'
+include 'versions:platform-mc1214'
 include 'versions:platform-mc1218'
 
 project(':versions:platform-mc1211').projectDir = file('versions/platform-mc1211')
 project(':versions:platform-mc1213').projectDir = file('versions/platform-mc1213')
+project(':versions:platform-mc1214').projectDir = file('versions/platform-mc1214')
 project(':versions:platform-mc1218').projectDir = file('versions/platform-mc1218')
