@@ -4,17 +4,17 @@ plugins {
 }
 
 base {
-    archivesName = "${project.archives_base_name}-mc1216"
+    archivesName = "${project.archives_base_name}-mc1219"
 }
 
 dependencies {
     implementation project(':common')
 
-    minecraft "com.mojang:minecraft:${project.mc1216_minecraft_version}"
-    mappings "net.fabricmc:yarn:${project.mc1216_yarn_mappings}:v2"
+    minecraft "com.mojang:minecraft:${project.mc1219_minecraft_version}"
+    mappings "net.fabricmc:yarn:${project.mc1219_yarn_mappings}:v2"
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
-    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.mc1216_fabric_version}"
-    modImplementation "carpet:fabric-carpet:${project.mc1216_carpet_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.mc1219_fabric_version}"
+    modImplementation "carpet:fabric-carpet:${project.mc1219_carpet_version}"
 }
 
 sourceSets {
@@ -27,24 +27,24 @@ sourceSets {
 
 processResources {
     inputs.property 'version', project.version
-    inputs.property 'minecraft_range', project.mc1216_release_minecraft_range
-    inputs.property 'minecraft_dependency', project.mc1216_minecraft_dependency
-    inputs.property 'fabric_version', project.mc1216_fabric_version
-    inputs.property 'fabric_dependency', project.mc1216_fabric_dependency
-    inputs.property 'carpet_version', project.mc1216_carpet_version
-    inputs.property 'carpet_dependency', project.mc1216_carpet_dependency
+    inputs.property 'minecraft_range', project.mc1219_release_minecraft_range
+    inputs.property 'minecraft_dependency', project.mc1219_minecraft_dependency
+    inputs.property 'fabric_version', project.mc1219_fabric_version
+    inputs.property 'fabric_dependency', project.mc1219_fabric_dependency
+    inputs.property 'carpet_version', project.mc1219_carpet_version
+    inputs.property 'carpet_dependency', project.mc1219_carpet_dependency
 
     filesMatching('fabric.mod.json') {
         expand(
                 version: project.version,
                 id: project.mod_id,
                 name: project.mod_name,
-                minecraft_range: project.mc1216_release_minecraft_range,
-                minecraft_dependency: project.mc1216_minecraft_dependency,
-                fabric_version: project.mc1216_fabric_version,
-                fabric_dependency: project.mc1216_fabric_dependency,
-                carpet_version: project.mc1216_carpet_version,
-                carpet_dependency: project.mc1216_carpet_dependency
+                minecraft_range: project.mc1219_release_minecraft_range,
+                minecraft_dependency: project.mc1219_minecraft_dependency,
+                fabric_version: project.mc1219_fabric_version,
+                fabric_dependency: project.mc1219_fabric_dependency,
+                carpet_version: project.mc1219_carpet_version,
+                carpet_dependency: project.mc1219_carpet_dependency
         )
     }
 }
@@ -64,7 +64,7 @@ tasks.named('jar') {
     from(project(':common').sourceSets.main.output.classesDirs)
 }
 
-def releaseMinecraftRange = project.mc1216_release_minecraft_range.toString().trim()
+def releaseMinecraftRange = project.mc1219_release_minecraft_range.toString().trim()
 def compareMcVersions = { String left, String right ->
     def leftParts = left.tokenize('.').collect { part -> part.toInteger() }
     def rightParts = right.tokenize('.').collect { part -> part.toInteger() }

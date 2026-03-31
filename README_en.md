@@ -16,6 +16,7 @@
 | 1.21.5 | Maintained |   |
 | 1.21.6 | Maintained |   |
 | 1.21.7-1.21.8 | Maintained |   |
+| 1.21.9 | Maintained |   |
 
 ## Download
 - [Github](https://github.com/Ice2974/Carpet-Ice-Addition/releases)
