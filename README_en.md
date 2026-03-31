@@ -13,6 +13,7 @@
 | 1.21-1.21.1 | Maintained |   |
 | 1.21.2-1.21.3 | Maintained |   |
 | 1.21.4 | Maintained |   |
+| 1.21.5 | Maintained |   |
 | 1.21.7-1.21.8 | Maintained |   |
 
 ## Download
