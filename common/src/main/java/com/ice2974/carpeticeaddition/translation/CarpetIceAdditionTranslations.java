@@ -27,17 +27,11 @@ public final class CarpetIceAdditionTranslations {
         }
         return Map.ofEntries(
                 Map.entry("carpet.category.carpetIceAddition", "Ice"),
-                Map.entry("carpet.rule.safeScaffoldingBreak.name", "safeScaffoldingBreak"),
                 Map.entry("carpet.rule.safeScaffoldingBreak.desc", "Require holding scaffolding or an empty main hand to break scaffolding."),
-                Map.entry("carpet.rule.crafterStopsWhenOutputBlocked.name", "crafterStopsWhenOutputBlocked"),
                 Map.entry("carpet.rule.crafterStopsWhenOutputBlocked.desc", "Prevent the crafter from crafting when its output points to a valid auto-accepting container that cannot fully accept the crafted result and recipe remainders."),
-                Map.entry("carpet.rule.recordWorldEventFix.name", "recordWorldEventFix"),
                 Map.entry("carpet.rule.recordWorldEventFix.desc", "Fixes the issue where a music disc can keep playing after being quickly inserted into and removed from a jukebox, which may also cause overlapping disc audio. See MC-112245."),
-                Map.entry("carpet.rule.spawnersIgnoreInvisiblePlayers.name", "spawnersIgnoreInvisiblePlayers"),
                 Map.entry("carpet.rule.spawnersIgnoreInvisiblePlayers.desc", "Normal spawners, trial spawners, and ominous trial spawners ignore invisible players when checking nearby players."),
-                Map.entry("carpet.rule.disableKelpNaturalGrowth.name", "disableKelpNaturalGrowth"),
                 Map.entry("carpet.rule.disableKelpNaturalGrowth.desc", "Disable kelp natural growth from random ticks while keeping bonemeal growth unchanged."),
-                Map.entry("carpet.rule.canMineBuddingAmethyst.name", "canMineBuddingAmethyst"),
                 Map.entry("carpet.rule.canMineBuddingAmethyst.desc", "Budding amethyst can be collected with a Silk Touch tool."),
                 Map.entry("message.carpet-ice-addition.safe_scaffolding_break", "Hold scaffolding or empty your main hand to break scaffolding.")
         );
