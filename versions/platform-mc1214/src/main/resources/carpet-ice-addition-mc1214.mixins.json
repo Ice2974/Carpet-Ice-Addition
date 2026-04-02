@@ -3,6 +3,7 @@
   "package": "com.ice2974.carpeticeaddition.mixins",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "CanMineBuddingAmethystMixin",
     "CrafterBlockMixin",
     "JukeboxManagerRecordWorldEventMixin",
     "KelpNaturalGrowthMixin",

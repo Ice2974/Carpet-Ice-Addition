@@ -27,4 +27,7 @@ public final class CarpetIceAdditionSettings {
 
     @Rule(categories = {ICE, FEATURE})
     public static boolean disableKelpNaturalGrowth = false;
+
+    @Rule(categories = {ICE, FEATURE})
+    public static boolean canMineBuddingAmethyst = false;
 }

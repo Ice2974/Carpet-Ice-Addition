@@ -20,21 +20,25 @@ public final class CarpetIceAdditionTranslations {
                     Map.entry("carpet.rule.spawnersIgnoreInvisiblePlayers.desc", "\u666e\u901a\u5237\u602a\u7b3c\u3001\u8bd5\u70bc\u5237\u602a\u7b3c\u548c\u4e0d\u7965\u8bd5\u70bc\u5237\u602a\u7b3c\u5728\u5224\u5b9a\u9644\u8fd1\u73a9\u5bb6\u65f6\u4f1a\u5ffd\u7565\u9690\u8eab\u73a9\u5bb6\u3002"),
                     Map.entry("carpet.rule.disableKelpNaturalGrowth.name", "\u7981\u7528\u6d77\u5e26\u81ea\u7136\u751f\u957f"),
                     Map.entry("carpet.rule.disableKelpNaturalGrowth.desc", "\u7981\u7528\u6d77\u5e26\u7531\u968f\u673a\u523b\u89e6\u53d1\u7684\u81ea\u7136\u751f\u957f\uff0c\u4e0d\u5f71\u54cd\u9aa8\u7c89\u50ac\u719f\u3002"),
+                    Map.entry("carpet.rule.canMineBuddingAmethyst.name", "\u53ef\u91c7\u96c6\u7d2b\u6c34\u6676\u6bcd\u5ca9"),
+                    Map.entry("carpet.rule.canMineBuddingAmethyst.desc", "\u4f7f\u7528\u5e26\u6709\u7cbe\u51c6\u91c7\u96c6\u7684\u5de5\u5177\u53ef\u4ee5\u91c7\u96c6\u7d2b\u6c34\u6676\u6bcd\u5ca9\u3002"),
                     Map.entry("message.carpet-ice-addition.safe_scaffolding_break", "\u4f60\u5fc5\u987b\u624b\u6301\u811a\u624b\u67b6\u6216\u7a7a\u624b\u624d\u80fd\u7834\u574f\u811a\u624b\u67b6")
             );
         }
         return Map.ofEntries(
                 Map.entry("carpet.category.carpetIceAddition", "Ice"),
-                Map.entry("carpet.rule.safeScaffoldingBreak.name", "\u811a\u624b\u67b6\u9632\u8bef\u89e6"),
+                Map.entry("carpet.rule.safeScaffoldingBreak.name", "safeScaffoldingBreak"),
                 Map.entry("carpet.rule.safeScaffoldingBreak.desc", "Require holding scaffolding or an empty main hand to break scaffolding."),
-                Map.entry("carpet.rule.crafterStopsWhenOutputBlocked.name", "\u5408\u6210\u5668\u8f93\u51fa\u963b\u585e\u65f6\u505c\u6b62\u5408\u6210"),
+                Map.entry("carpet.rule.crafterStopsWhenOutputBlocked.name", "crafterStopsWhenOutputBlocked"),
                 Map.entry("carpet.rule.crafterStopsWhenOutputBlocked.desc", "Prevent the crafter from crafting when its output points to a valid auto-accepting container that cannot fully accept the crafted result and recipe remainders."),
-                Map.entry("carpet.rule.recordWorldEventFix.name", "\u5531\u7247\u4e16\u754c\u4e8b\u4ef6\u65f6\u5e8f\u4fee\u590d"),
+                Map.entry("carpet.rule.recordWorldEventFix.name", "recordWorldEventFix"),
                 Map.entry("carpet.rule.recordWorldEventFix.desc", "Fixes the issue where a music disc can keep playing after being quickly inserted into and removed from a jukebox, which may also cause overlapping disc audio. See MC-112245."),
                 Map.entry("carpet.rule.spawnersIgnoreInvisiblePlayers.name", "spawnersIgnoreInvisiblePlayers"),
                 Map.entry("carpet.rule.spawnersIgnoreInvisiblePlayers.desc", "Normal spawners, trial spawners, and ominous trial spawners ignore invisible players when checking nearby players."),
-                Map.entry("carpet.rule.disableKelpNaturalGrowth.name", "Disable kelp natural growth"),
+                Map.entry("carpet.rule.disableKelpNaturalGrowth.name", "disableKelpNaturalGrowth"),
                 Map.entry("carpet.rule.disableKelpNaturalGrowth.desc", "Disable kelp natural growth from random ticks while keeping bonemeal growth unchanged."),
+                Map.entry("carpet.rule.canMineBuddingAmethyst.name", "canMineBuddingAmethyst"),
+                Map.entry("carpet.rule.canMineBuddingAmethyst.desc", "Budding amethyst can be collected with a Silk Touch tool."),
                 Map.entry("message.carpet-ice-addition.safe_scaffolding_break", "Hold scaffolding or empty your main hand to break scaffolding.")
         );
     }

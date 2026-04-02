@@ -1,4 +1,4 @@
-﻿## 脚手架防误触 (safeScaffoldingBreak)
+## 脚手架防误触 (safeScaffoldingBreak)
 
 玩家只有在主手拿着脚手架或者主手为空手时才能破坏脚手架。如果玩家尝试持其他物品破坏脚手架，系统将阻止该操作，并在 **Action Bar** 上显示提示。
 
@@ -28,6 +28,24 @@
 ## 刷怪笼忽略隐身玩家 (spawnersIgnoreInvisiblePlayers)
 
 隐身玩家不会触发普通刷怪笼、试炼刷怪笼和不祥试炼刷怪笼。若附近存在可见玩家，仍可正常触发对应刷怪流程。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`
+
+## 禁用海带自然生长 (disableKelpNaturalGrowth)
+
+禁用海带由随机刻触发的自然生长，不影响骨粉催熟。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`
+
+## 可采集紫水晶母岩 (canMineBuddingAmethyst)
+
+使用带有精准采集的工具可以采集紫水晶母岩。
 
 - 类型: `boolean`
 - 默认值: `false`
