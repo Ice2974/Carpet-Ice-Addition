@@ -8,7 +8,7 @@ classes/
 publish/
 
 # Test
-run/
+**/run/
 logs/
 crash-reports/
 hs_err_pid*
