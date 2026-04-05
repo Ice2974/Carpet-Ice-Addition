@@ -10,9 +10,12 @@
     "MobSpawnerLogicMixin",
     "ServerWorldRecordWorldEventMixin",
     "SafeScaffoldingBreakMixin",
+    "PlayerListEntryTabListNameMixin",
     "TrialSpawnerDataMixin"
   ],
   "injectors": {
     "defaultRequire": 1
   }
 }
+
+

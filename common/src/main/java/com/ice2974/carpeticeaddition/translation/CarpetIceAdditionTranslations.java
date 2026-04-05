@@ -22,6 +22,10 @@ public final class CarpetIceAdditionTranslations {
                     Map.entry("carpet.rule.disableKelpNaturalGrowth.desc", "\u7981\u7528\u6d77\u5e26\u7531\u968f\u673a\u523b\u89e6\u53d1\u7684\u81ea\u7136\u751f\u957f\uff0c\u4e0d\u5f71\u54cd\u9aa8\u7c89\u50ac\u719f\u3002"),
                     Map.entry("carpet.rule.canMineBuddingAmethyst.name", "\u53ef\u91c7\u96c6\u7d2b\u6c34\u6676\u6bcd\u5ca9"),
                     Map.entry("carpet.rule.canMineBuddingAmethyst.desc", "\u4f7f\u7528\u5e26\u6709\u7cbe\u51c6\u91c7\u96c6\u7684\u5de5\u5177\u53ef\u4ee5\u91c7\u96c6\u7d2b\u6c34\u6676\u6bcd\u5ca9\u3002"),
+                    Map.entry("carpet.rule.botTabListNamePrefix.name", "\u5047\u4ebaTab\u680f\u540d\u79f0\u524d\u7f00"),
+                    Map.entry("carpet.rule.botTabListNamePrefix.desc", "\u4e3aTab\u680f\u4e2d\u7684\u5047\u4eba\u6dfb\u52a0\u524d\u7f00\uff0c\u4f7f\u7528&\u6765\u8868\u793a\u6587\u5b57\u989c\u8272\u3002"),
+                    Map.entry("carpet.rule.botTabListNameSuffix.name", "\u5047\u4ebaTab\u680f\u540d\u79f0\u540e\u7f00"),
+                    Map.entry("carpet.rule.botTabListNameSuffix.desc", "\u4e3aTab\u680f\u4e2d\u7684\u5047\u4eba\u6dfb\u52a0\u540e\u7f00\uff0c\u4f7f\u7528&\u6765\u8868\u793a\u6587\u5b57\u989c\u8272\u3002"),
                     Map.entry("message.carpet-ice-addition.safe_scaffolding_break", "\u4f60\u5fc5\u987b\u624b\u6301\u811a\u624b\u67b6\u6216\u7a7a\u624b\u624d\u80fd\u7834\u574f\u811a\u624b\u67b6")
             );
         }
@@ -33,6 +37,8 @@ public final class CarpetIceAdditionTranslations {
                 Map.entry("carpet.rule.spawnersIgnoreInvisiblePlayers.desc", "Normal spawners, trial spawners, and ominous trial spawners ignore invisible players when checking nearby players."),
                 Map.entry("carpet.rule.disableKelpNaturalGrowth.desc", "Disable kelp natural growth from random ticks while keeping bonemeal growth unchanged."),
                 Map.entry("carpet.rule.canMineBuddingAmethyst.desc", "Budding amethyst can be collected with a Silk Touch tool."),
+                Map.entry("carpet.rule.botTabListNamePrefix.desc", "Add a prefix to the Bot in the TabList, using & to represent text color."),
+                Map.entry("carpet.rule.botTabListNameSuffix.desc", "Add a suffix to the Bot in the TabList, using & to represent text color."),
                 Map.entry("message.carpet-ice-addition.safe_scaffolding_break", "Hold scaffolding or empty your main hand to break scaffolding.")
         );
     }

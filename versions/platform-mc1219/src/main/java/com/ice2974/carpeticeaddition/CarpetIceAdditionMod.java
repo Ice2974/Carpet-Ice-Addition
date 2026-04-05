@@ -3,6 +3,7 @@ package com.ice2974.carpeticeaddition;
 import carpet.CarpetExtension;
 import carpet.CarpetServer;
 import com.ice2974.carpeticeaddition.compat.RuntimeCompatibility;
+import com.ice2974.carpeticeaddition.rules.BotTabListNameHelper;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
 import com.ice2974.carpeticeaddition.translation.CarpetIceAdditionTranslations;
 import net.fabricmc.api.ModInitializer;
@@ -25,6 +26,7 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
     private static final AtomicBoolean SPAWNERS_IGNORE_INVISIBLE_PLAYERS_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean DISABLE_KELP_NATURAL_GROWTH_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean CAN_MINE_BUDDING_AMETHYST_ERROR_REPORTED = new AtomicBoolean(false);
+    private static final AtomicBoolean BOT_TAB_LIST_NAME_ERROR_REPORTED = new AtomicBoolean(false);
     private static String version;
     private static RuntimeCompatibility compatibility;
 
@@ -43,6 +45,18 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
     @Override
     public void onGameStarted() {
         CarpetServer.settingsManager.parseSettingsClass(CarpetIceAdditionSettings.class);
+        CarpetServer.settingsManager.registerRuleObserver((source, rule, userInput) -> {
+            String ruleName = rule.name();
+            if (!"botTabListNamePrefix".equals(ruleName) && !"botTabListNameSuffix".equals(ruleName)) {
+                return;
+            }
+
+            try {
+                BotTabListNameHelper.refreshFakePlayerDisplayNames();
+            } catch (Throwable throwable) {
+                reportFeatureCompatibilityIssue("botTabListName", throwable);
+            }
+        });
     }
 
     @Override
@@ -88,6 +102,10 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
             flag = DISABLE_KELP_NATURAL_GROWTH_ERROR_REPORTED;
         } else if ("canMineBuddingAmethyst".equals(featureName)) {
             flag = CAN_MINE_BUDDING_AMETHYST_ERROR_REPORTED;
+        } else if ("botTabListName".equals(featureName)
+                || "botTabListNamePrefix".equals(featureName)
+                || "botTabListNameSuffix".equals(featureName)) {
+            flag = BOT_TAB_LIST_NAME_ERROR_REPORTED;
         } else {
             LOGGER.warn("[Carpet Ice Addition] Compatibility issue in feature {}: {}", featureName, throwable.toString());
             return;

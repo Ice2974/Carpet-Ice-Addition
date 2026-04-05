@@ -51,3 +51,21 @@ Budding amethyst can be collected with a Silk Touch tool.
 - Default: `false`
 - Possible values: `false`, `true`
 - Categories: `ICE`, `FEATURE`
+
+## botTabListNamePrefix
+
+Adds a prefix to fake player names in the TabList, using `&` to represent text color.
+
+- Type: `String`
+- Default: `#none`
+- Suggested values: `#none`, `[Bot] `
+- Categories: `ICE`
+
+## botTabListNameSuffix
+
+Adds a suffix to fake player names in the TabList, using `&` to represent text color.
+
+- Type: `String`
+- Default: `#none`
+- Suggested values: `#none`, ` [Fake]`
+- Categories: `ICE`

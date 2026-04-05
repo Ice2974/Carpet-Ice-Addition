@@ -51,3 +51,21 @@
 - 默认值: `false`
 - 可选值: `false`, `true`
 - 分类: `ICE`, `FEATURE`
+
+## 假人Tab栏名称前缀 (botTabListNamePrefix)
+
+为 Tab 栏中的假人名称添加前缀，使用 `&` 来表示文字颜色。
+
+- 类型: `String`
+- 默认值: `#none`
+- 参考值: `#none`, `[Bot] `
+- 分类: `ICE`
+
+## 假人Tab栏名称后缀 (botTabListNameSuffix)
+
+为 Tab 栏中的假人名称添加后缀，使用 `&` 来表示文字颜色。
+
+- 类型: `String`
+- 默认值: `#none`
+- 参考值: `#none`, ` [Fake]`
+- 分类: `ICE`

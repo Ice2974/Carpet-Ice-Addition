@@ -9,6 +9,7 @@
     "KelpNaturalGrowthMixin",
     "MobSpawnerLogicMixin",
     "SafeScaffoldingBreakMixin",
+    "PlayerListEntryTabListNameMixin",
     "ServerWorldRecordWorldEventMixin",
     "TrialSpawnerDataMixin"
   ],
@@ -16,3 +17,5 @@
     "defaultRequire": 1
   }
 }
+
+

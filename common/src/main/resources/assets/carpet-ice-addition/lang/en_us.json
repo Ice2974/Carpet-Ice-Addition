@@ -6,5 +6,9 @@
   "carpet.rule.spawnersIgnoreInvisiblePlayers.desc": "Normal spawners, trial spawners, and ominous trial spawners ignore invisible players when checking nearby players.",
   "carpet.rule.disableKelpNaturalGrowth.desc": "Disable kelp natural growth from random ticks while keeping bonemeal growth unchanged.",
   "carpet.rule.canMineBuddingAmethyst.desc": "Budding amethyst can be collected with a Silk Touch tool.",
+  "carpet.rule.botTabListNamePrefix.name": "Bot TabList Name Prefix (botTabListNamePrefix)",
+  "carpet.rule.botTabListNamePrefix.desc": "Add a prefix to the Bot in the TabList, using & to represent text color.",
+  "carpet.rule.botTabListNameSuffix.name": "Bot TabList Name Suffix (botTabListNameSuffix)",
+  "carpet.rule.botTabListNameSuffix.desc": "Add a suffix to the Bot in the TabList, using & to represent text color.",
   "message.carpet-ice-addition.safe_scaffolding_break": "Hold scaffolding or empty your main hand to break scaffolding."
 }

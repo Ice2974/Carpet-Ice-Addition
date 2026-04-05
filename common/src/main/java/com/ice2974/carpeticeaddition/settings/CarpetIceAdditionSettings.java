@@ -30,4 +30,18 @@ public final class CarpetIceAdditionSettings {
 
     @Rule(categories = {ICE, FEATURE})
     public static boolean canMineBuddingAmethyst = false;
+
+    @Rule(
+            categories = {ICE},
+            options = {"#none", "[Bot]"},
+            strict = false
+    )
+    public static String botTabListNamePrefix = "#none";
+
+    @Rule(
+            categories = {ICE},
+            options = {"#none", "[Fake]"},
+            strict = false
+    )
+    public static String botTabListNameSuffix = "#none";
 }
