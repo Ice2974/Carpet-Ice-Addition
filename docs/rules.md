@@ -1,24 +1,24 @@
-## 脚手架防误触 (safeScaffoldingBreak)
+﻿## 脚手架防误触 (safeScaffoldingBreak)
 
 玩家只有在主手拿着脚手架或者主手为空手时才能破坏脚手架。如果玩家尝试持其他物品破坏脚手架，系统将阻止该操作，并在 **Action Bar** 上显示提示。
 
 - 类型: `boolean`
 - 默认值: `false`
-- 参考选项: `false`, `true`
+- 可选值: `false`, `true`
 - 分类: `ICE`, `SURVIVAL`, `FEATURE`
 
 ## 合成器输出阻塞时停止合成 (crafterStopsWhenOutputBlocked)
 
-当合成器输出目标容器无法接收产物时，停止合成并取消原料消耗。此功能可以防止合成器因目标容器无法接收全部产物而导致物品溢出。
+当合成器输出目标容器无法完整接收本次产物时，停止本次合成，避免物品喷出。
 
 - 类型: `boolean`
 - 默认值: `false`
-- 参考选项: `false`, `true`
+- 可选值: `false`, `true`
 - 分类: `ICE`, `FEATURE`
 
 ## 唱片世界事件时序修复 (recordWorldEventFix)
 
-修复了将唱片快速放入唱片机后又迅速取出时，音乐仍可能继续播放，且多个唱片音频可能重叠的问题，详见 MC-112245。
+修复唱片快速放入并取出后音乐仍继续播放、或多张唱片音频重叠的问题。详见 MC-112245。
 
 - 类型: `boolean`
 - 默认值: `false`
@@ -27,7 +27,7 @@
 
 ## 刷怪笼忽略隐身玩家 (spawnersIgnoreInvisiblePlayers)
 
-隐身玩家不会触发普通刷怪笼、试炼刷怪笼和不祥试炼刷怪笼。若附近存在可见玩家，仍可正常触发对应刷怪流程。
+普通刷怪笼、试炼刷怪笼和不祥试炼刷怪笼在检测附近玩家时忽略隐身玩家。
 
 - 类型: `boolean`
 - 默认值: `false`
@@ -45,7 +45,7 @@
 
 ## 可采集紫水晶母岩 (canMineBuddingAmethyst)
 
-使用带有精准采集的工具可以采集紫水晶母岩。
+开启后，使用带有精准采集附魔的合适工具可采集紫水晶母岩。
 
 - 类型: `boolean`
 - 默认值: `false`
@@ -54,7 +54,7 @@
 
 ## 假人Tab栏名称前缀 (botTabListNamePrefix)
 
-为 Tab 栏中的假人名称添加前缀，使用 `&` 来表示文字颜色。
+为 Tab 栏中的假人名称添加前缀，支持使用 `&` 作为颜色/格式代码前缀。
 
 - 类型: `String`
 - 默认值: `#none`
@@ -63,9 +63,18 @@
 
 ## 假人Tab栏名称后缀 (botTabListNameSuffix)
 
-为 Tab 栏中的假人名称添加后缀，使用 `&` 来表示文字颜色。
+为 Tab 栏中的假人名称添加后缀，支持使用 `&` 作为颜色/格式代码前缀。
 
 - 类型: `String`
 - 默认值: `#none`
 - 参考值: `#none`, ` [Fake]`
 - 分类: `ICE`
+
+## 假人免疫荆棘反伤 (fakePlayerIgnoreThornsDamage)
+
+开启后，Carpet 假人在攻击带有荆棘附魔的生物或玩家时，不会受到荆棘造成的反伤与反馈击退。真人玩家保持原版行为。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`

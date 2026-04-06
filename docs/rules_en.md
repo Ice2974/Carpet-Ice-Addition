@@ -1,6 +1,6 @@
-## safeScaffoldingBreak
+﻿## safeScaffoldingBreak
 
-The player can only break scaffolding if they are holding scaffolding or if their main hand is empty. If the player tries to break scaffolding while holding another item, the action will be prevented, and a warning will appear in the **Action Bar**.
+Players can only break scaffolding when holding scaffolding or with an empty main hand. If they try to break scaffolding while holding another item, the action is blocked and a warning is shown in the **Action Bar**.
 
 - Type: `boolean`
 - Default: `false`
@@ -9,7 +9,7 @@ The player can only break scaffolding if they are holding scaffolding or if thei
 
 ## crafterStopsWhenOutputBlocked
 
-Stops crafting when the output container cannot fully accept the crafted result, avoiding item spillage. This prevents the crafting process from continuing if the container is full or unable to accept the crafted items.
+Stops crafting when the output container cannot fully accept the crafted result, preventing item spillage.
 
 - Type: `boolean`
 - Default: `false`
@@ -18,7 +18,7 @@ Stops crafting when the output container cannot fully accept the crafted result,
 
 ## recordWorldEventFix
 
-Fixes the issue where a music disc can keep playing after being quickly inserted into and removed from a jukebox, which may also cause overlapping disc audio. See MC-112245.
+Fixes the issue where a music disc can keep playing after being quickly inserted into and removed from a jukebox, and prevents overlapping disc audio. See MC-112245.
 
 - Type: `boolean`
 - Default: `false`
@@ -27,7 +27,7 @@ Fixes the issue where a music disc can keep playing after being quickly inserted
 
 ## spawnersIgnoreInvisiblePlayers
 
-Invisible players do not activate normal spawners, trial spawners, or ominous trial spawners. If visible players are nearby, spawning can still be activated normally.
+Normal spawners, trial spawners, and ominous trial spawners ignore invisible players when checking nearby players.
 
 - Type: `boolean`
 - Default: `false`
@@ -45,7 +45,7 @@ Disables kelp natural growth from random ticks while keeping bonemeal growth unc
 
 ## canMineBuddingAmethyst
 
-Budding amethyst can be collected with a Silk Touch tool.
+Allows collecting budding amethyst with a suitable Silk Touch tool.
 
 - Type: `boolean`
 - Default: `false`
@@ -54,7 +54,7 @@ Budding amethyst can be collected with a Silk Touch tool.
 
 ## botTabListNamePrefix
 
-Adds a prefix to fake player names in the TabList, using `&` to represent text color.
+Adds a prefix to fake player names in the TabList. Supports `&` color/format codes.
 
 - Type: `String`
 - Default: `#none`
@@ -63,9 +63,18 @@ Adds a prefix to fake player names in the TabList, using `&` to represent text c
 
 ## botTabListNameSuffix
 
-Adds a suffix to fake player names in the TabList, using `&` to represent text color.
+Adds a suffix to fake player names in the TabList. Supports `&` color/format codes.
 
 - Type: `String`
 - Default: `#none`
 - Suggested values: `#none`, ` [Fake]`
 - Categories: `ICE`
+
+## fakePlayerIgnoreThornsDamage
+
+When enabled, Carpet fake players do not take Thorns damage or Thorns feedback knockback when attacking entities or players with Thorns. Real players keep vanilla behavior.
+
+- Type: `boolean`
+- Default: `false`
+- Possible values: `false`, `true`
+- Categories: `ICE`, `FEATURE`

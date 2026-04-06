@@ -7,6 +7,7 @@
     "CrafterBlockMixin",
     "JukeboxManagerRecordWorldEventMixin",
     "KelpNaturalGrowthMixin",
+    "FakePlayerIgnoreThornsDamageMixin",
     "MobSpawnerLogicMixin",
     "TrialSpawnerDataMixin",
     "ServerWorldRecordWorldEventMixin",
@@ -17,5 +18,3 @@
     "defaultRequire": 1
   }
 }
-
-

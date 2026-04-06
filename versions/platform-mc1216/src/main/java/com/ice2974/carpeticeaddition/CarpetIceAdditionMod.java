@@ -27,6 +27,7 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
     private static final AtomicBoolean DISABLE_KELP_NATURAL_GROWTH_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean CAN_MINE_BUDDING_AMETHYST_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean BOT_TAB_LIST_NAME_ERROR_REPORTED = new AtomicBoolean(false);
+    private static final AtomicBoolean FAKE_PLAYER_IGNORE_THORNS_DAMAGE_ERROR_REPORTED = new AtomicBoolean(false);
     private static String version;
     private static RuntimeCompatibility compatibility;
 
@@ -106,6 +107,8 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
                 || "botTabListNamePrefix".equals(featureName)
                 || "botTabListNameSuffix".equals(featureName)) {
             flag = BOT_TAB_LIST_NAME_ERROR_REPORTED;
+        } else if ("fakePlayerIgnoreThornsDamage".equals(featureName)) {
+            flag = FAKE_PLAYER_IGNORE_THORNS_DAMAGE_ERROR_REPORTED;
         } else {
             LOGGER.warn("[Carpet Ice Addition] Compatibility issue in feature {}: {}", featureName, throwable.toString());
             return;

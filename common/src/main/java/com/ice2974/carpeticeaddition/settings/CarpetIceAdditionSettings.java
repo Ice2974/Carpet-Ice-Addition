@@ -31,6 +31,9 @@ public final class CarpetIceAdditionSettings {
     @Rule(categories = {ICE, FEATURE})
     public static boolean canMineBuddingAmethyst = false;
 
+    @Rule(categories = {ICE, FEATURE})
+    public static boolean fakePlayerIgnoreThornsDamage = false;
+
     @Rule(
             categories = {ICE},
             options = {"#none", "[Bot]"},
