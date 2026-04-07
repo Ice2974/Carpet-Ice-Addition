@@ -13,7 +13,7 @@ public final class CarpetIceAdditionSettings {
     private CarpetIceAdditionSettings() {
     }
 
-    @Rule(categories = {ICE, SURVIVAL, FEATURE})
+    @Rule(categories = {ICE, SURVIVAL})
     public static boolean safeScaffoldingBreak = false;
 
     @Rule(categories = {ICE, FEATURE})
@@ -33,6 +33,9 @@ public final class CarpetIceAdditionSettings {
 
     @Rule(categories = {ICE, FEATURE})
     public static boolean fakePlayerIgnoreThornsDamage = false;
+
+    @Rule(categories = {ICE, SURVIVAL})
+    public static boolean disablePetAttacking = false;
 
     @Rule(
             categories = {ICE},

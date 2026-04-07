@@ -5,7 +5,7 @@
 - 类型: `boolean`
 - 默认值: `false`
 - 可选值: `false`, `true`
-- 分类: `ICE`, `SURVIVAL`, `FEATURE`
+- 分类: `ICE`, `SURVIVAL`
 
 ## 合成器输出阻塞时停止合成 (crafterStopsWhenOutputBlocked)
 
@@ -45,7 +45,7 @@
 
 ## 可采集紫水晶母岩 (canMineBuddingAmethyst)
 
-开启后，使用带有精准采集附魔的合适工具可采集紫水晶母岩。
+使用带有精准采集附魔的合适工具可采集紫水晶母岩。
 
 - 类型: `boolean`
 - 默认值: `false`
@@ -72,9 +72,18 @@
 
 ## 假人免疫荆棘反伤 (fakePlayerIgnoreThornsDamage)
 
-开启后，Carpet 假人在攻击带有荆棘附魔的生物或玩家时，不会受到荆棘造成的反伤与反馈击退。真人玩家保持原版行为。
+假人在攻击带有荆棘附魔的生物或玩家时，不会受到荆棘造成的反伤。真人玩家保持原版行为。
 
 - 类型: `boolean`
 - 默认值: `false`
 - 可选值: `false`, `true`
 - 分类: `ICE`, `FEATURE`
+
+## 禁止伤害已驯服生物 (disablePetAttacking)
+
+禁用玩家对已驯服生物造成伤害，防止误伤。仅拦截玩家来源伤害；未驯服生物与非玩家来源伤害保持原版行为。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `SURVIVAL`

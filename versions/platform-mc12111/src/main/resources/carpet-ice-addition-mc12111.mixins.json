@@ -8,6 +8,7 @@
     "JukeboxManagerRecordWorldEventMixin",
     "KelpNaturalGrowthMixin",
     "FakePlayerIgnoreThornsDamageMixin",
+    "DisablePetAttackingMixin",
     "MobSpawnerLogicMixin",
     "TrialSpawnerDataMixin",
     "ServerWorldRecordWorldEventMixin",

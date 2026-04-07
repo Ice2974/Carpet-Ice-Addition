@@ -5,7 +5,7 @@ Players can only break scaffolding when holding scaffolding or with an empty mai
 - Type: `boolean`
 - Default: `false`
 - Possible values: `false`, `true`
-- Categories: `ICE`, `SURVIVAL`, `FEATURE`
+- Categories: `ICE`, `SURVIVAL`
 
 ## crafterStopsWhenOutputBlocked
 
@@ -72,9 +72,18 @@ Adds a suffix to fake player names in the TabList. Supports `&` color/format cod
 
 ## fakePlayerIgnoreThornsDamage
 
-When enabled, Carpet fake players do not take Thorns damage or Thorns feedback knockback when attacking entities or players with Thorns. Real players keep vanilla behavior.
+Bots do not take reflected damage caused by Thorns when attacking entities or players with Thorns. Real players keep vanilla behavior.
 
 - Type: `boolean`
 - Default: `false`
 - Possible values: `false`, `true`
 - Categories: `ICE`, `FEATURE`
+
+## disablePetAttacking
+
+Disables players harming tamed mobs to prevent accidental harm. Only player-sourced damage is blocked; untamed mobs and non-player damage sources keep vanilla behavior.
+
+- Type: `boolean`
+- Default: `false`
+- Possible values: `false`, `true`
+- Categories: `ICE`, `SURVIVAL`
