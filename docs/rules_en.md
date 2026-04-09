@@ -19,6 +19,7 @@ Stops crafting when the output container cannot fully accept the crafted result,
 ## recordWorldEventFix
 
 Fixes the issue where a music disc can keep playing after being quickly inserted into and removed from a jukebox, and prevents overlapping disc audio. See MC-112245.
+(This rule was initially ported from Carpet-Fixes and has since been adapted for this mod's needs.)
 
 - Type: `boolean`
 - Default: `false`
@@ -55,6 +56,7 @@ Allows collecting budding amethyst with a suitable Silk Touch tool.
 ## botTabListNamePrefix
 
 Adds a prefix to fake player names in the TabList. Supports `&` color/format codes.
+(This rule was initially ported from Carpet-TCTC-Addition and has since been adapted for this mod's needs.)
 
 - Type: `String`
 - Default: `#none`
@@ -64,6 +66,7 @@ Adds a prefix to fake player names in the TabList. Supports `&` color/format cod
 ## botTabListNameSuffix
 
 Adds a suffix to fake player names in the TabList. Supports `&` color/format codes.
+(This rule was initially ported from Carpet-TCTC-Addition and has since been adapted for this mod's needs.)
 
 - Type: `String`
 - Default: `#none`
