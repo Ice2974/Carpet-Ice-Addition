@@ -19,6 +19,7 @@
 ## 唱片世界事件时序修复 (recordWorldEventFix)
 
 修复唱片快速放入并取出后音乐仍继续播放、或多张唱片音频重叠的问题。详见 MC-112245。
+（此规则最初移植自Carpet-Fixes，现已按本模组需求调整）
 
 - 类型: `boolean`
 - 默认值: `false`
@@ -55,6 +56,7 @@
 ## 假人Tab栏名称前缀 (botTabListNamePrefix)
 
 为 Tab 栏中的假人名称添加前缀，支持使用 `&` 作为颜色/格式代码前缀。
+（此规则最初移植自Carpet-TCTC-Addition，现已按本模组需求调整）
 
 - 类型: `String`
 - 默认值: `#none`
@@ -64,6 +66,7 @@
 ## 假人Tab栏名称后缀 (botTabListNameSuffix)
 
 为 Tab 栏中的假人名称添加后缀，支持使用 `&` 作为颜色/格式代码前缀。
+（此规则最初移植自Carpet-TCTC-Addition，现已按本模组需求调整）
 
 - 类型: `String`
 - 默认值: `#none`
