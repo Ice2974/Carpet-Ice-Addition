@@ -22,6 +22,7 @@
 
 ## Download
 - [Github](https://github.com/Ice2974/Carpet-Ice-Addition/releases)
+- [Modrinth](https://modrinth.com/mod/carpet-ice-addition)
 
 ## Documentation
 - [Rules (English)](docs/rules_en.md)
