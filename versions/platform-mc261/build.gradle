@@ -77,10 +77,34 @@ def compareMcVersions = { String left, String right ->
     }
     return 0
 }
+def toVersionParts = { String version ->
+    version.tokenize('.').collect { part -> part.toInteger() }
+}
+def toPatchValue = { List<Integer> parts ->
+    parts.size() >= 3 ? parts[2] : 0
+}
 def releaseRangeParts = releaseMinecraftRange.split(/\s*[~-]\s*/).toList().findAll { !it.isBlank() }
-def releaseMinecraftLabel = releaseRangeParts.size() > 1
-        ? releaseRangeParts.sort { a, b -> compareMcVersions(a, b) }.last()
-        : releaseMinecraftRange
+def sortedRangeParts = releaseRangeParts.sort { a, b -> compareMcVersions(a, b) }
+def releaseMinecraftLabel
+if (sortedRangeParts.size() <= 1) {
+    releaseMinecraftLabel = releaseMinecraftRange
+} else {
+    def lower = sortedRangeParts.first()
+    def upper = sortedRangeParts.last()
+    def lowerParts = toVersionParts(lower)
+    def upperParts = toVersionParts(upper)
+    def sameMajorMinor = lowerParts.size() >= 2
+            && upperParts.size() >= 2
+            && lowerParts[0] == upperParts[0]
+            && lowerParts[1] == upperParts[1]
+    def patchSpan = Math.abs(toPatchValue(upperParts) - toPatchValue(lowerParts))
+
+    if (sameMajorMinor && patchSpan >= 2) {
+        releaseMinecraftLabel = "${lowerParts[0]}.${lowerParts[1]}.x"
+    } else {
+        releaseMinecraftLabel = "${lower}-${upper}"
+    }
+}
 def releaseJarBaseName = "Carpet-Ice-Addition-v${project.mod_version}-mc${releaseMinecraftLabel}"
 
 tasks.named('jar') {
