@@ -10,15 +10,8 @@
 ## Version Support
 | Game Version | Development Status | Last Supported Version |
 | --- | --- | --- |
-| 1.21-1.21.1 | Maintained |   |
-| 1.21.2-1.21.3 | Maintained |   |
-| 1.21.4 | Maintained |   |
-| 1.21.5 | Maintained |   |
-| 1.21.6 | Maintained |   |
-| 1.21.7-1.21.8 | Maintained |   |
-| 1.21.9 | Maintained |   |
-| 1.21.10 | Maintained |   |
-| 1.21.11 | Maintained |   |
+| 1.21.x | Maintained |   |
+| 26.1.x | Maintained |   |
 
 ## Download
 - [Github](https://github.com/Ice2974/Carpet-Ice-Addition/releases)
