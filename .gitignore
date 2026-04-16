@@ -32,6 +32,6 @@ bin/
 # Git
 .shelf/
 
-# others
+# Others
 .tmp/
 开发文档.md
