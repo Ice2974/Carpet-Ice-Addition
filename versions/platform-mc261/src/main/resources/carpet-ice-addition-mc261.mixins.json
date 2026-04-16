@@ -1,0 +1,21 @@
+{
+  "required": false,
+  "package": "com.ice2974.carpeticeaddition.mixins",
+  "compatibilityLevel": "JAVA_25",
+  "mixins": [
+    "CanMineBuddingAmethystMixin",
+    "CrafterBlockMixin",
+    "JukeboxManagerRecordWorldEventMixin",
+    "KelpNaturalGrowthMixin",
+    "FakePlayerIgnoreThornsDamageMixin",
+    "DisablePetAttackingMixin",
+    "MobSpawnerLogicMixin",
+    "TrialSpawnerDataMixin",
+    "ServerWorldRecordWorldEventMixin",
+    "SafeScaffoldingBreakMixin",
+    "PlayerListEntryTabListNameMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

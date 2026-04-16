@@ -17,6 +17,7 @@ include 'versions:platform-mc1218'
 include 'versions:platform-mc1219'
 include 'versions:platform-mc12110'
 include 'versions:platform-mc12111'
+include 'versions:platform-mc261'
 
 project(':versions:platform-mc1211').projectDir = file('versions/platform-mc1211')
 project(':versions:platform-mc1213').projectDir = file('versions/platform-mc1213')
@@ -27,3 +28,4 @@ project(':versions:platform-mc1218').projectDir = file('versions/platform-mc1218
 project(':versions:platform-mc1219').projectDir = file('versions/platform-mc1219')
 project(':versions:platform-mc12110').projectDir = file('versions/platform-mc12110')
 project(':versions:platform-mc12111').projectDir = file('versions/platform-mc12111')
+project(':versions:platform-mc261').projectDir = file('versions/platform-mc261')
