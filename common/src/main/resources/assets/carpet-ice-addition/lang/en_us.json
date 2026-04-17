@@ -6,6 +6,7 @@
   "carpet.rule.spawnersIgnoreInvisiblePlayers.desc": "Normal spawners, trial spawners, and ominous trial spawners ignore invisible players when checking nearby players.",
   "carpet.rule.disableKelpNaturalGrowth.desc": "Disable kelp natural growth from random ticks while keeping bonemeal growth unchanged.",
   "carpet.rule.canMineBuddingAmethyst.desc": "Budding amethyst can be collected with a Silk Touch tool.",
+  "carpet.rule.disableNyliumDecay.desc": "Crimson nylium and warped nylium will not decay into netherrack when covered by a block above.",
   "carpet.rule.fakePlayerIgnoreThornsDamage.desc": "Bots will not take reflected damage caused by Thorns when attacking entities or players equipped with Thorns.",
   "carpet.rule.disablePlayerAttackingTamedMobs.desc": "Disables players harming tamed mobs to prevent accidental harm.",
   "carpet.rule.botTabListNamePrefix.desc": "Add a prefix to the Bot in the TabList, using & to represent text color.",

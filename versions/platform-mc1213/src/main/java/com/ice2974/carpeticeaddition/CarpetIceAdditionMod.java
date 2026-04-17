@@ -26,6 +26,7 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
     private static final AtomicBoolean SPAWNERS_IGNORE_INVISIBLE_PLAYERS_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean DISABLE_KELP_NATURAL_GROWTH_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean CAN_MINE_BUDDING_AMETHYST_ERROR_REPORTED = new AtomicBoolean(false);
+    private static final AtomicBoolean DISABLE_NYLIUM_DECAY_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean BOT_TAB_LIST_NAME_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean FAKE_PLAYER_IGNORE_THORNS_DAMAGE_ERROR_REPORTED = new AtomicBoolean(false);
     private static String version;
@@ -89,6 +90,10 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
         return compatibility == null || compatibility.shouldEnableCanMineBuddingAmethyst();
     }
 
+    public static boolean shouldEnableDisableNyliumDecay() {
+        return compatibility == null || compatibility.shouldEnableDisableNyliumDecay();
+    }
+
     public static void reportFeatureCompatibilityIssue(String featureName, Throwable throwable) {
         AtomicBoolean flag;
         if ("safeScaffoldingBreak".equals(featureName)) {
@@ -103,6 +108,8 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
             flag = DISABLE_KELP_NATURAL_GROWTH_ERROR_REPORTED;
         } else if ("canMineBuddingAmethyst".equals(featureName)) {
             flag = CAN_MINE_BUDDING_AMETHYST_ERROR_REPORTED;
+        } else if ("disableNyliumDecay".equals(featureName)) {
+            flag = DISABLE_NYLIUM_DECAY_ERROR_REPORTED;
         } else if ("botTabListName".equals(featureName)
                 || "botTabListNamePrefix".equals(featureName)
                 || "botTabListNameSuffix".equals(featureName)) {

@@ -10,6 +10,7 @@
     "FakePlayerIgnoreThornsDamageMixin",
     "DisablePetAttackingMixin",
     "MobSpawnerLogicMixin",
+    "NyliumDecayMixin",
     "SafeScaffoldingBreakMixin",
     "PlayerListEntryTabListNameMixin",
     "ServerWorldRecordWorldEventMixin",

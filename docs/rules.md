@@ -1,4 +1,6 @@
-﻿## 脚手架防误触 (safeScaffoldingBreak)
+﻿文档版本：1.1.0
+
+## 脚手架防误触 (safeScaffoldingBreak)
 
 只有主手持脚手架或主手为空时，玩家才能破坏脚手架，防止误拆。
 
@@ -47,6 +49,15 @@
 ## 可采集紫水晶母岩 (canMineBuddingAmethyst)
 
 使用带有精准采集附魔的合适工具可采集紫水晶母岩。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`
+
+## 禁用菌岩退化 (disableNyliumDecay)
+
+绯红菌岩和诡异菌岩在上方被方块遮挡时不会退化为下界岩。
 
 - 类型: `boolean`
 - 默认值: `false`

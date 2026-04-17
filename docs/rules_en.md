@@ -1,4 +1,6 @@
-﻿## safeScaffoldingBreak
+﻿Document Version: 1.1.0
+
+## safeScaffoldingBreak
 
 Require holding scaffolding or an empty main hand to break scaffolding.
 
@@ -47,6 +49,15 @@ Disables kelp natural growth from random ticks while keeping bonemeal growth unc
 ## canMineBuddingAmethyst
 
 Budding amethyst can be collected with a Silk Touch tool.
+
+- Type: `boolean`
+- Default: `false`
+- Possible values: `false`, `true`
+- Categories: `ICE`, `FEATURE`
+
+## disableNyliumDecay
+
+Crimson nylium and warped nylium will not decay into netherrack when covered by a block above.
 
 - Type: `boolean`
 - Default: `false`
