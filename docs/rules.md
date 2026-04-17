@@ -1,6 +1,6 @@
 ﻿## 脚手架防误触 (safeScaffoldingBreak)
 
-玩家只有在主手拿着脚手架或者主手为空手时才能破坏脚手架。如果玩家尝试持其他物品破坏脚手架，系统将阻止该操作，并在 **Action Bar** 上显示提示。
+只有主手持脚手架或主手为空时，玩家才能破坏脚手架，防止误拆。
 
 - 类型: `boolean`
 - 默认值: `false`
@@ -55,7 +55,7 @@
 
 ## 假人Tab栏名称前缀 (botTabListNamePrefix)
 
-为 Tab 栏中的假人名称添加前缀，支持使用 `&` 作为颜色/格式代码前缀。
+为Tab栏中的假人添加前缀，使用 `&` 来表示文字颜色。
 （此规则最初移植自Carpet-TCTC-Addition，现已按本模组需求调整）
 
 - 类型: `String`
@@ -65,7 +65,7 @@
 
 ## 假人Tab栏名称后缀 (botTabListNameSuffix)
 
-为 Tab 栏中的假人名称添加后缀，支持使用 `&` 作为颜色/格式代码前缀。
+为Tab栏中的假人添加后缀，使用 `&` 来表示文字颜色。
 （此规则最初移植自Carpet-TCTC-Addition，现已按本模组需求调整）
 
 - 类型: `String`
@@ -75,16 +75,17 @@
 
 ## 假人免疫荆棘反伤 (fakePlayerIgnoreThornsDamage)
 
-假人在攻击带有荆棘附魔的生物或玩家时，不会受到荆棘造成的反伤。真人玩家保持原版行为。
+假人在攻击带有荆棘附魔的生物或玩家时，不会受到荆棘造成的反伤。
 
 - 类型: `boolean`
 - 默认值: `false`
 - 可选值: `false`, `true`
 - 分类: `ICE`, `FEATURE`
 
-## 禁止伤害已驯服生物 (disablePetAttacking)
+## 禁止伤害已驯服生物 (disablePlayerAttackingTamedMobs)
 
-禁用玩家对已驯服生物造成伤害，防止误伤。仅拦截玩家来源伤害；未驯服生物与非玩家来源伤害保持原版行为。
+禁用玩家对已驯服生物造成伤害，防止误伤。仅拦截玩家来源伤害
+（此规则移植自DoormatCarpetExtension）
 
 - 类型: `boolean`
 - 默认值: `false`

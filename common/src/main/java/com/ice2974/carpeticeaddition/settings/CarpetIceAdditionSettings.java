@@ -8,7 +8,7 @@ import static carpet.api.settings.RuleCategory.SURVIVAL;
 
 @SuppressWarnings("unused")
 public final class CarpetIceAdditionSettings {
-    public static final String ICE = "carpetIceAddition";
+    public static final String ICE = "CarpetIceAddition";
 
     private CarpetIceAdditionSettings() {
     }
@@ -35,7 +35,7 @@ public final class CarpetIceAdditionSettings {
     public static boolean fakePlayerIgnoreThornsDamage = false;
 
     @Rule(categories = {ICE, SURVIVAL})
-    public static boolean disablePetAttacking = false;
+    public static boolean disablePlayerAttackingTamedMobs = false;
 
     @Rule(
             categories = {ICE},

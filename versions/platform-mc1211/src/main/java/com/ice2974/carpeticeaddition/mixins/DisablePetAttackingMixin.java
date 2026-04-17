@@ -20,11 +20,11 @@ public abstract class DisablePetAttackingMixin {
             cancellable = true,
             require = 0
     )
-    private void carpetIceAddition$disablePetAttacking(
+    private void carpetIceAddition$disablePlayerAttackingTamedMobs(
             DamageSource damageSource,
             CallbackInfoReturnable<Boolean> cir
     ) {
-        if (!CarpetIceAdditionSettings.disablePetAttacking) {
+        if (!CarpetIceAdditionSettings.disablePlayerAttackingTamedMobs) {
             return;
         }
 
@@ -41,7 +41,7 @@ public abstract class DisablePetAttackingMixin {
 
             cir.setReturnValue(true);
         } catch (Throwable throwable) {
-            CarpetIceAdditionMod.reportFeatureCompatibilityIssue("disablePetAttacking", throwable);
+            CarpetIceAdditionMod.reportFeatureCompatibilityIssue("disablePlayerAttackingTamedMobs", throwable);
         }
     }
 }

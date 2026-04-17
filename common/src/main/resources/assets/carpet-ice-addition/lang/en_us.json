@@ -1,5 +1,5 @@
 {
-  "carpet.category.carpetIceAddition": "Ice",
+  "carpet.category.CarpetIceAddition": "Ice",
   "carpet.rule.safeScaffoldingBreak.desc": "Require holding scaffolding or an empty main hand to break scaffolding.",
   "carpet.rule.crafterStopsWhenOutputBlocked.desc": "Prevent the crafter from crafting when its output points to a valid auto-accepting container that cannot fully accept the crafted result and recipe remainders.",
   "carpet.rule.recordWorldEventFix.desc": "Fixes the issue where a music disc can keep playing after being quickly inserted into and removed from a jukebox, which may also cause overlapping disc audio. See MC-112245.",
@@ -7,7 +7,7 @@
   "carpet.rule.disableKelpNaturalGrowth.desc": "Disable kelp natural growth from random ticks while keeping bonemeal growth unchanged.",
   "carpet.rule.canMineBuddingAmethyst.desc": "Budding amethyst can be collected with a Silk Touch tool.",
   "carpet.rule.fakePlayerIgnoreThornsDamage.desc": "Bots will not take reflected damage caused by Thorns when attacking entities or players equipped with Thorns.",
-  "carpet.rule.disablePetAttacking.desc": "Disables players harming tamed mobs to prevent accidental harm.(This rule is ported from DoormatCarpetExtension)",
+  "carpet.rule.disablePlayerAttackingTamedMobs.desc": "Disables players harming tamed mobs to prevent accidental harm.",
   "carpet.rule.botTabListNamePrefix.desc": "Add a prefix to the Bot in the TabList, using & to represent text color.",
   "carpet.rule.botTabListNameSuffix.desc": "Add a suffix to the Bot in the TabList, using & to represent text color.",
   "message.carpet-ice-addition.safe_scaffolding_break": "Hold scaffolding or empty your main hand to break scaffolding."

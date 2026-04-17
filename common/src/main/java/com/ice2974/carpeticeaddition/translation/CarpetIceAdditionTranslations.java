@@ -9,7 +9,7 @@ public final class CarpetIceAdditionTranslations {
     public static Map<String, String> get(String lang) {
         if (lang != null && lang.toLowerCase().startsWith("zh")) {
             return Map.ofEntries(
-                    Map.entry("carpet.category.carpetIceAddition", "Ice"),
+                    Map.entry("carpet.category.CarpetIceAddition", "Ice"),
                     Map.entry("carpet.rule.safeScaffoldingBreak.name", "\u811a\u624b\u67b6\u9632\u8bef\u89e6"),
                     Map.entry("carpet.rule.safeScaffoldingBreak.desc", "\u53ea\u6709\u4e3b\u624b\u6301\u811a\u624b\u67b6\u6216\u4e3b\u624b\u4e3a\u7a7a\u65f6\uff0c\u73a9\u5bb6\u624d\u80fd\u7834\u574f\u811a\u624b\u67b6\uff0c\u9632\u6b62\u8bef\u62c6\u3002"),
                     Map.entry("carpet.rule.crafterStopsWhenOutputBlocked.name", "\u5408\u6210\u5668\u8f93\u51fa\u963b\u585e\u65f6\u505c\u6b62\u5408\u6210"),
@@ -24,8 +24,8 @@ public final class CarpetIceAdditionTranslations {
                     Map.entry("carpet.rule.canMineBuddingAmethyst.desc", "\u4f7f\u7528\u5e26\u6709\u7cbe\u51c6\u91c7\u96c6\u7684\u5de5\u5177\u53ef\u4ee5\u91c7\u96c6\u7d2b\u6c34\u6676\u6bcd\u5ca9\u3002"),
                     Map.entry("carpet.rule.fakePlayerIgnoreThornsDamage.name", "\u5047\u4eba\u514d\u75ab\u8346\u68d8\u53cd\u4f24"),
                     Map.entry("carpet.rule.fakePlayerIgnoreThornsDamage.desc", "\u5047\u4eba\u5728\u653b\u51fb\u5e26\u6709\u8346\u68d8\u9644\u9b54\u7684\u751f\u7269\u6216\u73a9\u5bb6\u65f6\uff0c\u4e0d\u4f1a\u53d7\u5230\u8346\u68d8\u9020\u6210\u7684\u53cd\u4f24\u3002"),
-                    Map.entry("carpet.rule.disablePetAttacking.name", "\u7981\u6b62\u4f24\u5bb3\u5df2\u9a6f\u670d\u751f\u7269"),
-                    Map.entry("carpet.rule.disablePetAttacking.desc", "\u7981\u7528\u73a9\u5bb6\u5bf9\u5df2\u9a6f\u670d\u751f\u7269\u7684\u4f24\u5bb3\uff0c\u9632\u6b62\u8bef\u4f24\u3002\uff08\u6b64\u89c4\u5219\u79fb\u690d\u81eaDoormatCarpetExtension\uff09"),
+                    Map.entry("carpet.rule.disablePlayerAttackingTamedMobs.name", "\u7981\u6b62\u4f24\u5bb3\u5df2\u9a6f\u670d\u751f\u7269"),
+                    Map.entry("carpet.rule.disablePlayerAttackingTamedMobs.desc", "\u7981\u7528\u73a9\u5bb6\u5bf9\u5df2\u9a6f\u670d\u751f\u7269\u7684\u4f24\u5bb3\uff0c\u9632\u6b62\u8bef\u4f24\u3002"),
                     Map.entry("carpet.rule.botTabListNamePrefix.name", "\u5047\u4ebaTab\u680f\u540d\u79f0\u524d\u7f00"),
                     Map.entry("carpet.rule.botTabListNamePrefix.desc", "\u4e3aTab\u680f\u4e2d\u7684\u5047\u4eba\u6dfb\u52a0\u524d\u7f00\uff0c\u4f7f\u7528&\u6765\u8868\u793a\u6587\u5b57\u989c\u8272\u3002"),
                     Map.entry("carpet.rule.botTabListNameSuffix.name", "\u5047\u4ebaTab\u680f\u540d\u79f0\u540e\u7f00"),
@@ -34,7 +34,7 @@ public final class CarpetIceAdditionTranslations {
             );
         }
         return Map.ofEntries(
-                Map.entry("carpet.category.carpetIceAddition", "Ice"),
+                Map.entry("carpet.category.CarpetIceAddition", "Ice"),
                 Map.entry("carpet.rule.safeScaffoldingBreak.desc", "Require holding scaffolding or an empty main hand to break scaffolding."),
                 Map.entry("carpet.rule.crafterStopsWhenOutputBlocked.desc", "Prevent the crafter from crafting when its output points to a valid auto-accepting container that cannot fully accept the crafted result and recipe remainders."),
                 Map.entry("carpet.rule.recordWorldEventFix.desc", "Fixes the issue where a music disc can keep playing after being quickly inserted into and removed from a jukebox, which may also cause overlapping disc audio. See MC-112245."),
@@ -42,7 +42,7 @@ public final class CarpetIceAdditionTranslations {
                 Map.entry("carpet.rule.disableKelpNaturalGrowth.desc", "Disable kelp natural growth from random ticks while keeping bonemeal growth unchanged."),
                 Map.entry("carpet.rule.canMineBuddingAmethyst.desc", "Budding amethyst can be collected with a Silk Touch tool."),
                 Map.entry("carpet.rule.fakePlayerIgnoreThornsDamage.desc", "Bots will not take reflected damage caused by Thorns when attacking entities or players equipped with Thorns."),
-                Map.entry("carpet.rule.disablePetAttacking.desc", "Disables players harming tamed mobs to prevent accidental harm.(This rule is ported from DoormatCarpetExtension)"),
+                Map.entry("carpet.rule.disablePlayerAttackingTamedMobs.desc", "Disables players harming tamed mobs to prevent accidental harm."),
                 Map.entry("carpet.rule.botTabListNamePrefix.desc", "Add a prefix to the Bot in the TabList, using & to represent text color."),
                 Map.entry("carpet.rule.botTabListNameSuffix.desc", "Add a suffix to the Bot in the TabList, using & to represent text color."),
                 Map.entry("message.carpet-ice-addition.safe_scaffolding_break", "Hold scaffolding or empty your main hand to break scaffolding.")
