@@ -1,12 +1,10 @@
-                               Ice NC Copyleft 1.0
-                            Ice 非商用强传染许可证 1.0
+                        NC Copyleft License 1.0
+                         非商用强传染许可证 1.0
 
 Copyright (c) 2026 Ice2974
 
 Project Name: Carpet-Ice-Addition
 Project Repository: https://github.com/Ice2974/Carpet-Ice-Addition
-
-This license text may be reused by works published by Ice2974 unless otherwise specified.
 
 ================================================================================
 English Version
@@ -14,10 +12,10 @@ English Version
 
 1. Definitions
 
-“Work” means the project identified above, including its source code, compiled
-binaries, JAR files, resource files, data files, configuration examples,
-documentation, and other files distributed in its repository or release
-packages, unless otherwise specified.
+“Work” means the project identified above, including its source code, object
+code, compiled binaries, packaged releases, resource files, assets, data files,
+configuration examples, documentation, and other files distributed in its
+repository or release packages, unless otherwise specified.
 
 “Modified Version” means any version of the Work that has been changed,
 adapted, translated, merged, ported, extended, refactored, or otherwise
@@ -26,26 +24,27 @@ derived from the Work, in whole or in part.
 “Distribution” means any act of providing the Work or a Modified Version to any
 third party, including but not limited to publishing, uploading, sharing,
 reposting, sublicensing, bundling, embedding, or making it available for
-download or use over a network.
+download, access, or use over a network.
 
 “Commercial Use” means any use primarily intended for or directed toward
-commercial advantage, monetary compensation, revenue generation, donation-driven
-privileged access, paid services, or other business-related benefit, whether
-direct or indirect.
+commercial advantage, monetary compensation, revenue generation, paid access,
+paid services, sponsorship-driven benefit, or other business-related benefit,
+whether direct or indirect.
 
 Commercial Use includes, but is not limited to:
 (a) selling the Work or any Modified Version;
 (b) including the Work or any Modified Version in any paid product, paid
-    service, paid modpack, paid launcher, paid distribution, or paid hosting;
-(c) using the Work or any Modified Version as part of a commercial Minecraft
-    server, server network, hosting platform, monetized game service, or any
-    other commercial software or service;
-(d) providing the Work or any Modified Version as a donor/VIP/premium feature,
-    perk, reward, bundled benefit, or paid add-on;
+    service, paid distribution, paid platform, paid hosting, or other paid
+    offering;
+(c) using the Work or any Modified Version as part of a commercial service,
+    commercial software offering, monetized platform, hosted environment,
+    subscription service, or revenue-generating operation;
+(d) providing the Work or any Modified Version as a premium feature, donor
+    reward, paid add-on, bundled benefit, or restricted perk;
 (e) redistributing the Work or any Modified Version on websites, platforms,
-    launchers, marketplaces, or content services that generate revenue from
-    access, subscriptions, advertising, traffic monetization, or commercial
-    promotion;
+    marketplaces, launchers, repositories, app stores, or content services
+    that generate revenue from access, subscriptions, advertising, traffic
+    monetization, or commercial promotion;
 (f) selling support, customization, integration, private builds, or derivative
     packages based substantially on the Work without prior written permission
     from the copyright holder.
@@ -71,8 +70,8 @@ without prior written permission from the copyright holder.
 
 No person or entity may sell, license for a fee, monetize, commercially host,
 commercially distribute, or otherwise commercially exploit the Work or any
-Modified Version without explicit prior written authorization from the copyright
-holder.
+Modified Version without explicit prior written authorization from the
+copyright holder.
 
 4. Copyleft Requirement for Modified Versions
 
@@ -89,16 +88,16 @@ following:
 (d) you must clearly state that changes were made, and provide a reasonable
     summary of the modifications;
 (e) you must not misrepresent the Modified Version as the original Work;
-(f) if binaries, JAR files, packaged releases, or other compiled forms are
-    distributed, the full corresponding source code must be made available in a
-    convenient and publicly accessible form at no additional charge.
+(f) if binaries, packaged releases, or other compiled forms are distributed,
+    the full corresponding source code must be made available in a convenient
+    and publicly accessible form at no additional charge.
 
 For clarity, private modifications that are not Distributed to any third party
 do not trigger the source distribution requirement under this Section 4.
 
 5. No Closed Redistribution of Derivatives
 
-You may not Distribute any Modified Version in binary-only, JAR-only,
+You may not Distribute any Modified Version in binary-only, package-only,
 obfuscated-only, or source-withheld form.
 
 Any Distributed Modified Version must include or be accompanied by complete
@@ -109,8 +108,8 @@ corresponding source code under this same License.
 Any Distribution of the Work or a Modified Version must preserve:
 
 - the project name identified above;
-- the author name "Ice2974" unless otherwise explicitly stated by the copyright
-  notice of the relevant project;
+- the author or copyright holder name, unless otherwise explicitly stated by
+  the copyright notice of the relevant project;
 - the copyright notice;
 - the project repository link identified above.
 
@@ -161,29 +160,30 @@ OTHER DEALINGS IN THE WORK.
 
 1. 定义
 
-“本作品”是指上方标识的项目，包括其源代码、编译后的二进制文件、JAR 文件、
-资源文件、数据文件、配置示例、文档以及在其仓库或发行包中分发的其他文件，
-除非另有说明。
+“本作品”是指上方标识的项目，包括其源代码、目标代码、编译后的二进制文件、
+打包发布文件、资源文件、素材文件、数据文件、配置示例、文档以及在其仓库或
+发行包中分发的其他文件，除非另有说明。
 
 “修改版本”是指基于本作品全部或部分内容所进行的任何修改、改编、翻译、合并、
 移植、扩展、重构或其他演绎形成的版本。
 
 “分发”是指向任何第三方提供本作品或修改版本的任何行为，包括但不限于发布、
-上传、分享、转载、再许可、打包、嵌入、提供下载，或通过网络提供使用。
+上传、分享、转载、再许可、打包、嵌入、提供下载，或通过网络提供访问或使用。
 
-“商业使用”是指以获得商业利益、金钱补偿、收入、捐助驱动的特权访问、付费
-服务或其他直接或间接商业性收益为主要目的或导向的任何使用行为。
+“商业使用”是指以获得商业利益、金钱补偿、收入、付费访问、付费服务、赞助
+收益或其他直接或间接商业性利益为主要目的或导向的任何使用行为。
 
 商业使用包括但不限于：
 (a) 出售本作品或任何修改版本；
-(b) 将本作品或任何修改版本纳入任何付费产品、付费服务、付费整合包、付费
-    启动器、付费发行包或付费托管服务中；
-(c) 将本作品或任何修改版本用于商业性质的 Minecraft 服务器、服务器网络、
-    托管平台、带盈利属性的游戏服务，或任何其他商业软件或商业服务中；
-(d) 将本作品或任何修改版本作为捐助者/VIP/高级会员/付费用户的功能、特权、
-    奖励、捆绑权益或付费附加内容；
-(e) 未经授权，在通过访问收费、订阅、广告流量变现、商业推广等方式获取收益的
-    网站、平台、启动器、市场或内容服务中分发本作品或任何修改版本；
+(b) 将本作品或任何修改版本纳入任何付费产品、付费服务、付费发行、付费平台、
+    付费托管或其他收费提供中；
+(c) 将本作品或任何修改版本用于商业服务、商业软件提供、盈利平台、托管环境、
+    订阅服务或其他产生收入的运营中；
+(d) 将本作品或任何修改版本作为高级功能、捐助奖励、付费附加内容、捆绑权益
+    或受限特权提供；
+(e) 未经授权，在通过访问收费、订阅、广告流量变现或商业推广等方式获取收益的
+    网站、平台、市场、启动器、仓库、应用商店或内容服务中分发本作品或任何
+    修改版本；
 (f) 未经著作权人事先书面许可，基于本作品实质性提供收费支持、定制开发、集成、
     私有构建或衍生打包服务。
 
@@ -215,15 +215,16 @@ OTHER DEALINGS IN THE WORK.
 (c) 必须保留原始版权声明、作者署名、项目名称和仓库链接；
 (d) 必须明确说明你做过修改，并提供合理的修改说明摘要；
 (e) 不得将修改版本冒充为原始官方版本；
-(f) 如果分发的是二进制文件、JAR 文件、打包发布版本或其他编译形式，则必须以
-    方便且公众可访问的方式同时免费提供其完整对应源代码。
+(f) 如果分发的是二进制文件、打包发布版本或其他编译形式，则必须以方便且公众
+    可访问的方式同时免费提供其完整对应源代码。
 
 为免歧义，仅供个人私下使用且未向任何第三方分发的私有修改，不触发本条所述的
 源码公开义务。
 
 5. 禁止闭源分发衍生版本
 
-你不得以仅二进制、仅 JAR、仅混淆结果、或拒绝提供源码的形式分发任何修改版本。
+你不得以仅二进制、仅打包产物、仅混淆结果、或拒绝提供源码的形式分发任何修改
+版本。
 
 任何被分发的修改版本都必须包含完整对应源代码，或与完整对应源代码同时提供，
 且必须继续适用本同一许可证。
@@ -233,7 +234,7 @@ OTHER DEALINGS IN THE WORK.
 任何对本作品或修改版本的分发，均必须保留以下信息：
 
 - 上方标识的项目名称；
-- 作者名称“Ice2974”，除非相关项目的版权声明另有明确说明；
+- 作者或著作权人名称，除非相关项目的版权声明另有明确说明；
 - 版权声明；
 - 上方标识的项目仓库链接。
 
