@@ -1,6 +1,10 @@
 ﻿# Carpet Ice Addition
 [中文](README.md) | **English**
 
+> This project is source-available, not an OSI-approved open source project.
+> Commercial use is strictly prohibited without prior written permission.
+> Any distributed modified version must provide complete corresponding source code under the same license.
+
 ## Dependencies
 | name | Type | link |
 | --- | --- | --- |
