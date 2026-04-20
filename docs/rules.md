@@ -1,5 +1,3 @@
-﻿文档版本：1.1.0
-
 ## 脚手架防误触 (safeScaffoldingBreak)
 
 只有主手持脚手架或主手为空时，玩家才能破坏脚手架，防止误拆。
@@ -95,7 +93,7 @@
 
 ## 禁止伤害已驯服生物 (disablePlayerAttackingTamedMobs)
 
-禁用玩家对已驯服生物造成伤害，防止误伤。仅拦截玩家来源伤害
+禁用玩家对已驯服生物的伤害，防止误伤。
 （此规则移植自DoormatCarpetExtension）
 
 - 类型: `boolean`

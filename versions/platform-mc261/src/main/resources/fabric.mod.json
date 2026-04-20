@@ -1,20 +1,20 @@
-{
+﻿{
   "schemaVersion": 1,
   "id": "${id}",
   "version": "${version}",
   
   "name": "${name}",
-  "description": "A fabric-carpet extension mod.",
+  "description": "A Carpet extension mod with practical tweaks and fixes.",
   "authors": [
     "Ice2974"
   ],
     "contact": {
     "homepage": "https://github.com/Ice2974/Carpet-Ice-Addition/",
     "sources": "https://github.com/Ice2974/Carpet-Ice-Addition/",
-    "issues": "https://github.com/fxmorin/carpet-fixes/issues"
+    "issues": "https://github.com/Ice2974/Carpet-Ice-Addition/issues"
   },
 
-  "license": "GPL-3.0",
+  "license": "NC Copyleft License 1.0",
   "icon": "assets/carpet-ice-addition/icon.png",
 
   "environment": "*",
@@ -33,5 +33,4 @@
     "carpet": ">=${carpet_dependency}"
   }
 }
-
 

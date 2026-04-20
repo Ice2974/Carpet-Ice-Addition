@@ -1,5 +1,3 @@
-﻿Document Version: 1.1.0
-
 ## safeScaffoldingBreak
 
 Require holding scaffolding or an empty main hand to break scaffolding.
@@ -96,6 +94,7 @@ Bots will not take reflected damage caused by Thorns when attacking entities or 
 ## disablePlayerAttackingTamedMobs
 
 Disables players harming tamed mobs to prevent accidental harm.
+(This rule was ported from DoormatCarpetExtension.)
 
 - Type: `boolean`
 - Default: `false`
