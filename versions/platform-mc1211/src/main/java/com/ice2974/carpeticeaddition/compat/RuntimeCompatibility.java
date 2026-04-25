@@ -71,6 +71,10 @@ public final class RuntimeCompatibility {
         return loader.compatible && fabricApi.compatible && carpet.compatible;
     }
 
+    public boolean shouldEnablePhantomSpawnWarning() {
+        return true;
+    }
+
     private static CheckResult checkLoaderVersion() {
         try {
             String version = FabricLoader.getInstance().getModContainer("fabricloader")

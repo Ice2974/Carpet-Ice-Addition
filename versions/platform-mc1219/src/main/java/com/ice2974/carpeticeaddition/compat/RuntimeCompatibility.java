@@ -67,6 +67,10 @@ public final class RuntimeCompatibility {
         return loader.compatible && carpet.compatible && fabricApi.compatible;
     }
 
+    public boolean shouldEnablePhantomSpawnWarning() {
+        return true;
+    }
+
     public boolean isInFallbackMode() {
         return !loader.compatible || !fabricApi.compatible || !carpet.compatible;
     }
@@ -196,3 +200,5 @@ public final class RuntimeCompatibility {
         }
     }
 }
+
+

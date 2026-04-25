@@ -13,6 +13,7 @@
     "NyliumDecayMixin",
     "SafeScaffoldingBreakMixin",
     "PlayerListEntryTabListNameMixin",
+    "ServerWorldPhantomSpawnWarningMixin",
     "ServerWorldRecordWorldEventMixin",
     "TrialSpawnerDataMixin"
   ],
@@ -20,3 +21,5 @@
     "defaultRequire": 1
   }
 }
+
+

@@ -29,6 +29,7 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
     private static final AtomicBoolean DISABLE_NYLIUM_DECAY_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean BOT_TAB_LIST_NAME_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean FAKE_PLAYER_IGNORE_THORNS_DAMAGE_ERROR_REPORTED = new AtomicBoolean(false);
+    private static final AtomicBoolean PHANTOM_SPAWN_WARNING_ERROR_REPORTED = new AtomicBoolean(false);
     private static String version;
     private static RuntimeCompatibility compatibility;
 
@@ -94,6 +95,10 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
         return compatibility == null || compatibility.shouldEnableDisableNyliumDecay();
     }
 
+    public static boolean shouldEnablePhantomSpawnWarning() {
+        return compatibility == null || compatibility.shouldEnablePhantomSpawnWarning();
+    }
+
     public static void reportFeatureCompatibilityIssue(String featureName, Throwable throwable) {
         AtomicBoolean flag;
         if ("safeScaffoldingBreak".equals(featureName)) {
@@ -116,6 +121,8 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
             flag = BOT_TAB_LIST_NAME_ERROR_REPORTED;
         } else if ("fakePlayerIgnoreThornsDamage".equals(featureName)) {
             flag = FAKE_PLAYER_IGNORE_THORNS_DAMAGE_ERROR_REPORTED;
+        } else if ("phantomSpawnWarning".equals(featureName)) {
+            flag = PHANTOM_SPAWN_WARNING_ERROR_REPORTED;
         } else {
             LOGGER.warn("[Carpet Ice Addition] Compatibility issue in feature {}: {}", featureName, throwable.toString());
             return;

@@ -40,6 +40,9 @@ public final class CarpetIceAdditionSettings {
     @Rule(categories = {ICE, SURVIVAL})
     public static boolean disablePlayerAttackingTamedMobs = false;
 
+    @Rule(categories = {ICE, SURVIVAL})
+    public static boolean phantomSpawnWarning = false;
+
     @Rule(
             categories = {ICE},
             options = {"#none", "[Bot]"},

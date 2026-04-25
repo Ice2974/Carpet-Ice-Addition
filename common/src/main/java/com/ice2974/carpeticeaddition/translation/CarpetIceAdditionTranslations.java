@@ -28,11 +28,14 @@ public final class CarpetIceAdditionTranslations {
                     Map.entry("carpet.rule.fakePlayerIgnoreThornsDamage.desc", "\u5047\u4eba\u5728\u653b\u51fb\u5e26\u6709\u8346\u68d8\u9644\u9b54\u7684\u751f\u7269\u6216\u73a9\u5bb6\u65f6\uff0c\u4e0d\u4f1a\u53d7\u5230\u8346\u68d8\u9020\u6210\u7684\u53cd\u4f24\u3002"),
                     Map.entry("carpet.rule.disablePlayerAttackingTamedMobs.name", "\u7981\u6b62\u4f24\u5bb3\u5df2\u9a6f\u670d\u751f\u7269"),
                     Map.entry("carpet.rule.disablePlayerAttackingTamedMobs.desc", "\u7981\u7528\u73a9\u5bb6\u5bf9\u5df2\u9a6f\u670d\u751f\u7269\u7684\u4f24\u5bb3\uff0c\u9632\u6b62\u8bef\u4f24\u3002"),
+                    Map.entry("carpet.rule.phantomSpawnWarning.name", "\u5e7b\u7ffc\u751f\u6210\u9884\u8b66"),
+                    Map.entry("carpet.rule.phantomSpawnWarning.desc", "\u73a9\u5bb6\u8fbe\u5230\u539f\u7248\u5e7b\u7ffc\u751f\u6210\u7684\u5931\u7720\u65f6\u95f4\u9608\u503c\u65f6\uff0c\u4f1a\u5728\u591c\u665a\u5f00\u59cb\u65f6\u63d0\u9192\u73a9\u5bb6\u53ca\u65f6\u7761\u89c9\u3002"),
                     Map.entry("carpet.rule.botTabListNamePrefix.name", "\u5047\u4ebaTab\u680f\u540d\u79f0\u524d\u7f00"),
                     Map.entry("carpet.rule.botTabListNamePrefix.desc", "\u4e3aTab\u680f\u4e2d\u7684\u5047\u4eba\u6dfb\u52a0\u524d\u7f00\uff0c\u4f7f\u7528&\u6765\u8868\u793a\u6587\u5b57\u989c\u8272\u3002"),
                     Map.entry("carpet.rule.botTabListNameSuffix.name", "\u5047\u4ebaTab\u680f\u540d\u79f0\u540e\u7f00"),
                     Map.entry("carpet.rule.botTabListNameSuffix.desc", "\u4e3aTab\u680f\u4e2d\u7684\u5047\u4eba\u6dfb\u52a0\u540e\u7f00\uff0c\u4f7f\u7528&\u6765\u8868\u793a\u6587\u5b57\u989c\u8272\u3002"),
-                    Map.entry("message.carpet-ice-addition.safe_scaffolding_break", "\u4f60\u5fc5\u987b\u624b\u6301\u811a\u624b\u67b6\u6216\u7a7a\u624b\u624d\u80fd\u7834\u574f\u811a\u624b\u67b6")
+                    Map.entry("message.carpet-ice-addition.safe_scaffolding_break", "\u4f60\u5fc5\u987b\u624b\u6301\u811a\u624b\u67b6\u6216\u7a7a\u624b\u624d\u80fd\u7834\u574f\u811a\u624b\u67b6"),
+                    Map.entry("message.carpet-ice-addition.phantom_spawn_warning", "\u4eca\u665a\u53ef\u80fd\u4f1a\u751f\u6210\u5e7b\u7ffc\uff0c\u5efa\u8bae\u7761\u89c9\u3002")
             );
         }
         return Map.ofEntries(
@@ -46,9 +49,11 @@ public final class CarpetIceAdditionTranslations {
                 Map.entry("carpet.rule.disableNyliumDecay.desc", "Crimson nylium and warped nylium will not decay into netherrack when covered by a block above."),
                 Map.entry("carpet.rule.fakePlayerIgnoreThornsDamage.desc", "Bots will not take reflected damage caused by Thorns when attacking entities or players equipped with Thorns."),
                 Map.entry("carpet.rule.disablePlayerAttackingTamedMobs.desc", "Disables players harming tamed mobs to prevent accidental harm."),
+                Map.entry("carpet.rule.phantomSpawnWarning.desc", "Warns players at the start of the night when they reach the vanilla insomnia time threshold for phantom spawning."),
                 Map.entry("carpet.rule.botTabListNamePrefix.desc", "Add a prefix to the Bot in the TabList, using & to represent text color."),
                 Map.entry("carpet.rule.botTabListNameSuffix.desc", "Add a suffix to the Bot in the TabList, using & to represent text color."),
-                Map.entry("message.carpet-ice-addition.safe_scaffolding_break", "Hold scaffolding or empty your main hand to break scaffolding.")
+                Map.entry("message.carpet-ice-addition.safe_scaffolding_break", "Hold scaffolding or empty your main hand to break scaffolding."),
+                Map.entry("message.carpet-ice-addition.phantom_spawn_warning", "Phantoms may spawn tonight. You should sleep.")
         );
     }
 }

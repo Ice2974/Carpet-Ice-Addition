@@ -1,3 +1,5 @@
+> 文档对应版本：`v1.2.0`
+
 ## 脚手架防误触 (safeScaffoldingBreak)
 
 只有主手持脚手架或主手为空时，玩家才能破坏脚手架，防止误拆。
@@ -95,6 +97,15 @@
 
 禁用玩家对已驯服生物的伤害，防止误伤。
 （此规则移植自DoormatCarpetExtension）
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `SURVIVAL`
+
+## 幻翼生成预警 (phantomSpawnWarning)
+
+玩家达到原版幻翼生成的失眠时间阈值时，会在夜晚开始时提醒玩家及时睡觉。
 
 - 类型: `boolean`
 - 默认值: `false`

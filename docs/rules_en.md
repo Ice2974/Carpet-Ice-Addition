@@ -1,3 +1,5 @@
+> Doc Version: `v1.2.0`
+
 ## safeScaffoldingBreak
 
 Require holding scaffolding or an empty main hand to break scaffolding.
@@ -95,6 +97,15 @@ Bots will not take reflected damage caused by Thorns when attacking entities or 
 
 Disables players harming tamed mobs to prevent accidental harm.
 (This rule was ported from DoormatCarpetExtension.)
+
+- Type: `boolean`
+- Default: `false`
+- Possible values: `false`, `true`
+- Categories: `ICE`, `SURVIVAL`
+
+## phantomSpawnWarning
+
+Warns players at the start of the night when they reach the vanilla insomnia time threshold for phantom spawning.
 
 - Type: `boolean`
 - Default: `false`
