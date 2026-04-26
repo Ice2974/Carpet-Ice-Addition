@@ -39,7 +39,7 @@ public abstract class CanMineBuddingAmethystMixin {
             CallbackInfo ci
     ) {
         if (!CarpetIceAdditionSettings.canMineBuddingAmethyst
-                || !CarpetIceAdditionMod.shouldEnableCanMineBuddingAmethyst()) {
+               ) {
             return;
         }
 

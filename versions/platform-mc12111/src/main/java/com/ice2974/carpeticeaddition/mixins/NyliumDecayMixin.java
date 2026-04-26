@@ -33,7 +33,7 @@ public abstract class NyliumDecayMixin {
             CallbackInfo ci
     ) {
         if (!CarpetIceAdditionSettings.disableNyliumDecay
-                || !CarpetIceAdditionMod.shouldEnableDisableNyliumDecay()) {
+               ) {
             return;
         }
 

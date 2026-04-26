@@ -23,7 +23,7 @@ public abstract class JukeboxManagerRecordWorldEventMixin {
             )
     )
     private void carpetIceAddition$delayJukeboxStartWorldEvent(LevelAccessor world, Entity entity, int eventId, BlockPos pos, int data) {
-        if (!CarpetIceAdditionSettings.recordWorldEventFix || !CarpetIceAdditionMod.shouldEnableRecordWorldEventFix()) {
+        if (!CarpetIceAdditionSettings.recordWorldEventFix) {
             world.levelEvent(entity, eventId, pos, data);
             return;
         }
@@ -48,7 +48,7 @@ public abstract class JukeboxManagerRecordWorldEventMixin {
             )
     )
     private void carpetIceAddition$recordStopBeforeImmediateWorldEvent(LevelAccessor world, int eventId, BlockPos pos, int data) {
-        if (CarpetIceAdditionSettings.recordWorldEventFix && CarpetIceAdditionMod.shouldEnableRecordWorldEventFix()) {
+        if (CarpetIceAdditionSettings.recordWorldEventFix) {
             try {
                 if (world instanceof ServerLevel serverWorld) {
                     DelayedJukeboxStartEventManager.recordStop(serverWorld, pos);

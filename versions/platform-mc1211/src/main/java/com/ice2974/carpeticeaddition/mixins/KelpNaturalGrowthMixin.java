@@ -25,7 +25,7 @@ public abstract class KelpNaturalGrowthMixin {
             CallbackInfo ci
     ) {
         if (!CarpetIceAdditionSettings.disableKelpNaturalGrowth
-                || !CarpetIceAdditionMod.shouldEnableDisableKelpNaturalGrowth()) {
+               ) {
             return;
         }
 

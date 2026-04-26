@@ -35,7 +35,7 @@ public abstract class CrafterBlockMixin {
 
     @Inject(method = "craft", at = @At("HEAD"), cancellable = true)
     private void carpetIceAddition$cancelCraftIfOutputBlocked(BlockState state, ServerWorld world, BlockPos pos, CallbackInfo ci) {
-        if (!CarpetIceAdditionSettings.crafterStopsWhenOutputBlocked || !CarpetIceAdditionMod.shouldEnableCrafterOutputBlockRule()) {
+        if (!CarpetIceAdditionSettings.crafterStopsWhenOutputBlocked) {
             return;
         }
 

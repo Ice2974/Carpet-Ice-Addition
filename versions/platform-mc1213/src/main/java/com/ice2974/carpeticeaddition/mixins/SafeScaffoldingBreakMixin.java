@@ -25,7 +25,7 @@ public abstract class SafeScaffoldingBreakMixin {
 
     @Inject(method = "tryBreakBlock", at = @At("HEAD"), cancellable = true)
     private void carpetIceAddition$guardScaffoldingBreak(BlockPos pos, CallbackInfoReturnable<Boolean> cir) {
-        if (!CarpetIceAdditionSettings.safeScaffoldingBreak || !CarpetIceAdditionMod.shouldEnableSafeScaffoldingBreak()) {
+        if (!CarpetIceAdditionSettings.safeScaffoldingBreak) {
             return;
         }
 

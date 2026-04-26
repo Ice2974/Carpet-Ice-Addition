@@ -1,6 +1,5 @@
 package com.ice2974.carpeticeaddition.rules;
 
-import com.ice2974.carpeticeaddition.CarpetIceAdditionMod;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
@@ -43,7 +42,7 @@ public final class PhantomSpawnWarningHelper {
         lastProcessedNight = nightIndex;
 
         if (!CarpetIceAdditionSettings.phantomSpawnWarning
-                || !CarpetIceAdditionMod.shouldEnablePhantomSpawnWarning()
+               
                 || world.getDifficulty() == Difficulty.PEACEFUL
                 || !isDoInsomniaEnabled(world)
                 || isServerAccelerated(world)) {

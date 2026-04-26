@@ -29,7 +29,7 @@ public abstract class JukeboxManagerRecordWorldEventMixin {
             BlockPos pos,
             int data
     ) {
-        if (!CarpetIceAdditionSettings.recordWorldEventFix || !CarpetIceAdditionMod.shouldEnableRecordWorldEventFix()) {
+        if (!CarpetIceAdditionSettings.recordWorldEventFix) {
             world.syncWorldEvent(player, eventId, pos, data);
             return;
         }
@@ -54,7 +54,7 @@ public abstract class JukeboxManagerRecordWorldEventMixin {
             )
     )
     private void carpetIceAddition$recordStopBeforeImmediateWorldEvent(WorldAccess world, int eventId, BlockPos pos, int data) {
-        if (CarpetIceAdditionSettings.recordWorldEventFix && CarpetIceAdditionMod.shouldEnableRecordWorldEventFix()) {
+        if (CarpetIceAdditionSettings.recordWorldEventFix) {
             try {
                 if (world instanceof ServerWorld serverWorld) {
                     DelayedJukeboxStartEventManager.recordStop(serverWorld, pos);

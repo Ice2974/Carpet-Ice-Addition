@@ -2,7 +2,6 @@ package com.ice2974.carpeticeaddition;
 
 import carpet.CarpetExtension;
 import carpet.CarpetServer;
-import com.ice2974.carpeticeaddition.compat.RuntimeCompatibility;
 import com.ice2974.carpeticeaddition.rules.BotTabListNameHelper;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
 import com.ice2974.carpeticeaddition.translation.CarpetIceAdditionTranslations;
@@ -31,7 +30,6 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
     private static final AtomicBoolean FAKE_PLAYER_IGNORE_THORNS_DAMAGE_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean PHANTOM_SPAWN_WARNING_ERROR_REPORTED = new AtomicBoolean(false);
     private static String version;
-    private static RuntimeCompatibility compatibility;
 
     @Override
     public void onInitialize() {
@@ -41,7 +39,6 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
                 .getMetadata()
                 .getVersion()
                 .getFriendlyString();
-        compatibility = RuntimeCompatibility.detect(LOGGER);
         CarpetServer.manageExtension(INSTANCE);
     }
 
@@ -67,37 +64,6 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
         return version;
     }
 
-    public static boolean shouldEnableSafeScaffoldingBreak() {
-        return compatibility == null || compatibility.shouldEnableSafeScaffoldingBreak();
-    }
-
-    public static boolean shouldEnableCrafterOutputBlockRule() {
-        return compatibility == null || compatibility.shouldEnableCrafterOutputBlockRule();
-    }
-
-    public static boolean shouldEnableRecordWorldEventFix() {
-        return compatibility == null || compatibility.shouldEnableRecordWorldEventFix();
-    }
-
-    public static boolean shouldEnableSpawnersIgnoreInvisiblePlayers() {
-        return compatibility == null || compatibility.shouldEnableSpawnersIgnoreInvisiblePlayers();
-    }
-
-    public static boolean shouldEnableDisableKelpNaturalGrowth() {
-        return compatibility == null || compatibility.shouldEnableDisableKelpNaturalGrowth();
-    }
-
-    public static boolean shouldEnableCanMineBuddingAmethyst() {
-        return compatibility == null || compatibility.shouldEnableCanMineBuddingAmethyst();
-    }
-
-    public static boolean shouldEnableDisableNyliumDecay() {
-        return compatibility == null || compatibility.shouldEnableDisableNyliumDecay();
-    }
-
-    public static boolean shouldEnablePhantomSpawnWarning() {
-        return compatibility == null || compatibility.shouldEnablePhantomSpawnWarning();
-    }
 
     public static void reportFeatureCompatibilityIssue(String featureName, Throwable throwable) {
         AtomicBoolean flag;
