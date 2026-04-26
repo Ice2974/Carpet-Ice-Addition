@@ -1,5 +1,5 @@
 {
-  "required": false,
+  "required": true,
   "package": "com.ice2974.carpeticeaddition.mixins",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
@@ -8,7 +8,7 @@
     "JukeboxManagerRecordWorldEventMixin",
     "KelpNaturalGrowthMixin",
     "FakePlayerIgnoreThornsDamageMixin",
-    "DisablePetAttackingMixin",
+    "DisablePlayerAttackingTamedMobsMixin",
     "MobSpawnerLogicMixin",
     "NyliumDecayMixin",
     "TrialSpawnerDataMixin",

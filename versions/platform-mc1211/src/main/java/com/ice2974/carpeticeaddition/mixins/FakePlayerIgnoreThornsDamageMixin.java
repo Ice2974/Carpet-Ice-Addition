@@ -9,6 +9,7 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.injection.Desc;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
@@ -17,7 +18,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class FakePlayerIgnoreThornsDamageMixin {
 
     @Inject(
-            method = "damage(Lnet/minecraft/server/world/ServerWorld;Lnet/minecraft/entity/damage/DamageSource;F)Z",
+            target = @Desc(
+                    value = "damage",
+                    args = {ServerWorld.class, DamageSource.class, float.class},
+                    ret = boolean.class
+            ),
             at = @At("HEAD"),
             cancellable = true,
             require = 0
@@ -32,7 +37,11 @@ public abstract class FakePlayerIgnoreThornsDamageMixin {
     }
 
     @Inject(
-            method = "damage(Lnet/minecraft/entity/damage/DamageSource;F)Z",
+            target = @Desc(
+                    value = "damage",
+                    args = {DamageSource.class, float.class},
+                    ret = boolean.class
+            ),
             at = @At("HEAD"),
             cancellable = true,
             require = 0

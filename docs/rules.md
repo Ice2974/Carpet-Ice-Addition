@@ -1,4 +1,4 @@
-> 文档对应版本：`v1.2.0`
+> 文档对应版本：`v1.3.0`
 
 ## 脚手架防误触 (safeScaffoldingBreak)
 
@@ -95,8 +95,9 @@
 
 ## 禁止伤害已驯服生物 (disablePlayerAttackingTamedMobs)
 
-禁用玩家对已驯服生物的伤害，防止误伤。
-（此规则移植自DoormatCarpetExtension）
+玩家不能伤害自己驯服的生物，防止误伤。
+影响范围包括猫、狼、鹦鹉、鹦鹉螺、僵尸鹦鹉螺、马、驴、骡、僵尸马、骷髅马、羊驼、行商羊驼。
+（此规则最初移植自DoormatCarpetExtension，现已按本模组需求调整）
 
 - 类型: `boolean`
 - 默认值: `false`

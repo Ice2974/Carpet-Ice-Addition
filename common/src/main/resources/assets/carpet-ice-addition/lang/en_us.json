@@ -8,7 +8,7 @@
   "carpet.rule.canMineBuddingAmethyst.desc": "Budding amethyst can be collected with a Silk Touch tool.",
   "carpet.rule.disableNyliumDecay.desc": "Crimson nylium and warped nylium will not decay into netherrack when covered by a block above.",
   "carpet.rule.fakePlayerIgnoreThornsDamage.desc": "Bots will not take reflected damage caused by Thorns when attacking entities or players equipped with Thorns.",
-  "carpet.rule.disablePlayerAttackingTamedMobs.desc": "Disables players harming tamed mobs to prevent accidental harm.",
+  "carpet.rule.disablePlayerAttackingTamedMobs.desc": "Prevents players from damaging mobs they have tamed to avoid accidental harm.",
   "carpet.rule.phantomSpawnWarning.desc": "Warns players at the start of the night when they reach the vanilla insomnia time threshold for phantom spawning.",
   "carpet.rule.botTabListNamePrefix.desc": "Add a prefix to the Bot in the TabList, using & to represent text color.",
   "carpet.rule.botTabListNameSuffix.desc": "Add a suffix to the Bot in the TabList, using & to represent text color.",

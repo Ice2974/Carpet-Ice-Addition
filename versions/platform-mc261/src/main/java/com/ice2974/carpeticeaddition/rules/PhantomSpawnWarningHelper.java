@@ -8,6 +8,7 @@ import net.minecraft.stats.Stat;
 import net.minecraft.stats.Stats;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.gamerules.GameRules;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -42,7 +43,6 @@ public final class PhantomSpawnWarningHelper {
         lastProcessedNight = nightIndex;
 
         if (!CarpetIceAdditionSettings.phantomSpawnWarning
-               
                 || world.getDifficulty() == Difficulty.PEACEFUL
                 || !isDoInsomniaEnabled(world)
                 || isServerAccelerated(world)) {
@@ -77,39 +77,7 @@ public final class PhantomSpawnWarningHelper {
     }
 
     private static boolean isDoInsomniaEnabled(ServerLevel world) {
-        try {
-            Object gameRules = world.getGameRules();
-            Object ruleKey = resolveInsomniaRuleKey();
-            if (ruleKey == null) {
-                return true;
-            }
-            Method getBoolean = gameRules.getClass().getMethod("getBoolean", ruleKey.getClass());
-            Object value = getBoolean.invoke(gameRules, ruleKey);
-            return value instanceof Boolean && (Boolean) value;
-        } catch (Throwable ignored) {
-            return true;
-        }
-    }
-
-    private static Object resolveInsomniaRuleKey() {
-        String[] classNames = {"net.minecraft.world.GameRules", "net.minecraft.world.level.GameRules"};
-        String[] fieldNames = {"RULE_DOINSOMNIA", "DO_INSOMNIA", "DOINSOMNIA"};
-        for (String className : classNames) {
-            try {
-                Class<?> clazz = Class.forName(className);
-                for (String fieldName : fieldNames) {
-                    try {
-                        Field field = clazz.getField(fieldName);
-                        if (Modifier.isStatic(field.getModifiers())) {
-                            return field.get(null);
-                        }
-                    } catch (Throwable ignored) {
-                    }
-                }
-            } catch (Throwable ignored) {
-            }
-        }
-        return null;
+        return Boolean.TRUE.equals(world.getGameRules().get(GameRules.SPAWN_PHANTOMS));
     }
 
     private static boolean isServerAccelerated(ServerLevel world) {
