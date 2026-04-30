@@ -11,7 +11,7 @@ Require holding scaffolding or an empty main hand to break scaffolding.
 
 ## crafterStopsWhenOutputBlocked
 
-Prevent the crafter from crafting when its output points to a valid auto-accepting container that cannot fully accept the crafted result and recipe remainders.
+Prevents a crafter from crafting when the container it faces cannot fully accept the main recipe result. Recipe remainders keep their vanilla behavior.
 
 - Type: `boolean`
 - Default: `false`

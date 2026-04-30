@@ -13,7 +13,7 @@ public final class CarpetIceAdditionTranslations {
                     Map.entry("carpet.rule.safeScaffoldingBreak.name", "\u811a\u624b\u67b6\u9632\u8bef\u89e6"),
                     Map.entry("carpet.rule.safeScaffoldingBreak.desc", "\u53ea\u6709\u4e3b\u624b\u6301\u811a\u624b\u67b6\u6216\u4e3b\u624b\u4e3a\u7a7a\u65f6\uff0c\u73a9\u5bb6\u624d\u80fd\u7834\u574f\u811a\u624b\u67b6\uff0c\u9632\u6b62\u8bef\u62c6\u3002"),
                     Map.entry("carpet.rule.crafterStopsWhenOutputBlocked.name", "\u5408\u6210\u5668\u8f93\u51fa\u963b\u585e\u65f6\u505c\u6b62\u5408\u6210"),
-                    Map.entry("carpet.rule.crafterStopsWhenOutputBlocked.desc", "\u5f53\u5408\u6210\u5668\u524d\u65b9\u662f\u53ef\u81ea\u52a8\u63a5\u6536\u4ea7\u7269\u7684\u6709\u6548\u5bb9\u5668\uff0c\u4e14\u65e0\u6cd5\u5b8c\u6574\u63a5\u6536\u672c\u6b21\u4e3b\u4ea7\u7269\u4e0e\u914d\u65b9\u4f59\u7559\u7269\u65f6\uff0c\u53d6\u6d88\u672c\u6b21\u5408\u6210\uff0c\u907f\u514d\u4ea7\u7269\u55b7\u51fa\u3002"),
+                    Map.entry("carpet.rule.crafterStopsWhenOutputBlocked.desc", "\u5408\u6210\u5668\u9762\u671d\u5bb9\u5668\u65e0\u6cd5\u5b8c\u6574\u63a5\u6536\u4e3b\u4ea7\u7269\u65f6\u963b\u6b62\u672c\u6b21\u5408\u6210\uff1b\u5408\u6210\u4f59\u7269\u4fdd\u6301\u539f\u7248\u5904\u7406\u3002"),
                     Map.entry("carpet.rule.recordWorldEventFix.name", "\u5531\u7247\u4e16\u754c\u4e8b\u4ef6\u65f6\u5e8f\u4fee\u590d"),
                     Map.entry("carpet.rule.recordWorldEventFix.desc", "\u4fee\u590d\u4e86\u5c06\u5531\u7247\u5feb\u901f\u653e\u5165\u5531\u7247\u673a\u540e\u53c8\u8fc5\u901f\u53d6\u51fa\u65f6\uff0c\u97f3\u4e50\u4ecd\u53ef\u80fd\u7ee7\u7eed\u64ad\u653e\uff0c\u4e14\u591a\u4e2a\u5531\u7247\u97f3\u9891\u53ef\u80fd\u91cd\u53e0\u7684\u95ee\u9898\uff0c\u8be6\u89c1 MC-112245\u3002"),
                     Map.entry("carpet.rule.spawnersIgnoreInvisiblePlayers.name", "\u5237\u602a\u7b3c\u5ffd\u7565\u9690\u8eab\u73a9\u5bb6"),
@@ -41,7 +41,7 @@ public final class CarpetIceAdditionTranslations {
         return Map.ofEntries(
                 Map.entry("carpet.category.CarpetIceAddition", "Ice"),
                 Map.entry("carpet.rule.safeScaffoldingBreak.desc", "Require holding scaffolding or an empty main hand to break scaffolding."),
-                Map.entry("carpet.rule.crafterStopsWhenOutputBlocked.desc", "Prevent the crafter from crafting when its output points to a valid auto-accepting container that cannot fully accept the crafted result and recipe remainders."),
+                Map.entry("carpet.rule.crafterStopsWhenOutputBlocked.desc", "Prevents a crafter from crafting when the container it faces cannot fully accept the main recipe result. Recipe remainders keep their vanilla behavior."),
                 Map.entry("carpet.rule.recordWorldEventFix.desc", "Fixes the issue where a music disc can keep playing after being quickly inserted into and removed from a jukebox, which may also cause overlapping disc audio. See MC-112245."),
                 Map.entry("carpet.rule.spawnersIgnoreInvisiblePlayers.desc", "Normal spawners, trial spawners, and ominous trial spawners ignore invisible players when checking nearby players."),
                 Map.entry("carpet.rule.disableKelpNaturalGrowth.desc", "Disable kelp natural growth from random ticks while keeping bonemeal growth unchanged."),

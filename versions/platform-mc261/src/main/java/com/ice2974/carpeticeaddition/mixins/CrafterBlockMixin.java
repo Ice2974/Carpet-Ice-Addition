@@ -14,7 +14,6 @@ import java.util.Optional;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.FrontAndTop;
-import net.minecraft.core.NonNullList;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.Container;
 import net.minecraft.world.item.ItemStack;
@@ -26,7 +25,6 @@ import net.minecraft.world.level.block.entity.CrafterBlockEntity;
 import net.minecraft.world.level.block.entity.HopperBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.EnumProperty;
-import java.util.ArrayList;
 import java.util.List;
 
 @Mixin(CrafterBlock.class)
@@ -61,16 +59,7 @@ public abstract class CrafterBlockMixin {
                 return;
             }
 
-            List<ItemStack> plannedOutputs = new ArrayList<>();
-            plannedOutputs.add(result);
-            NonNullList<ItemStack> remainders = recipe.get().value().getRemainingItems(input);
-            for (ItemStack remainder : remainders) {
-                if (!remainder.isEmpty()) {
-                    plannedOutputs.add(remainder);
-                }
-            }
-
-            if (!CrafterOutputBlockHelper.canFullyInsertAll(target, plannedOutputs, outputDirection.getOpposite())) {
+            if (!CrafterOutputBlockHelper.canFullyInsertAll(target, List.of(result), outputDirection.getOpposite())) {
                 ci.cancel();
             }
         } catch (Throwable throwable) {

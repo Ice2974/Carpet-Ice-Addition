@@ -15,7 +15,6 @@ import net.minecraft.recipe.RecipeEntry;
 import net.minecraft.recipe.input.CraftingRecipeInput;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.state.property.EnumProperty;
-import net.minecraft.util.collection.DefaultedList;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import org.spongepowered.asm.mixin.Final;
@@ -25,9 +24,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import java.util.Optional;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Mixin(CrafterBlock.class)
 public abstract class CrafterBlockMixin {
@@ -61,16 +59,7 @@ public abstract class CrafterBlockMixin {
                 return;
             }
 
-            List<ItemStack> plannedOutputs = new ArrayList<>();
-            plannedOutputs.add(result);
-            DefaultedList<ItemStack> remainders = recipe.get().value().getRecipeRemainders(input);
-            for (ItemStack remainder : remainders) {
-                if (!remainder.isEmpty()) {
-                    plannedOutputs.add(remainder);
-                }
-            }
-
-            if (!CrafterOutputBlockHelper.canFullyInsertAll(target, plannedOutputs, outputDirection.getOpposite())) {
+            if (!CrafterOutputBlockHelper.canFullyInsertAll(target, List.of(result), outputDirection.getOpposite())) {
                 ci.cancel();
             }
         } catch (Throwable throwable) {
