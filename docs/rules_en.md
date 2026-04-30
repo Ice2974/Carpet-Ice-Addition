@@ -1,4 +1,4 @@
-> Doc Version: `v1.3.0`
+> Doc Version: `v1.4.0`
 
 ## safeScaffoldingBreak
 
@@ -12,6 +12,15 @@ Require holding scaffolding or an empty main hand to break scaffolding.
 ## crafterStopsWhenOutputBlocked
 
 Prevents a crafter from crafting when the container it faces cannot fully accept the main recipe result. Recipe remainders keep their vanilla behavior.
+
+- Type: `boolean`
+- Default: `false`
+- Possible values: `false`, `true`
+- Categories: `ICE`, `FEATURE`
+
+## craftableCoralBlocks
+
+Allows 9 coral fans of the same type to be crafted into the corresponding coral block, including dead coral variants.
 
 - Type: `boolean`
 - Default: `false`

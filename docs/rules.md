@@ -1,4 +1,4 @@
-> 文档对应版本：`v1.3.0`
+> 文档对应版本：`v1.4.0`
 
 ## 脚手架防误触 (safeScaffoldingBreak)
 
@@ -12,6 +12,15 @@
 ## 合成器输出阻塞时停止合成 (crafterStopsWhenOutputBlocked)
 
 合成器面朝容器无法完整接收主产物时阻止本次合成，合成余物保持原版处理。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`
+
+## 可合成珊瑚块 (craftableCoralBlocks)
+
+允许使用 9 个同种类珊瑚扇合成对应的珊瑚块，死珊瑚扇同样生效
 
 - 类型: `boolean`
 - 默认值: `false`

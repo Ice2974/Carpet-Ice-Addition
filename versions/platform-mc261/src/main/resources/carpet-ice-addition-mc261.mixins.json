@@ -5,6 +5,7 @@
   "mixins": [
     "CanMineBuddingAmethystMixin",
     "CrafterBlockMixin",
+    "RecipeManagerCraftableCoralBlocksMixin",
     "JukeboxManagerRecordWorldEventMixin",
     "KelpNaturalGrowthMixin",
     "FakePlayerIgnoreThornsDamageMixin",

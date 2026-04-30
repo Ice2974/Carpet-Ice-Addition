@@ -19,6 +19,9 @@ public final class CarpetIceAdditionSettings {
     @Rule(categories = {ICE, FEATURE})
     public static boolean crafterStopsWhenOutputBlocked = false;
 
+    @Rule(categories = {ICE, FEATURE})
+    public static boolean craftableCoralBlocks = false;
+
     @Rule(categories = {ICE, BUGFIX})
     public static boolean recordWorldEventFix = false;
 
