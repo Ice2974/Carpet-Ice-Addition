@@ -10,6 +10,7 @@
     "KelpNaturalGrowthMixin",
     "FakePlayerIgnoreThornsDamageMixin",
     "DisablePlayerAttackingTamedMobsMixin",
+    "ItemFrameMixin",
     "MobSpawnerLogicMixin",
     "NyliumDecayMixin",
     "TrialSpawnerDataMixin",

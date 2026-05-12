@@ -1,4 +1,4 @@
-> 文档对应版本：`v1.4.0`
+> 文档对应版本：`v1.5.0`
 
 ## 脚手架防误触 (safeScaffoldingBreak)
 
@@ -9,9 +9,29 @@
 - 可选值: `false`, `true`
 - 分类: `ICE`, `SURVIVAL`
 
+## 可隐形展示框 (invisibleItemFrames)
+
+允许玩家用幻翼膜右键已放入物品的物品展示框或荧光物品展示框，使其隐形。
+（此规则最初移植自 carpet-redcraft-addons，并由原 betterItemFrames 规则拆分而来。）
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`
+
+## 可固定展示框 (fixedItemFrames)
+
+允许玩家用玻璃板右键已放入物品的物品展示框或荧光物品展示框，使其固定；固定后的展示框可用斧头右键解除固定。
+（此规则最初移植自 carpet-redcraft-addons，并由原 betterItemFrames 规则拆分而来。）
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`
+
 ## 合成器输出阻塞时停止合成 (crafterStopsWhenOutputBlocked)
 
-合成器面朝容器无法完整接收主产物时阻止本次合成，合成余物保持原版处理。
+合成器面朝容器无法完整接收主产物时阻止本次合成；合成余物保持原版处理。
 
 - 类型: `boolean`
 - 默认值: `false`

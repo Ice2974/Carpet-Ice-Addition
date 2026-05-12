@@ -1,4 +1,4 @@
-> Doc Version: `v1.4.0`
+> Doc Version: `v1.5.0`
 
 ## safeScaffoldingBreak
 
@@ -8,6 +8,26 @@ Require holding scaffolding or an empty main hand to break scaffolding.
 - Default: `false`
 - Possible values: `false`, `true`
 - Categories: `ICE`, `SURVIVAL`
+
+## invisibleItemFrames
+
+Allows players to right-click item frames or glow item frames that already contain an item with a phantom membrane to make them invisible.
+(This rule was initially ported from carpet-redcraft-addons and split from its original betterItemFrames rule.)
+
+- Type: `boolean`
+- Default: `false`
+- Possible values: `false`, `true`
+- Categories: `ICE`, `FEATURE`
+
+## fixedItemFrames
+
+Allows players to right-click item frames or glow item frames that already contain an item with a glass pane to make them fixed; fixed frames can be unfixed by right-clicking them with an axe.
+(This rule was initially ported from carpet-redcraft-addons and split from its original betterItemFrames rule.)
+
+- Type: `boolean`
+- Default: `false`
+- Possible values: `false`, `true`
+- Categories: `ICE`, `FEATURE`
 
 ## crafterStopsWhenOutputBlocked
 
