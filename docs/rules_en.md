@@ -11,7 +11,7 @@ Require holding scaffolding or an empty main hand to break scaffolding.
 
 ## invisibleItemFrames
 
-Allows players to right-click item frames or glow item frames that already contain an item with a phantom membrane to make them invisible.
+Allows players to right-click item frames or glow item frames that already contain an item with a phantom membrane to make them invisible.\
 (This rule was initially ported from carpet-redcraft-addons and split from its original betterItemFrames rule.)
 
 - Type: `boolean`
@@ -21,7 +21,7 @@ Allows players to right-click item frames or glow item frames that already conta
 
 ## fixedItemFrames
 
-Allows players to right-click item frames or glow item frames that already contain an item with a glass pane to make them fixed; fixed frames can be unfixed by right-clicking them with an axe.
+Allows players to right-click item frames or glow item frames that already contain an item with a glass pane to make them fixed; fixed frames can be unfixed by right-clicking them with an axe.\
 (This rule was initially ported from carpet-redcraft-addons and split from its original betterItemFrames rule.)
 
 - Type: `boolean`
@@ -49,7 +49,7 @@ Allows 9 coral fans of the same type to be crafted into the corresponding coral 
 
 ## recordWorldEventFix
 
-Fixes the issue where a music disc can keep playing after being quickly inserted into and removed from a jukebox, which may also cause overlapping disc audio. See MC-112245.
+Fixes the issue where a music disc can keep playing after being quickly inserted into and removed from a jukebox, which may also cause overlapping disc audio. See MC-112245.\
 (This rule was initially ported from Carpet-Fixes and has since been adapted for this mod's needs.)
 
 - Type: `boolean`
@@ -95,7 +95,7 @@ Crimson nylium and warped nylium will not decay into netherrack when covered by 
 
 ## botTabListNamePrefix
 
-Add a prefix to the Bot in the TabList, using `&` to represent text color.
+Add a prefix to the Bot in the TabList, using `&` to represent text color.\
 (This rule was initially ported from Carpet-TCTC-Addition and has since been adapted for this mod's needs.)
 
 - Type: `String`
@@ -105,7 +105,7 @@ Add a prefix to the Bot in the TabList, using `&` to represent text color.
 
 ## botTabListNameSuffix
 
-Add a suffix to the Bot in the TabList, using `&` to represent text color.
+Add a suffix to the Bot in the TabList, using `&` to represent text color.\
 (This rule was initially ported from Carpet-TCTC-Addition and has since been adapted for this mod's needs.)
 
 - Type: `String`
@@ -124,8 +124,8 @@ Bots will not take reflected damage caused by Thorns when attacking entities or 
 
 ## disablePlayerAttackingTamedMobs
 
-Prevents players from damaging mobs they have tamed to avoid accidental harm.
-Affected mobs include cats, wolves, parrots, nautiluses, zombie nautiluses, horses, donkeys, mules, zombie horses, skeleton horses, llamas, and trader llamas.
+Prevents players from damaging mobs they have tamed to avoid accidental harm.\
+Affected mobs include cats, wolves, parrots, nautiluses, zombie nautiluses, horses, donkeys, mules, zombie horses, skeleton horses, llamas, and trader llamas.\
 (This rule was initially ported from DoormatCarpetExtension and has since been adapted for this mod's needs.)
 
 - Type: `boolean`
