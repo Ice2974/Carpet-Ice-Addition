@@ -1,7 +1,7 @@
 ﻿# Gradle
 .gradle/
 .gradle-home/
-gradle/wrapper/*.zip
+gradle/wrapper/gradle-9.2.1-bin
 **/build/
 out/
 classes/
