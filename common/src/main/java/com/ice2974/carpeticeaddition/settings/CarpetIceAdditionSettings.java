@@ -46,6 +46,9 @@ public final class CarpetIceAdditionSettings {
     @Rule(categories = {ICE, FEATURE})
     public static boolean fixedItemFrames = false;
 
+    @Rule(categories = {ICE, FEATURE})
+    public static boolean easyWaterloggedBlockPlacement = false;
+
     @Rule(categories = {ICE, SURVIVAL})
     public static boolean disablePlayerAttackingTamedMobs = false;
 

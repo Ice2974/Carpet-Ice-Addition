@@ -29,6 +29,7 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
     private static final AtomicBoolean BOT_TAB_LIST_NAME_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean DISABLE_PLAYER_ATTACKING_TAMED_MOBS_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean FAKE_PLAYER_IGNORE_THORNS_DAMAGE_ERROR_REPORTED = new AtomicBoolean(false);
+    private static final AtomicBoolean EASY_WATERLOGGED_BLOCK_PLACEMENT_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean PHANTOM_SPAWN_WARNING_ERROR_REPORTED = new AtomicBoolean(false);
     private static String version;
 
@@ -90,6 +91,8 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
             flag = DISABLE_PLAYER_ATTACKING_TAMED_MOBS_ERROR_REPORTED;
         } else if ("fakePlayerIgnoreThornsDamage".equals(featureName)) {
             flag = FAKE_PLAYER_IGNORE_THORNS_DAMAGE_ERROR_REPORTED;
+        } else if ("easyWaterloggedBlockPlacement".equals(featureName)) {
+            flag = EASY_WATERLOGGED_BLOCK_PLACEMENT_ERROR_REPORTED;
         } else if ("phantomSpawnWarning".equals(featureName)) {
             flag = PHANTOM_SPAWN_WARNING_ERROR_REPORTED;
         } else {

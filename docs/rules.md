@@ -1,4 +1,4 @@
-> 文档对应版本：`v1.5.0`
+> 文档对应版本：`v1.6.0`
 
 ## 脚手架防误触 (safeScaffoldingBreak)
 
@@ -141,3 +141,12 @@
 - 默认值: `false`
 - 可选值: `false`, `true`
 - 分类: `ICE`, `SURVIVAL`
+
+## 轻松放置含水方块 (easyWaterloggedBlockPlacement)
+
+允许玩家在副手持有水桶时，将支持含水状态的方块直接放置为含水状态。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`

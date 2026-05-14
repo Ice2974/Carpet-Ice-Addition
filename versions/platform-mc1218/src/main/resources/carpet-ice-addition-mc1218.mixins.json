@@ -13,6 +13,7 @@
     "ItemFrameEntityMixin",
     "MobSpawnerLogicMixin",
     "NyliumDecayMixin",
+    "BlockItemEasyWaterloggedBlockPlacementMixin",
     "ServerWorldPhantomSpawnWarningMixin",
     "ServerWorldRecordWorldEventMixin",
     "SafeScaffoldingBreakMixin",
