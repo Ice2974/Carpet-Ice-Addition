@@ -8,6 +8,7 @@
     "RecipeManagerCraftableCoralBlocksMixin",
     "JukeboxManagerRecordWorldEventMixin",
     "KelpNaturalGrowthMixin",
+    "PlayerBreakIceLikeMagmaBlocksMixin",
     "FakePlayerIgnoreThornsDamageMixin",
     "DisablePlayerAttackingTamedMobsMixin",
     "ItemFrameEntityMixin",

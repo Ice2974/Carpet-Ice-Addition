@@ -1,4 +1,4 @@
-> 文档对应版本：`v1.6.0`
+> 文档对应版本：`v1.7.0`
 
 ## 脚手架防误拆 (safeScaffoldingBreak)
 
@@ -78,6 +78,15 @@
 ## 可采集紫水晶母岩 (canMineBuddingAmethyst)
 
 使用带有精准采集附魔的合适工具可采集紫水晶母岩。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`
+
+## 类冰岩浆块 (iceLikeMagmaBlocks)
+
+允许玩家使用不带精准采集的工具破坏岩浆块时，根据类似冰块的判定逻辑，在下方为有效固体方块或液体方块时生成岩浆源。
 
 - 类型: `boolean`
 - 默认值: `false`

@@ -1,4 +1,4 @@
-> Doc Version: `v1.6.0`
+> Doc Version: `v1.7.0`
 
 ## safeScaffoldingBreak
 
@@ -78,6 +78,15 @@ Disables kelp natural growth from random ticks while keeping bonemeal growth unc
 ## canMineBuddingAmethyst
 
 Budding amethyst can be collected with a Silk Touch tool.
+
+- Type: `boolean`
+- Default: `false`
+- Possible values: `false`, `true`
+- Categories: `ICE`, `FEATURE`
+
+## iceLikeMagmaBlocks
+
+Allows magma blocks broken by players with tools without Silk Touch to generate a lava source using ice-like support checks when the block below is a valid solid block or liquid block.
 
 - Type: `boolean`
 - Default: `false`
