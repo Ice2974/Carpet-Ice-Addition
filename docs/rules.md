@@ -1,4 +1,4 @@
-> 文档对应版本：`v1.7.0`
+﻿> 文档对应版本：`v1.8.0`
 
 ## 脚手架防误拆 (safeScaffoldingBreak)
 
@@ -11,8 +11,8 @@
 
 ## 可隐形展示框 (invisibleItemFrames)
 
-允许玩家用幻翼膜右键已放入物品的物品展示框或荧光物品展示框，使其隐形。\
-（此规则最初移植自 carpet-redcraft-addons，并由原 betterItemFrames 规则拆分而来。）
+允许玩家用幻翼膜右键已放入物品的物品展示框或荧光物品展示框，使其隐形。
+(此规则最初移植自 carpet-redcraft-addons，并由原 betterItemFrames 规则拆分而来。)
 
 - 类型: `boolean`
 - 默认值: `false`
@@ -21,8 +21,8 @@
 
 ## 可固定展示框 (fixedItemFrames)
 
-允许玩家用玻璃板右键已放入物品的物品展示框或荧光物品展示框，使其固定；固定后的展示框可用斧头右键解除固定。\
-（此规则最初移植自 carpet-redcraft-addons，并由原 betterItemFrames 规则拆分而来。）
+允许玩家用玻璃板右键已放入物品的物品展示框或荧光物品展示框，使其固定；固定后的展示框可用斧头右键解除固定。
+(此规则最初移植自 carpet-redcraft-addons，并由原 betterItemFrames 规则拆分而来。)
 
 - 类型: `boolean`
 - 默认值: `false`
@@ -31,7 +31,7 @@
 
 ## 合成器输出阻塞时停止合成 (crafterStopsWhenOutputBlocked)
 
-合成器面朝容器无法完整接收主产物时阻止本次合成；合成余物保持原版处理。
+当合成器面朝容器无法完整接收主产物时，阻止本次合成；合成余物保持原版处理。
 
 - 类型: `boolean`
 - 默认值: `false`
@@ -40,7 +40,7 @@
 
 ## 可合成珊瑚块 (craftableCoralBlocks)
 
-允许使用 9 个同种类珊瑚扇合成对应的珊瑚块，死珊瑚扇同样生效
+允许使用 9 个同种类珊瑚扇合成对应的珊瑚块，死珊瑚扇同样生效。
 
 - 类型: `boolean`
 - 默认值: `false`
@@ -49,8 +49,8 @@
 
 ## 唱片世界事件时序修复 (recordWorldEventFix)
 
-修复唱片快速放入并取出后音乐仍继续播放、或多张唱片音频重叠的问题。详见 MC-112245。\
-（此规则最初移植自Carpet-Fixes，现已按本模组需求调整）
+修复了将唱片快速放入唱片机后又迅速取出时，音乐仍可能继续播放，且多个唱片音频可能重叠的问题。详见 MC-112245。
+(此规则最初移植自 Carpet-Fixes，现已按本模组需求调整。)
 
 - 类型: `boolean`
 - 默认值: `false`
@@ -59,7 +59,7 @@
 
 ## 刷怪笼忽略隐身玩家 (spawnersIgnoreInvisiblePlayers)
 
-普通刷怪笼、试炼刷怪笼和不祥试炼刷怪笼在检测附近玩家时忽略隐身玩家。
+普通刷怪笼、试炼刷怪笼和不祥试炼刷怪笼在判定附近玩家时会忽略隐身玩家。
 
 - 类型: `boolean`
 - 默认值: `false`
@@ -104,8 +104,8 @@
 
 ## 假人Tab栏名称前缀 (botTabListNamePrefix)
 
-为Tab栏中的假人添加前缀，使用 `&` 来表示文字颜色。\
-（此规则最初移植自Carpet-TCTC-Addition，现已按本模组需求调整）
+为 Tab 栏中的假人添加前缀，使用 `&` 来表示文字颜色。
+(此规则最初移植自 Carpet-TCTC-Addition，现已按本模组需求调整。)
 
 - 类型: `String`
 - 默认值: `#none`
@@ -114,8 +114,8 @@
 
 ## 假人Tab栏名称后缀 (botTabListNameSuffix)
 
-为Tab栏中的假人添加后缀，使用 `&` 来表示文字颜色。\
-（此规则最初移植自Carpet-TCTC-Addition，现已按本模组需求调整）
+为 Tab 栏中的假人添加后缀，使用 `&` 来表示文字颜色。
+(此规则最初移植自 Carpet-TCTC-Addition，现已按本模组需求调整。)
 
 - 类型: `String`
 - 默认值: `#none`
@@ -133,9 +133,9 @@
 
 ## 禁止伤害已驯服生物 (disablePlayerAttackingTamedMobs)
 
-玩家不能伤害自己驯服的生物，防止误伤。\
-影响范围包括猫、狼、鹦鹉、鹦鹉螺、僵尸鹦鹉螺、马、驴、骡、僵尸马、骷髅马、羊驼、行商羊驼。\
-（此规则最初移植自DoormatCarpetExtension，现已按本模组需求调整）
+玩家不能伤害自己驯服的生物，防止误伤。
+影响范围包括猫、狼、鹦鹉、鹦鹉螺、僵尸鹦鹉螺、马、驴、骡、僵尸马、骷髅马、驼羊、行商驼羊。
+(此规则最初移植自 DoormatCarpetExtension，现已按本模组需求调整。)
 
 - 类型: `boolean`
 - 默认值: `false`
@@ -154,6 +154,16 @@
 ## 轻松放置含水方块 (easyWaterloggedBlockPlacement)
 
 允许玩家在副手持有水桶时，将支持含水状态的方块直接放置为含水状态。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`
+
+## 禁止自然生成持矛僵尸猪灵 (zombifiedPiglinsSpawnWithoutSpears)
+
+僵尸猪灵在自然生成时不会手持长矛。\
+(此规则仅适用于 Minecraft 1.21.11 及以上版本。)
 
 - 类型: `boolean`
 - 默认值: `false`

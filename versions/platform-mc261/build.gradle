@@ -3,6 +3,8 @@ plugins {
     id 'maven-publish'
 }
 
+version = project.findProperty('mc261_mod_version') ?: project.mod_version
+
 base {
     archivesName = "${project.archives_base_name}-mc261"
 }
@@ -105,7 +107,7 @@ if (sortedRangeParts.size() <= 1) {
         releaseMinecraftLabel = "${lower}-${upper}"
     }
 }
-def releaseJarBaseName = "Carpet-Ice-Addition-v${project.mod_version}-mc${releaseMinecraftLabel}"
+def releaseJarBaseName = "Carpet-Ice-Addition-v${project.version}-mc${releaseMinecraftLabel}"
 
 tasks.named('jar') {
     archiveFileName = "${releaseJarBaseName}.jar"

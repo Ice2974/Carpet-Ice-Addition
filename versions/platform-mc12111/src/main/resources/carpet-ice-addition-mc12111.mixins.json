@@ -19,7 +19,8 @@
     "ServerWorldPhantomSpawnWarningMixin",
     "ServerWorldRecordWorldEventMixin",
     "SafeScaffoldingBreakMixin",
-    "PlayerListEntryTabListNameMixin"
+    "PlayerListEntryTabListNameMixin",
+    "ZombieEntityZombifiedPiglinSpawnMixin"
   ],
   "injectors": {
     "defaultRequire": 1

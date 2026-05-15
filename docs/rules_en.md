@@ -1,4 +1,4 @@
-> Doc Version: `v1.7.0`
+> Doc Version: `v1.8.0`
 
 ## safeScaffoldingBreak
 
@@ -154,6 +154,16 @@ Warns players at the start of the night when they reach the vanilla insomnia tim
 ## easyWaterloggedBlockPlacement
 
 Allows players holding a water bucket in the offhand to directly place waterloggable blocks in a waterlogged state.
+
+- Type: `boolean`
+- Default: `false`
+- Possible values: `false`, `true`
+- Categories: `ICE`, `FEATURE`
+
+## zombifiedPiglinsSpawnWithoutSpears
+
+Prevents naturally spawned zombified piglins from holding spears.\
+(This rule applies only to Minecraft 1.21.11 and above.)
 
 - Type: `boolean`
 - Default: `false`
