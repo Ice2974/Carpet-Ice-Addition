@@ -10,7 +10,7 @@ public final class CarpetIceAdditionTranslations {
         if (lang != null && lang.toLowerCase().startsWith("zh")) {
             return Map.ofEntries(
                     Map.entry("carpet.category.CarpetIceAddition", "Ice"),
-                    Map.entry("carpet.rule.safeScaffoldingBreak.name", "\u811a\u624b\u67b6\u9632\u8bef\u89e6"),
+                    Map.entry("carpet.rule.safeScaffoldingBreak.name", "\u811a\u624b\u67b6\u9632\u8bef\u62c6"),
                     Map.entry("carpet.rule.safeScaffoldingBreak.desc", "\u53ea\u6709\u4e3b\u624b\u6301\u811a\u624b\u67b6\u6216\u4e3b\u624b\u4e3a\u7a7a\u65f6\uff0c\u73a9\u5bb6\u624d\u80fd\u7834\u574f\u811a\u624b\u67b6\uff0c\u9632\u6b62\u8bef\u62c6\u3002"),
                     Map.entry("carpet.rule.crafterStopsWhenOutputBlocked.name", "\u5408\u6210\u5668\u8f93\u51fa\u963b\u585e\u65f6\u505c\u6b62\u5408\u6210"),
                     Map.entry("carpet.rule.crafterStopsWhenOutputBlocked.desc", "\u5408\u6210\u5668\u9762\u671d\u5bb9\u5668\u65e0\u6cd5\u5b8c\u6574\u63a5\u6536\u4e3b\u4ea7\u7269\u65f6\u963b\u6b62\u672c\u6b21\u5408\u6210\uff1b\u5408\u6210\u4f59\u7269\u4fdd\u6301\u539f\u7248\u5904\u7406\u3002"),

@@ -1,6 +1,6 @@
 > 文档对应版本：`v1.6.0`
 
-## 脚手架防误触 (safeScaffoldingBreak)
+## 脚手架防误拆 (safeScaffoldingBreak)
 
 只有主手持脚手架或主手为空时，玩家才能破坏脚手架，防止误拆。
 
