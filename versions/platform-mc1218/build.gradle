@@ -20,7 +20,9 @@ dependencies {
 sourceSets {
     main {
         java {
-            srcDir rootProject.file('versions/shared/mc1216-1218/src/main/java')
+            srcDir rootProject.file('versions/shared/mc121x/src/main/java')
+            srcDir rootProject.file('versions/shared/mc1216-1218/src/main/java/com/ice2974/carpeticeaddition/command')
+            exclude 'com/ice2974/carpeticeaddition/command/KillItemCommand.java'
         }
         resources {
             srcDir project(':common').file('src/main/resources')
