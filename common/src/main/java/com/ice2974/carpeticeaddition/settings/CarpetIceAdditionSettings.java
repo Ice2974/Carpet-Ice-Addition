@@ -1,8 +1,10 @@
 package com.ice2974.carpeticeaddition.settings;
 
 import carpet.api.settings.Rule;
+import carpet.api.settings.Validators;
 
 import static carpet.api.settings.RuleCategory.BUGFIX;
+import static carpet.api.settings.RuleCategory.COMMAND;
 import static carpet.api.settings.RuleCategory.FEATURE;
 import static carpet.api.settings.RuleCategory.SURVIVAL;
 
@@ -57,6 +59,13 @@ public final class CarpetIceAdditionSettings {
 
     @Rule(categories = {ICE, SURVIVAL})
     public static boolean phantomSpawnWarning = false;
+
+    @Rule(
+            categories = {ICE, COMMAND},
+            options = {"false", "true", "ops", "0", "1", "2", "3", "4"},
+            validators = Validators.CommandLevel.class
+    )
+    public static String commandKillItem = "ops";
 
     @Rule(
             categories = {ICE},

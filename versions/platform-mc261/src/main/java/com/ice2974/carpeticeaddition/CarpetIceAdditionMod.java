@@ -2,12 +2,20 @@ package com.ice2974.carpeticeaddition;
 
 import carpet.CarpetExtension;
 import carpet.CarpetServer;
+import carpet.utils.CommandHelper;
+import com.ice2974.carpeticeaddition.command.KillItemCommandMc261;
 import com.ice2974.carpeticeaddition.rules.BotTabListNameHelper;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionHighVersionSettings;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
 import com.ice2974.carpeticeaddition.translation.CarpetIceAdditionTranslations;
+import com.ice2974.carpeticeaddition.command.KillItemConfigManager;
+import com.mojang.brigadier.CommandDispatcher;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.commands.CommandBuildContext;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.world.level.storage.LevelResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,6 +60,13 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
         CarpetServer.settingsManager.parseSettingsClass(CarpetIceAdditionHighVersionSettings.class);
         CarpetServer.settingsManager.registerRuleObserver((source, rule, userInput) -> {
             String ruleName = rule.name();
+            if ("commandKillItem".equals(ruleName)) {
+                MinecraftServer server = source != null ? source.getServer() : CarpetServer.minecraft_server;
+                if (server != null) {
+                    CommandHelper.notifyPlayersCommandsChanged(server);
+                }
+                return;
+            }
             if (!"botTabListNamePrefix".equals(ruleName) && !"botTabListNameSuffix".equals(ruleName)) {
                 return;
             }
@@ -69,6 +84,22 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
         return version;
     }
 
+
+
+    @Override
+    public void registerCommands(CommandDispatcher<CommandSourceStack> dispatcher, CommandBuildContext commandBuildContext) {
+        KillItemCommandMc261.register(dispatcher);
+    }
+
+    @Override
+    public void onServerLoaded(MinecraftServer server) {
+        KillItemConfigManager.initialize(server.getWorldPath(LevelResource.ROOT));
+    }
+
+    @Override
+    public void onServerClosed(MinecraftServer server) {
+        KillItemConfigManager.shutdown();
+    }
 
     public static void reportFeatureCompatibilityIssue(String featureName, Throwable throwable) {
         AtomicBoolean flag;

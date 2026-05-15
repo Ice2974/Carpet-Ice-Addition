@@ -3,8 +3,6 @@ plugins {
     id 'maven-publish'
 }
 
-version = project.findProperty('mc261_mod_version') ?: project.mod_version
-
 base {
     archivesName = "${project.archives_base_name}-mc261"
 }

@@ -1,4 +1,4 @@
-> Doc Version: `v1.8.0`
+> Doc Version: `v1.9.0`
 
 ## safeScaffoldingBreak
 
@@ -121,6 +121,15 @@ Add a suffix to the Bot in the TabList, using `&` to represent text color.\
 - Default: `#none`
 - Suggested values: `#none`, ` [Fake]`
 - Categories: `ICE`
+
+## commandKillItem
+
+Registers the /killitem command for clearing item entities by radius or globally, with blacklist and named-item protection settings.
+
+- Type: `String`
+- Default: `ops`
+- Possible values: `false`, `true`, `ops`, `0`, `1`, `2`, `3`, `4`
+- Categories: `ICE`, `COMMAND`
 
 ## fakePlayerIgnoreThornsDamage
 

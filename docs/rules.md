@@ -1,4 +1,4 @@
-﻿> 文档对应版本：`v1.8.0`
+﻿> 文档对应版本：`v1.9.0`
 
 ## 脚手架防误拆 (safeScaffoldingBreak)
 
@@ -121,6 +121,15 @@
 - 默认值: `#none`
 - 参考值: `#none`, ` [Fake]`
 - 分类: `ICE`
+
+## 掉落物清理指令 (commandKillItem)
+
+注册 /killitem 指令，允许按半径或全局清理掉落物，并支持黑名单与命名掉落物保护配置。
+
+- 类型: `String`
+- 默认值: `ops`
+- 可选值: `false`, `true`, `ops`, `0`, `1`, `2`, `3`, `4`
+- 分类: `ICE`, `COMMAND`
 
 ## 假人免疫荆棘反伤 (fakePlayerIgnoreThornsDamage)
 

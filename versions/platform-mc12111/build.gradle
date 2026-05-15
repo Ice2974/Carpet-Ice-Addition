@@ -3,8 +3,6 @@ plugins {
     id 'maven-publish'
 }
 
-version = project.findProperty('mc12111_mod_version') ?: project.mod_version
-
 base {
     archivesName = "${project.archives_base_name}-mc12111"
 }
@@ -21,6 +19,9 @@ dependencies {
 
 sourceSets {
     main {
+        java {
+            srcDir rootProject.file('versions/shared/mc121x/src/main/java')
+        }
         resources {
             srcDir project(':common').file('src/main/resources')
         }

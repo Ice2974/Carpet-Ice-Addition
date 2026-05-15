@@ -19,6 +19,9 @@ dependencies {
 
 sourceSets {
     main {
+        java {
+            srcDir rootProject.file('versions/shared/mc1216-1218/src/main/java')
+        }
         resources {
             srcDir project(':common').file('src/main/resources')
         }

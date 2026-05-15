@@ -24,4 +24,5 @@
 - [Modrinth](https://modrinth.com/mod/carpet-ice-addition)
 
 ## Documentation
-- [Rules (English)](docs/rules_en.md)
+- [Rules](docs/rules_en.md)
+- [Commands](docs/commands_en.md)

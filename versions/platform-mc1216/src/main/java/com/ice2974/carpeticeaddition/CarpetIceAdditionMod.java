@@ -2,11 +2,18 @@ package com.ice2974.carpeticeaddition;
 
 import carpet.CarpetExtension;
 import carpet.CarpetServer;
+import carpet.utils.CommandHelper;
 import com.ice2974.carpeticeaddition.rules.BotTabListNameHelper;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
 import com.ice2974.carpeticeaddition.translation.CarpetIceAdditionTranslations;
+import com.ice2974.carpeticeaddition.command.KillItemCommand;
+import com.ice2974.carpeticeaddition.command.KillItemConfigManager;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
+import com.mojang.brigadier.CommandDispatcher;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.command.ServerCommandSource;
+import net.minecraft.util.WorldSavePath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,6 +57,13 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
         CarpetServer.settingsManager.parseSettingsClass(CarpetIceAdditionSettings.class);
         CarpetServer.settingsManager.registerRuleObserver((source, rule, userInput) -> {
             String ruleName = rule.name();
+            if ("commandKillItem".equals(ruleName)) {
+                MinecraftServer server = source != null ? source.getServer() : CarpetServer.minecraft_server;
+                if (server != null) {
+                    CommandHelper.notifyPlayersCommandsChanged(server);
+                }
+                return;
+            }
             if (!"botTabListNamePrefix".equals(ruleName) && !"botTabListNameSuffix".equals(ruleName)) {
                 return;
             }
@@ -67,6 +81,22 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
         return version;
     }
 
+
+
+    @Override
+    public void registerCommands(CommandDispatcher<ServerCommandSource> dispatcher) {
+        KillItemCommand.register(dispatcher);
+    }
+
+    @Override
+    public void onServerLoaded(MinecraftServer server) {
+        KillItemConfigManager.initialize(server.getSavePath(WorldSavePath.ROOT));
+    }
+
+    @Override
+    public void onServerClosed(MinecraftServer server) {
+        KillItemConfigManager.shutdown();
+    }
 
     public static void reportFeatureCompatibilityIssue(String featureName, Throwable throwable) {
         AtomicBoolean flag;
