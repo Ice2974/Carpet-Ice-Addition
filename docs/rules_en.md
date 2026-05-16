@@ -12,7 +12,7 @@ Require holding scaffolding or an empty main hand to break scaffolding.
 ## invisibleItemFrames
 
 Allows players to right-click item frames or glow item frames that already contain an item with a phantom membrane to make them invisible.\
-(This rule was initially ported from carpet-redcraft-addons and split from its original betterItemFrames rule.)
+(The feature design references carpet-redcraft-addons' betterItemFrames rule, while the current implementation has been independently rewritten for this mod's target versions and layering.)
 
 - Type: `boolean`
 - Default: `false`
@@ -22,7 +22,7 @@ Allows players to right-click item frames or glow item frames that already conta
 ## fixedItemFrames
 
 Allows players to right-click item frames or glow item frames that already contain an item with a glass pane to make them fixed; fixed frames can be unfixed by right-clicking them with an axe.\
-(This rule was initially ported from carpet-redcraft-addons and split from its original betterItemFrames rule.)
+(The feature design references carpet-redcraft-addons' betterItemFrames rule, while the current implementation has been independently rewritten for this mod's target versions and layering.)
 
 - Type: `boolean`
 - Default: `false`
@@ -77,7 +77,7 @@ Disables kelp natural growth from random ticks while keeping bonemeal growth unc
 
 ## canMineBuddingAmethyst
 
-Budding amethyst can be collected with a Silk Touch tool.
+Budding amethyst can be collected with a suitable Silk Touch tool.
 
 - Type: `boolean`
 - Default: `false`
@@ -104,8 +104,8 @@ Crimson nylium and warped nylium will not decay into netherrack when covered by 
 
 ## botTabListNamePrefix
 
-Add a prefix to the Bot in the TabList, using `&` to represent text color.\
-(This rule was initially ported from Carpet-TCTC-Addition and has since been adapted for this mod's needs.)
+Add a prefix to bots in the Tab list, using `&` to represent text colors.\
+(The feature design references a similar rule from Carpet-TCTC-Addition, and the current implementation has been rewritten for this mod's needs.)
 
 - Type: `String`
 - Default: `#none`
@@ -114,8 +114,8 @@ Add a prefix to the Bot in the TabList, using `&` to represent text color.\
 
 ## botTabListNameSuffix
 
-Add a suffix to the Bot in the TabList, using `&` to represent text color.\
-(This rule was initially ported from Carpet-TCTC-Addition and has since been adapted for this mod's needs.)
+Add a suffix to bots in the Tab list, using `&` to represent text colors.\
+(The feature design references a similar rule from Carpet-TCTC-Addition, and the current implementation has been rewritten for this mod's needs.)
 
 - Type: `String`
 - Default: `#none`
@@ -144,7 +144,7 @@ Bots will not take reflected damage caused by Thorns when attacking entities or 
 
 Prevents players from damaging mobs they have tamed to avoid accidental harm.\
 Affected mobs include cats, wolves, parrots, nautiluses, zombie nautiluses, horses, donkeys, mules, zombie horses, skeleton horses, llamas, and trader llamas.\
-(This rule was initially ported from DoormatCarpetExtension and has since been adapted for this mod's needs.)
+(The feature design references a similar rule from DoormatCarpetExtension, and the current implementation has been rewritten for this mod's needs.)
 
 - Type: `boolean`
 - Default: `false`

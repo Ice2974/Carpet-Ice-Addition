@@ -11,8 +11,8 @@
 
 ## 可隐形展示框 (invisibleItemFrames)
 
-允许玩家用幻翼膜右键已放入物品的物品展示框或荧光物品展示框，使其隐形。
-(此规则最初移植自 carpet-redcraft-addons，并由原 betterItemFrames 规则拆分而来。)
+允许玩家用幻翼膜右键已放入物品的物品展示框或荧光物品展示框，使其隐形。\
+（功能设计参考了 carpet-redcraft-addons 的 betterItemFrames 规则，当前实现已按本模组目标版本与分层结构独立重写。）
 
 - 类型: `boolean`
 - 默认值: `false`
@@ -21,8 +21,8 @@
 
 ## 可固定展示框 (fixedItemFrames)
 
-允许玩家用玻璃板右键已放入物品的物品展示框或荧光物品展示框，使其固定；固定后的展示框可用斧头右键解除固定。
-(此规则最初移植自 carpet-redcraft-addons，并由原 betterItemFrames 规则拆分而来。)
+允许玩家用玻璃板右键已放入物品的物品展示框或荧光物品展示框，使其固定；固定后的展示框可用斧头右键解除固定。\
+（功能设计参考了 carpet-redcraft-addons 的 betterItemFrames 规则，当前实现已按本模组目标版本与分层结构独立重写。）
 
 - 类型: `boolean`
 - 默认值: `false`
@@ -49,8 +49,8 @@
 
 ## 唱片世界事件时序修复 (recordWorldEventFix)
 
-修复了将唱片快速放入唱片机后又迅速取出时，音乐仍可能继续播放，且多个唱片音频可能重叠的问题。详见 MC-112245。
-(此规则最初移植自 Carpet-Fixes，现已按本模组需求调整。)
+修复了将唱片快速放入唱片机后又迅速取出时，音乐仍可能继续播放，且多个唱片音频可能重叠的问题。详见 MC-112245。\
+（最初移植自 Carpet-Fixes，现已按本模组需求调整。）
 
 - 类型: `boolean`
 - 默认值: `false`
@@ -105,7 +105,7 @@
 ## 假人Tab栏名称前缀 (botTabListNamePrefix)
 
 为 Tab 栏中的假人添加前缀，使用 `&` 来表示文字颜色。
-(此规则最初移植自 Carpet-TCTC-Addition，现已按本模组需求调整。)
+（功能设计参考了 Carpet-TCTC-Addition 的同类规则，当前实现已按本模组需求重写。）
 
 - 类型: `String`
 - 默认值: `#none`
@@ -114,8 +114,8 @@
 
 ## 假人Tab栏名称后缀 (botTabListNameSuffix)
 
-为 Tab 栏中的假人添加后缀，使用 `&` 来表示文字颜色。
-(此规则最初移植自 Carpet-TCTC-Addition，现已按本模组需求调整。)
+为 Tab 栏中的假人添加后缀，使用 `&` 来表示文字颜色。\
+（功能设计参考了 Carpet-TCTC-Addition 的同类规则，当前实现已按本模组需求重写。）
 
 - 类型: `String`
 - 默认值: `#none`
@@ -142,9 +142,9 @@
 
 ## 禁止伤害已驯服生物 (disablePlayerAttackingTamedMobs)
 
-玩家不能伤害自己驯服的生物，防止误伤。
-影响范围包括猫、狼、鹦鹉、鹦鹉螺、僵尸鹦鹉螺、马、驴、骡、僵尸马、骷髅马、驼羊、行商驼羊。
-(此规则最初移植自 DoormatCarpetExtension，现已按本模组需求调整。)
+玩家不能伤害自己驯服的生物，防止误伤。\
+影响范围包括猫、狼、鹦鹉、鹦鹉螺、僵尸鹦鹉螺、马、驴、骡、僵尸马、骷髅马、驼羊、行商驼羊。\
+(功能设计参考了 DoormatCarpetExtension 的同类规则，当前实现已按本模组需求重写)
 
 - 类型: `boolean`
 - 默认值: `false`
