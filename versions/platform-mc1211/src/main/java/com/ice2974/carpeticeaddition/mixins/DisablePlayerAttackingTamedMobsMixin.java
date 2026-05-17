@@ -1,6 +1,7 @@
 package com.ice2974.carpeticeaddition.mixins;
 
 import com.ice2974.carpeticeaddition.CarpetIceAdditionMod;
+import com.ice2974.carpeticeaddition.rules.LegacyPvpRuleHelper;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.damage.DamageSource;
@@ -35,7 +36,13 @@ public abstract class DisablePlayerAttackingTamedMobsMixin {
             if (!(damageSource.getAttacker() instanceof PlayerEntity attacker)) {
                 return;
             }
-            if (this.carpetIceAddition$isTamedByAttacker((Entity) (Object) this, attacker)) {
+
+            Entity target = (Entity) (Object) this;
+            if (!this.carpetIceAddition$isTamedTarget(target)) {
+                return;
+            }
+
+            if (!LegacyPvpRuleHelper.isPvpEnabled(target.getServer()) || this.carpetIceAddition$isOwnedByAttacker(target, attacker)) {
                 cir.setReturnValue(true);
             }
         } catch (Throwable throwable) {
@@ -43,22 +50,25 @@ public abstract class DisablePlayerAttackingTamedMobsMixin {
         }
     }
 
-    private boolean carpetIceAddition$isTamedByAttacker(Entity target, PlayerEntity attacker) {
-        UUID ownerUuid;
+    private boolean carpetIceAddition$isTamedTarget(Entity target) {
         if (target instanceof TameableEntity tameableEntity) {
-            if (!tameableEntity.isTamed()) {
-                return false;
-            }
-            ownerUuid = tameableEntity.getOwnerUuid();
-        } else if (target instanceof AbstractHorseEntity horseEntity) {
-            if (!horseEntity.isTame()) {
-                return false;
-            }
-            ownerUuid = horseEntity.getOwnerUuid();
-        } else {
-            return false;
+            return tameableEntity.isTamed();
         }
+        return target instanceof AbstractHorseEntity horseEntity && horseEntity.isTame();
+    }
 
+    private boolean carpetIceAddition$isOwnedByAttacker(Entity target, PlayerEntity attacker) {
+        UUID ownerUuid = this.carpetIceAddition$getOwnerUuid(target);
         return ownerUuid != null && ownerUuid.equals(attacker.getUuid());
+    }
+
+    private UUID carpetIceAddition$getOwnerUuid(Entity target) {
+        if (target instanceof TameableEntity tameableEntity) {
+            return tameableEntity.getOwnerUuid();
+        }
+        if (target instanceof AbstractHorseEntity horseEntity) {
+            return horseEntity.getOwnerUuid();
+        }
+        return null;
     }
 }

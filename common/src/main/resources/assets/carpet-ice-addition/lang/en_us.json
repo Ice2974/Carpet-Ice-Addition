@@ -14,7 +14,7 @@
   "carpet.rule.fixedItemFrames.desc": "Allows players to right-click item frames or glow item frames that already contain an item with a glass pane to make them fixed; fixed frames can be unfixed by right-clicking them with an axe.",
   "carpet.rule.easyWaterloggedBlockPlacement.desc": "Allows players holding a water bucket in the offhand to directly place waterloggable blocks in a waterlogged state.",
   "carpet.rule.zombifiedPiglinsSpawnWithoutSpears.desc": "Prevents naturally spawned zombified piglins from holding spears.",
-  "carpet.rule.disablePlayerAttackingTamedMobs.desc": "Prevents players from damaging mobs they have tamed to avoid accidental harm.",
+  "carpet.rule.disablePlayerAttackingTamedMobs.desc": "Players cannot damage their own tamed mobs while PVP is enabled, and cannot damage any player-owned tamed mobs while PVP is disabled.",
   "carpet.rule.phantomSpawnWarning.desc": "Warns players at the start of the night when they reach the vanilla insomnia time threshold for phantom spawning.",
   "carpet.rule.botTabListNamePrefix.desc": "Add a prefix to the Bot in the TabList, using & to represent text color.",
   "carpet.rule.botTabListNameSuffix.desc": "Add a suffix to the Bot in the TabList, using & to represent text color.",

@@ -1,6 +1,7 @@
 package com.ice2974.carpeticeaddition.mixins;
 
 import com.ice2974.carpeticeaddition.CarpetIceAdditionMod;
+import com.ice2974.carpeticeaddition.rules.PvpRuleHelper;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
 import net.minecraft.entity.LazyEntityReference;
 import net.minecraft.entity.LivingEntity;
@@ -36,7 +37,13 @@ public abstract class DisablePlayerAttackingTamedMobsMixin {
             if (!(damageSource.getAttacker() instanceof PlayerEntity attacker)) {
                 return;
             }
-            if (this.carpetIceAddition$isTamedByAttacker((LivingEntity) (Object) this, attacker)) {
+
+            LivingEntity target = (LivingEntity) (Object) this;
+            if (!this.carpetIceAddition$isTamedTarget(target)) {
+                return;
+            }
+
+            if (!PvpRuleHelper.isPvpEnabled(world) || this.carpetIceAddition$isOwnedByAttacker(target, attacker)) {
                 cir.setReturnValue(true);
             }
         } catch (Throwable throwable) {
@@ -44,22 +51,28 @@ public abstract class DisablePlayerAttackingTamedMobsMixin {
         }
     }
 
-    private boolean carpetIceAddition$isTamedByAttacker(LivingEntity target, PlayerEntity attacker) {
-        LazyEntityReference<LivingEntity> ownerReference;
+    private boolean carpetIceAddition$isTamedTarget(LivingEntity target) {
         if (target instanceof TameableEntity tameableEntity) {
-            if (!tameableEntity.isTamed()) {
-                return false;
-            }
-            ownerReference = tameableEntity.getOwnerReference();
-        } else if (target instanceof AbstractHorseEntity horseEntity) {
-            if (!horseEntity.isTame()) {
-                return false;
-            }
-            ownerReference = horseEntity.getOwnerReference();
-        } else {
-            return false;
+            return tameableEntity.isTamed();
         }
+        if (target instanceof AbstractHorseEntity horseEntity) {
+            return horseEntity.isTame();
+        }
+        return false;
+    }
 
+    private boolean carpetIceAddition$isOwnedByAttacker(LivingEntity target, PlayerEntity attacker) {
+        LazyEntityReference<LivingEntity> ownerReference = this.carpetIceAddition$getOwnerReference(target);
         return ownerReference != null && ownerReference.getUuid() != null && ownerReference.getUuid().equals(attacker.getUuid());
+    }
+
+    private LazyEntityReference<LivingEntity> carpetIceAddition$getOwnerReference(LivingEntity target) {
+        if (target instanceof TameableEntity tameableEntity) {
+            return tameableEntity.getOwnerReference();
+        }
+        if (target instanceof AbstractHorseEntity horseEntity) {
+            return horseEntity.getOwnerReference();
+        }
+        return null;
     }
 }

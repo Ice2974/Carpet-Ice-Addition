@@ -3,13 +3,13 @@ package com.ice2974.carpeticeaddition.mixins;
 import com.ice2974.carpeticeaddition.CarpetIceAdditionMod;
 import com.ice2974.carpeticeaddition.rules.PvpRuleHelper;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.damagesource.DamageSource;
-import net.minecraft.world.entity.EntityReference;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.TamableAnimal;
-import net.minecraft.world.entity.animal.equine.AbstractHorse;
-import net.minecraft.world.entity.player.Player;
+import net.minecraft.entity.LazyEntityReference;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.damage.DamageSource;
+import net.minecraft.entity.passive.AbstractHorseEntity;
+import net.minecraft.entity.passive.TameableEntity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.server.world.ServerWorld;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -19,13 +19,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class DisablePlayerAttackingTamedMobsMixin {
 
     @Inject(
-            method = "isInvulnerableTo(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/damagesource/DamageSource;)Z",
+            method = "isInvulnerableTo(Lnet/minecraft/server/world/ServerWorld;Lnet/minecraft/entity/damage/DamageSource;)Z",
             at = @At("HEAD"),
             cancellable = true,
             require = 0
     )
     private void carpetIceAddition$disablePlayerAttackingTamedMobs(
-            ServerLevel world,
+            ServerWorld world,
             DamageSource damageSource,
             CallbackInfoReturnable<Boolean> cir
     ) {
@@ -34,7 +34,7 @@ public abstract class DisablePlayerAttackingTamedMobsMixin {
         }
 
         try {
-            if (!(damageSource.getEntity() instanceof Player attacker)) {
+            if (!(damageSource.getAttacker() instanceof PlayerEntity attacker)) {
                 return;
             }
 
@@ -52,23 +52,26 @@ public abstract class DisablePlayerAttackingTamedMobsMixin {
     }
 
     private boolean carpetIceAddition$isTamedTarget(LivingEntity target) {
-        if (target instanceof TamableAnimal tamableAnimal) {
-            return tamableAnimal.isTame();
+        if (target instanceof TameableEntity tameableEntity) {
+            return tameableEntity.isTamed();
         }
-        return target instanceof AbstractHorse horse && horse.isTamed();
+        if (target instanceof AbstractHorseEntity horseEntity) {
+            return horseEntity.isTame();
+        }
+        return false;
     }
 
-    private boolean carpetIceAddition$isOwnedByAttacker(LivingEntity target, Player attacker) {
-        EntityReference<LivingEntity> ownerReference = this.carpetIceAddition$getOwnerReference(target);
-        return ownerReference != null && ownerReference.getUUID() != null && ownerReference.getUUID().equals(attacker.getUUID());
+    private boolean carpetIceAddition$isOwnedByAttacker(LivingEntity target, PlayerEntity attacker) {
+        LazyEntityReference<LivingEntity> ownerReference = this.carpetIceAddition$getOwnerReference(target);
+        return ownerReference != null && ownerReference.getUuid() != null && ownerReference.getUuid().equals(attacker.getUuid());
     }
 
-    private EntityReference<LivingEntity> carpetIceAddition$getOwnerReference(LivingEntity target) {
-        if (target instanceof TamableAnimal tamableAnimal) {
-            return tamableAnimal.getOwnerReference();
+    private LazyEntityReference<LivingEntity> carpetIceAddition$getOwnerReference(LivingEntity target) {
+        if (target instanceof TameableEntity tameableEntity) {
+            return tameableEntity.getOwnerReference();
         }
-        if (target instanceof AbstractHorse horse) {
-            return horse.getOwnerReference();
+        if (target instanceof AbstractHorseEntity horseEntity) {
+            return horseEntity.getOwnerReference();
         }
         return null;
     }

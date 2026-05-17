@@ -1,4 +1,4 @@
-> Doc Version: `v1.9.0`
+> Doc Version: `v2.0.0`
 
 ## safeScaffoldingBreak
 
@@ -142,7 +142,7 @@ Bots will not take reflected damage caused by Thorns when attacking entities or 
 
 ## disablePlayerAttackingTamedMobs
 
-Prevents players from damaging mobs they have tamed to avoid accidental harm.\
+Players cannot damage their own tamed mobs while server PVP is enabled, and cannot damage any player-owned tamed mobs while server PVP is disabled.\
 Affected mobs include cats, wolves, parrots, nautiluses, zombie nautiluses, horses, donkeys, mules, zombie horses, skeleton horses, llamas, and trader llamas.\
 (The feature design references a similar rule from DoormatCarpetExtension, and the current implementation has been rewritten for this mod's needs.)
 
