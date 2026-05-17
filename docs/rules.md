@@ -160,7 +160,7 @@
 - 可选值: `false`, `true`
 - 分类: `ICE`, `SURVIVAL`
 
-## 轻松放置含水方块 (easyWaterloggedBlockPlacement)
+## 轻松含水放置 (easyWaterloggedBlockPlacement)
 
 允许玩家在副手持有水桶时，将支持含水状态的方块直接放置为含水状态。
 
