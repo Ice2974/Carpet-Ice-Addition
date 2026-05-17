@@ -23,6 +23,7 @@ public final class KillItemConfigManager {
             .disableHtmlEscaping()
             .setPrettyPrinting()
             .create();
+    private static final String DEFAULT_NAMESPACE = "minecraft";
     private static final String MOD_DIRECTORY = "carpet-ice-addition";
     private static final String FILE_NAME = "killitem.json";
 
@@ -109,7 +110,14 @@ public final class KillItemConfigManager {
     }
 
     private static String normalizeItemId(String itemId) {
-        return itemId.trim();
+        String normalized = itemId.trim();
+        if (normalized.isEmpty()) {
+            return normalized;
+        }
+        if (normalized.indexOf(':') < 0) {
+            return DEFAULT_NAMESPACE + ":" + normalized;
+        }
+        return normalized;
     }
 
     private static State load(Path path) {
@@ -123,7 +131,7 @@ public final class KillItemConfigManager {
             if (data != null && data.blacklist != null) {
                 for (String entry : data.blacklist) {
                     if (entry != null && !entry.isBlank()) {
-                        loaded.blacklist.add(entry.trim());
+                        loaded.blacklist.add(normalizeItemId(entry));
                     }
                 }
             }

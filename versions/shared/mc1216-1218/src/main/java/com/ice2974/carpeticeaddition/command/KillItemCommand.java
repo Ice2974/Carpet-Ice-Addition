@@ -4,6 +4,7 @@ import carpet.utils.CommandHelper;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.DoubleArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
@@ -43,6 +44,9 @@ public final class KillItemCommand {
     private static final SimpleCommandExceptionType PLAYER_ONLY = new SimpleCommandExceptionType(
             Text.translatable("command.carpet-ice-addition.killitem.error.player_only")
     );
+    private static final DynamicCommandExceptionType INVALID_IDENTIFIER = new DynamicCommandExceptionType(
+            value -> Text.translatable("command.carpet-ice-addition.killitem.error.invalid_identifier", value)
+    );
     private static final DynamicCommandExceptionType DIMENSION_NOT_FOUND = new DynamicCommandExceptionType(
             value -> Text.translatable("command.carpet-ice-addition.killitem.error.dimension_not_found", value)
     );
@@ -78,21 +82,21 @@ public final class KillItemCommand {
                         .then(literal("blacklist")
                                 .executes(KillItemCommand::showBlacklist)
                                 .then(literal("add")
-                                        .then(argument("item", IdentifierArgumentType.identifier())
+                                        .then(argument("item", StringArgumentType.greedyString())
                                                 .suggests((context, builder) -> CommandSource.suggestIdentifiers(Registries.ITEM.getIds(), builder))
                                                 .executes(context -> addBlacklistItem(
                                                         context,
-                                                        IdentifierArgumentType.getIdentifier(context, "item")
+                                                        parseItemIdentifier(StringArgumentType.getString(context, "item"))
                                                 ))))
                                 .then(literal("remove")
-                                        .then(argument("item", IdentifierArgumentType.identifier())
+                                        .then(argument("item", StringArgumentType.greedyString())
                                                 .suggests((context, builder) -> CommandSource.suggestMatching(
                                                         KillItemConfigManager.snapshot().blacklist(),
                                                         builder
                                                 ))
                                                 .executes(context -> removeBlacklistItem(
                                                         context,
-                                                        IdentifierArgumentType.getIdentifier(context, "item")
+                                                        parseItemIdentifier(StringArgumentType.getString(context, "item"))
                                                 ))))
                                 .then(literal("clear")
                                         .executes(KillItemCommand::clearBlacklist)))
@@ -284,6 +288,19 @@ public final class KillItemCommand {
             throw DIMENSION_NOT_FOUND.create(dimensionId);
         }
         return world;
+    }
+
+    private static Identifier parseItemIdentifier(String value) throws CommandSyntaxException {
+        String normalized = value.trim();
+        if (normalized.indexOf(':') < 0) {
+            normalized = "minecraft:" + normalized;
+        }
+
+        Identifier identifier = Identifier.tryParse(normalized);
+        if (identifier == null) {
+            throw INVALID_IDENTIFIER.create(value);
+        }
+        return identifier;
     }
 
     private static void ensureValidItem(Identifier itemId) throws CommandSyntaxException {

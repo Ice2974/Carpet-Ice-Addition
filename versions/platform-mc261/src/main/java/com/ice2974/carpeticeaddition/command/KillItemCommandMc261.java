@@ -82,7 +82,7 @@ public final class KillItemCommandMc261 {
                         .then(Commands.literal("blacklist")
                                 .executes(KillItemCommandMc261::showBlacklist)
                                 .then(Commands.literal("add")
-                                        .then(Commands.argument("item", StringArgumentType.word())
+                                        .then(Commands.argument("item", StringArgumentType.greedyString())
                                                 .suggests((context, builder) -> SharedSuggestionProvider.suggestResource(
                                                         BuiltInRegistries.ITEM.keySet(),
                                                         builder
@@ -92,7 +92,7 @@ public final class KillItemCommandMc261 {
                                                         parseIdentifier(StringArgumentType.getString(context, "item"))
                                                 ))))
                                 .then(Commands.literal("remove")
-                                        .then(Commands.argument("item", StringArgumentType.word())
+                                        .then(Commands.argument("item", StringArgumentType.greedyString())
                                                 .suggests((context, builder) -> SharedSuggestionProvider.suggest(
                                                         KillItemConfigManager.snapshot().blacklist(),
                                                         builder
@@ -282,7 +282,12 @@ public final class KillItemCommandMc261 {
     }
 
     private static Identifier parseIdentifier(String value) throws CommandSyntaxException {
-        Identifier identifier = Identifier.tryParse(value);
+        String normalized = value.trim();
+        if (normalized.indexOf(':') < 0) {
+            normalized = "minecraft:" + normalized;
+        }
+
+        Identifier identifier = Identifier.tryParse(normalized);
         if (identifier == null) {
             throw INVALID_IDENTIFIER.create(value);
         }
