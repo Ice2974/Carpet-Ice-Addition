@@ -1,10 +1,10 @@
-> 文档对应版本：`v1.9.0`
+> 文档对应版本：`v2.0.0`
 
 ## /killitem
 
 ### 相关规则
 
-掉落物清理指令 `commandKillItem`
+`commandKillItem`
 
 ### 指令语法
 

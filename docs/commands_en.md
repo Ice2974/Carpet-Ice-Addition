@@ -1,4 +1,4 @@
-> Doc Version: `v1.9.0`
+> Doc Version: `v2.0.0`
 
 ## /killitem
 
