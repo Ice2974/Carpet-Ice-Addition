@@ -1,281 +1,131 @@
-                        NC Copyleft License 1.0
-                         非商用强传染许可证 1.0
-
-Copyright (c) 2026 Ice2974
-
-Project Name: Carpet-Ice-Addition
-Project Repository: https://github.com/Ice2974/Carpet-Ice-Addition
-
-================================================================================
-English Version
-================================================================================
-
-1. Definitions
-
-“Work” means the project identified above, including its source code, object
-code, compiled binaries, packaged releases, resource files, assets, data files,
-configuration examples, documentation, and other files distributed in its
-repository or release packages, unless otherwise specified.
-
-“Modified Version” means any version of the Work that has been changed,
-adapted, translated, merged, ported, extended, refactored, or otherwise
-derived from the Work, in whole or in part.
-
-“Distribution” means any act of providing the Work or a Modified Version to any
-third party, including but not limited to publishing, uploading, sharing,
-reposting, sublicensing, bundling, embedding, or making it available for
-download, access, or use over a network.
-
-“Commercial Use” means any use primarily intended for or directed toward
-commercial advantage, monetary compensation, revenue generation, paid access,
-paid services, sponsorship-driven benefit, or other business-related benefit,
-whether direct or indirect.
-
-Commercial Use includes, but is not limited to:
-(a) selling the Work or any Modified Version;
-(b) including the Work or any Modified Version in any paid product, paid
-    service, paid distribution, paid platform, paid hosting, or other paid
-    offering;
-(c) using the Work or any Modified Version as part of a commercial service,
-    commercial software offering, monetized platform, hosted environment,
-    subscription service, or revenue-generating operation;
-(d) providing the Work or any Modified Version as a premium feature, donor
-    reward, paid add-on, bundled benefit, or restricted perk;
-(e) redistributing the Work or any Modified Version on websites, platforms,
-    marketplaces, launchers, repositories, app stores, or content services
-    that generate revenue from access, subscriptions, advertising, traffic
-    monetization, or commercial promotion;
-(f) selling support, customization, integration, private builds, or derivative
-    packages based substantially on the Work without prior written permission
-    from the copyright holder.
-
-2. Grant of Permission
+# PolyForm Noncommercial License 1.0.0
 
-Subject to the terms of this License, permission is granted to any person to:
-
-(a) use the Work for personal, educational, research, archival, testing, and
-    other strictly non-commercial purposes;
-(b) study, view, and modify the source code of the Work for strictly
-    non-commercial purposes;
-(c) copy and redistribute the unmodified Work for strictly non-commercial
-    purposes, provided that this License, the copyright notice, the project
-    name, and the repository link are retained;
-(d) distribute Modified Versions strictly for non-commercial purposes only, if
-    all conditions of Section 4 are satisfied.
+<https://polyformproject.org/licenses/noncommercial/1.0.0>
 
-3. Commercial Use Prohibited
+## Acceptance
 
-Any Commercial Use of the Work or any Modified Version is strictly prohibited
-without prior written permission from the copyright holder.
+In order to get any license under these terms, you must agree
+to them as both strict obligations and conditions to all
+your licenses.
 
-No person or entity may sell, license for a fee, monetize, commercially host,
-commercially distribute, or otherwise commercially exploit the Work or any
-Modified Version without explicit prior written authorization from the
-copyright holder.
+## Copyright License
 
-4. Copyleft Requirement for Modified Versions
+The licensor grants you a copyright license for the
+software to do everything you might do with the software
+that would otherwise infringe the licensor's copyright
+in it for any permitted purpose.  However, you may
+only distribute the software according to [Distribution
+License](#distribution-license) and make changes or new works
+based on the software according to [Changes and New Works
+License](#changes-and-new-works-license).
 
-If you Distribute a Modified Version, you must comply with all of the
-following:
+## Distribution License
 
-(a) you must provide the complete corresponding source code of the Modified
-    Version at the time of Distribution;
-(b) you must license the Modified Version under this same License, without
-    removing or weakening the non-commercial restriction or the source-release
-    requirement;
-(c) you must retain the original copyright notice, author attribution,
-    project name, and repository link;
-(d) you must clearly state that changes were made, and provide a reasonable
-    summary of the modifications;
-(e) you must not misrepresent the Modified Version as the original Work;
-(f) if binaries, packaged releases, or other compiled forms are distributed,
-    the full corresponding source code must be made available in a convenient
-    and publicly accessible form at no additional charge.
-
-For clarity, private modifications that are not Distributed to any third party
-do not trigger the source distribution requirement under this Section 4.
-
-5. No Closed Redistribution of Derivatives
-
-You may not Distribute any Modified Version in binary-only, package-only,
-obfuscated-only, or source-withheld form.
+The licensor grants you an additional copyright license
+to distribute copies of the software.  Your license
+to distribute covers distributing the software with
+changes and new works permitted by [Changes and New Works
+License](#changes-and-new-works-license).
 
-Any Distributed Modified Version must include or be accompanied by complete
-corresponding source code under this same License.
+## Notices
 
-6. Attribution
+You must ensure that anyone who gets a copy of any part of
+the software from you also gets a copy of these terms or the
+URL for them above, as well as copies of any plain-text lines
+beginning with `Required Notice:` that the licensor provided
+with the software.  For example:
 
-Any Distribution of the Work or a Modified Version must preserve:
+> Required Notice: Copyright Yoyodyne, Inc. (http://example.com)
 
-- the project name identified above;
-- the author or copyright holder name, unless otherwise explicitly stated by
-  the copyright notice of the relevant project;
-- the copyright notice;
-- the project repository link identified above.
+## Changes and New Works License
 
-If you publish a Modified Version, you must also clearly indicate that your
-version is modified and is not the original official version unless you have
-written permission to state otherwise.
+The licensor grants you an additional copyright license to
+make changes and new works based on the software for any
+permitted purpose.
 
-7. No Trademark or Endorsement Rights
+## Patent License
 
-This License does not grant any right to use the names, marks, branding, or
-identity of the copyright holder or the original project to imply endorsement,
-sponsorship, official status, or affiliation.
+The licensor grants you a patent license for the software that
+covers patent claims the licensor can license, or becomes able
+to license, that you would infringe by using the software.
 
-8. Third-Party Components
+## Noncommercial Purposes
 
-This License applies only to the portions of the Work that are owned by the
-copyright holder and not otherwise licensed under separate terms.
+Any noncommercial purpose is a permitted purpose.
 
-Any third-party code, libraries, assets, or dependencies included in or used by
-the Work remain subject to their own respective licenses. You are solely
-responsible for complying with those licenses.
+## Personal Uses
 
-9. Termination
+Personal use for research, experiment, and testing for
+the benefit of public knowledge, personal study, private
+entertainment, hobby projects, amateur pursuits, or religious
+observance, without any anticipated commercial application,
+is use for a permitted purpose.
 
-Any violation of this License automatically terminates the rights granted under
-this License.
+## Noncommercial Organizations
 
-Upon termination, you must immediately cease all use, Distribution, and other
-activities not otherwise permitted by law, and where applicable remove
-infringing copies or distributions under your control.
+Use by any charitable organization, educational institution,
+public research organization, public safety or health
+organization, environmental protection organization,
+or government institution is use for a permitted purpose
+regardless of the source of funding or obligations resulting
+from the funding.
 
-10. Disclaimer of Warranty
+## Fair Use
 
-THE WORK IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
-INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
-PARTICULAR PURPOSE, AND NON-INFRINGEMENT.
+You may have "fair use" rights for the software under the
+law. These terms do not limit them.
 
-11. Limitation of Liability
+## No Other Rights
 
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY CLAIM,
-DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR
-OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION WITH THE WORK OR THE USE OR
-OTHER DEALINGS IN THE WORK.
+These terms do not allow you to sublicense or transfer any of
+your licenses to anyone else, or prevent the licensor from
+granting licenses to anyone else.  These terms do not imply
+any other licenses.
 
-================================================================================
-中文版本
-================================================================================
+## Patent Defense
 
-1. 定义
+If you make any written claim that the software infringes or
+contributes to infringement of any patent, your patent license
+for the software granted under these terms ends immediately. If
+your company makes such a claim, your patent license ends
+immediately for work on behalf of your company.
 
-“本作品”是指上方标识的项目，包括其源代码、目标代码、编译后的二进制文件、
-打包发布文件、资源文件、素材文件、数据文件、配置示例、文档以及在其仓库或
-发行包中分发的其他文件，除非另有说明。
+## Violations
 
-“修改版本”是指基于本作品全部或部分内容所进行的任何修改、改编、翻译、合并、
-移植、扩展、重构或其他演绎形成的版本。
+The first time you are notified in writing that you have
+violated any of these terms, or done anything with the software
+not covered by your licenses, your licenses can nonetheless
+continue if you come into full compliance with these terms,
+and take practical steps to correct past violations, within
+32 days of receiving notice.  Otherwise, all your licenses
+end immediately.
 
-“分发”是指向任何第三方提供本作品或修改版本的任何行为，包括但不限于发布、
-上传、分享、转载、再许可、打包、嵌入、提供下载，或通过网络提供访问或使用。
+## No Liability
 
-“商业使用”是指以获得商业利益、金钱补偿、收入、付费访问、付费服务、赞助
-收益或其他直接或间接商业性利益为主要目的或导向的任何使用行为。
+***As far as the law allows, the software comes as is, without
+any warranty or condition, and the licensor will not be liable
+to you for any damages arising out of these terms or the use
+or nature of the software, under any kind of legal claim.***
 
-商业使用包括但不限于：
-(a) 出售本作品或任何修改版本；
-(b) 将本作品或任何修改版本纳入任何付费产品、付费服务、付费发行、付费平台、
-    付费托管或其他收费提供中；
-(c) 将本作品或任何修改版本用于商业服务、商业软件提供、盈利平台、托管环境、
-    订阅服务或其他产生收入的运营中；
-(d) 将本作品或任何修改版本作为高级功能、捐助奖励、付费附加内容、捆绑权益
-    或受限特权提供；
-(e) 未经授权，在通过访问收费、订阅、广告流量变现或商业推广等方式获取收益的
-    网站、平台、市场、启动器、仓库、应用商店或内容服务中分发本作品或任何
-    修改版本；
-(f) 未经著作权人事先书面许可，基于本作品实质性提供收费支持、定制开发、集成、
-    私有构建或衍生打包服务。
+## Definitions
 
-2. 许可授予
+The **licensor** is the individual or entity offering these
+terms, and the **software** is the software the licensor makes
+available under these terms.
 
-在遵守本许可证全部条款的前提下，任何人均可：
+**You** refers to the individual or entity agreeing to these
+terms.
 
-(a) 为个人、教育、研究、归档、测试及其他严格非商业目的使用本作品；
-(b) 为严格非商业目的查看、学习和修改本作品源代码；
-(c) 在严格非商业目的下复制和再分发未修改的本作品，但必须保留本许可证、
-    版权声明、项目名称及仓库链接；
-(d) 在严格非商业目的下分发修改版本，但必须满足第 4 条的全部要求。
+**Your company** is any legal entity, sole proprietorship,
+or other kind of organization that you work for, plus all
+organizations that have control over, are under the control of,
+or are under common control with that organization.  **Control**
+means ownership of substantially all the assets of an entity,
+or the power to direct its management and policies by vote,
+contract, or otherwise.  Control can be direct or indirect.
 
-3. 严格禁止商业使用
+**Your licenses** are all the licenses granted to you for the
+software under these terms.
 
-未经著作权人事先书面许可，任何人或实体不得对本作品或任何修改版本进行任何
-商业使用。
-
-任何人或实体均不得在未经著作权人明确事先书面授权的情况下，对本作品或任何
-修改版本进行出售、收费许可、商业化托管、商业化分发或其他任何形式的商业利用。
-
-4. 修改版本的强传染要求
-
-如果你分发修改版本，则必须同时满足以下全部条件：
-
-(a) 在分发时提供该修改版本的完整对应源代码；
-(b) 该修改版本必须继续使用本同一许可证进行许可，且不得删除、削弱或规避本
-    许可证中的非商用限制和源码公开要求；
-(c) 必须保留原始版权声明、作者署名、项目名称和仓库链接；
-(d) 必须明确说明你做过修改，并提供合理的修改说明摘要；
-(e) 不得将修改版本冒充为原始官方版本；
-(f) 如果分发的是二进制文件、打包发布版本或其他编译形式，则必须以方便且公众
-    可访问的方式同时免费提供其完整对应源代码。
-
-为免歧义，仅供个人私下使用且未向任何第三方分发的私有修改，不触发本条所述的
-源码公开义务。
-
-5. 禁止闭源分发衍生版本
-
-你不得以仅二进制、仅打包产物、仅混淆结果、或拒绝提供源码的形式分发任何修改
-版本。
-
-任何被分发的修改版本都必须包含完整对应源代码，或与完整对应源代码同时提供，
-且必须继续适用本同一许可证。
-
-6. 署名要求
-
-任何对本作品或修改版本的分发，均必须保留以下信息：
-
-- 上方标识的项目名称；
-- 作者或著作权人名称，除非相关项目的版权声明另有明确说明；
-- 版权声明；
-- 上方标识的项目仓库链接。
-
-如果你发布修改版本，还必须明确标注该版本已被修改，并且不是原始官方版本，
-除非你已获得书面许可可作相反表示。
-
-7. 不授予商标或背书权利
-
-本许可证不授予任何人使用著作权人或原项目的名称、标识、品牌或身份信息来暗示
-获得授权、官方背书、官方地位或关联关系的权利。
-
-8. 第三方组件
-
-本许可证仅适用于本作品中由著作权人享有权利且未另行以其他许可授权的部分。
-
-本作品包含或使用的任何第三方代码、库、资源或依赖，仍分别受其各自许可证约束。
-你有责任自行遵守那些第三方许可证。
-
-9. 终止
-
-任何违反本许可证的行为，都会自动终止本许可证授予的一切权利。
-
-在权利终止后，你必须立即停止一切不再被许可的使用、分发及其他行为，并在适用
-情况下移除你控制范围内的侵权副本或侵权分发内容。
-
-10. 免责声明
-
-本作品按“现状”提供，不附带任何明示或默示担保，包括但不限于适销性、特定用途
-适用性以及不侵权的担保。
-
-11. 责任限制
-
-在任何情况下，著作权人或贡献者均不对因本作品、对本作品的使用或与本作品有关的
-其他行为所引起的任何索赔、损害或其他责任承担责任，无论该责任基于合同、侵权
-行为或其他法律理论。
-
-================================================================================
-Summary
-================================================================================
-
-This is a source-available license, not an OSI-approved open source license.
-Commercial use is prohibited.
-If you distribute a modified version, you must also distribute the complete
-corresponding source code under the same license.
+**Use** means anything you do with the software requiring one
+of your licenses.
