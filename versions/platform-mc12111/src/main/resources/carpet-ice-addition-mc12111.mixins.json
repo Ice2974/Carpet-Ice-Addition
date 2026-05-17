@@ -20,7 +20,8 @@
     "ServerWorldRecordWorldEventMixin",
     "SafeScaffoldingBreakMixin",
     "PlayerListEntryTabListNameMixin",
-    "ZombieEntityZombifiedPiglinSpawnMixin"
+    "ZombieEntityMobsSpawnWithoutSpearsMixin",
+    "PiglinEntityMobsSpawnWithoutSpearsMixin"
   ],
   "injectors": {
     "defaultRequire": 1

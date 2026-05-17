@@ -4,11 +4,12 @@ import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionHighVersionSettin
 import net.minecraft.entity.EntityData;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.SpawnReason;
+import net.minecraft.entity.mob.HuskEntity;
 import net.minecraft.entity.mob.ZombieEntity;
+import net.minecraft.entity.mob.ZombieVillagerEntity;
 import net.minecraft.entity.mob.ZombifiedPiglinEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.util.math.random.Random;
 import net.minecraft.world.LocalDifficulty;
 import net.minecraft.world.ServerWorldAccess;
 import org.spongepowered.asm.mixin.Mixin;
@@ -18,27 +19,40 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(ZombieEntity.class)
-public abstract class ZombieEntityZombifiedPiglinSpawnMixin {
+public abstract class ZombieEntityMobsSpawnWithoutSpearsMixin {
     @Inject(
             method = "initialize(Lnet/minecraft/world/ServerWorldAccess;Lnet/minecraft/world/LocalDifficulty;Lnet/minecraft/entity/SpawnReason;Lnet/minecraft/entity/EntityData;)Lnet/minecraft/entity/EntityData;",
             at = @At("RETURN")
     )
-    private void carpetIceAddition$removeNaturalZombifiedPiglinSpears(
+    private void carpetIceAddition$removeNaturalMobSpears(
             ServerWorldAccess world,
             LocalDifficulty difficulty,
             SpawnReason spawnReason,
             EntityData entityData,
             CallbackInfoReturnable<EntityData> cir
     ) {
-        if (!CarpetIceAdditionHighVersionSettings.zombifiedPiglinsSpawnWithoutSpears
-                || !carpetIceAddition$isNaturalSpawn(spawnReason)
-                || !((Object) this instanceof ZombifiedPiglinEntity zombifiedPiglin)) {
+        if (!CarpetIceAdditionHighVersionSettings.mobsSpawnWithoutSpears
+                || !carpetIceAddition$isNaturalSpawn(spawnReason)) {
             return;
         }
 
-        ItemStack mainHandStack = zombifiedPiglin.getEquippedStack(EquipmentSlot.MAINHAND);
-        if (mainHandStack.isOf(Items.GOLDEN_SPEAR)) {
-            zombifiedPiglin.equipStack(EquipmentSlot.MAINHAND, new ItemStack(Items.GOLDEN_SWORD));
+        Object self = this;
+        if (self instanceof ZombifiedPiglinEntity zombifiedPiglin) {
+            ItemStack mainHandStack = zombifiedPiglin.getEquippedStack(EquipmentSlot.MAINHAND);
+            if (mainHandStack.isOf(Items.GOLDEN_SPEAR)) {
+                zombifiedPiglin.equipStack(EquipmentSlot.MAINHAND, new ItemStack(Items.GOLDEN_SWORD));
+            }
+            return;
+        }
+
+        if (self.getClass() == ZombieEntity.class
+                || self instanceof ZombieVillagerEntity
+                || self instanceof HuskEntity) {
+            ZombieEntity zombie = (ZombieEntity) self;
+            ItemStack mainHandStack = zombie.getEquippedStack(EquipmentSlot.MAINHAND);
+            if (mainHandStack.isOf(Items.IRON_SPEAR)) {
+                zombie.equipStack(EquipmentSlot.MAINHAND, new ItemStack(Items.IRON_SWORD));
+            }
         }
     }
 

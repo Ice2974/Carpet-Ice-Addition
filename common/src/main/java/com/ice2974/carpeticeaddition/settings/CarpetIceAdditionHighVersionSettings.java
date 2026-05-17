@@ -10,5 +10,5 @@ public final class CarpetIceAdditionHighVersionSettings {
     }
 
     @Rule(categories = {CarpetIceAdditionSettings.ICE, FEATURE})
-    public static boolean zombifiedPiglinsSpawnWithoutSpears = false;
+    public static boolean mobsSpawnWithoutSpears = false;
 }
