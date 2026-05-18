@@ -169,10 +169,9 @@ Allows players holding a water bucket in the offhand to directly place waterlogg
 - Possible values: `false`, `true`
 - Categories: `ICE`, `FEATURE`
 
-## mobsSpawnWithoutSpears
+## mobsSpawnWithoutSpears `MC>=1.21.11`
 
-Prevents naturally spawned zombies, zombie villagers, husks, zombified piglins, and piglins from holding spears.\
-(This rule applies only to Minecraft 1.21.11 and above.)
+Prevents naturally spawned zombies, zombie villagers, husks, zombified piglins, and piglins from holding spears.
 
 - Type: `boolean`
 - Default: `false`
