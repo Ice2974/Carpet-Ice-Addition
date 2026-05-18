@@ -24,3 +24,4 @@
 ## Documentation
 - [Rules](docs/rules_en.md)
 - [Commands](docs/commands_en.md)
+- [Loggers](docs/loggers_en.md)

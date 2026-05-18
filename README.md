@@ -24,3 +24,4 @@
 ## 文档
 - [规则](docs/rules.md)
 - [命令](docs/commands.md)
+- [记录器](docs/loggers.md)
