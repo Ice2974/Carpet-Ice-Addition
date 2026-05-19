@@ -169,6 +169,16 @@ Allows players holding a water bucket in the offhand to directly place waterlogg
 - Possible values: `false`, `true`
 - Categories: `ICE`, `FEATURE`
 
+## customEndPlatformPosition
+
+Allows customizing the center position of the End obsidian platform generated when entities enter the End, while keeping the arrival position in sync.
+
+- Type: `String`
+- Default: `vanilla`
+- Suggested values: `vanilla`, `-100,49,0`
+- Accepted format: `vanilla` or `x,y,z`
+- Categories: `ICE`, `FEATURE`
+
 ## mobsSpawnWithoutSpears `MC>=1.21.11`
 
 Prevents naturally spawned zombies, zombie villagers, husks, zombified piglins, and piglins from holding spears.

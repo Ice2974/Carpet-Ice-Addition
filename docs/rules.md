@@ -169,6 +169,16 @@
 - 可选值: `false`, `true`
 - 分类: `ICE`, `FEATURE`
 
+## 自定义末地平台位置 (customEndPlatformPosition)
+
+允许自定义实体通过末地传送门进入末地时生成的末地黑曜石平台中心位置，并同步调整进入末地后的落点。
+
+- 类型: `String`
+- 默认值: `vanilla`
+- 参考值: `vanilla`, `-100,49,0`
+- 实际可接受格式: `vanilla` 或 `x,y,z`
+- 分类: `ICE`, `FEATURE`
+
 ## 禁止自然生成持矛生物 (mobsSpawnWithoutSpears) `MC>=1.21.11`
 
 僵尸、僵尸村民、尸壳、僵尸猪灵和猪灵在自然生成时不会手持长矛。
