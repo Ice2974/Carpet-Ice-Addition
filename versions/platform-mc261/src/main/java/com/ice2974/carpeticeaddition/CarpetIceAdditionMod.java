@@ -4,12 +4,14 @@ import carpet.CarpetExtension;
 import carpet.CarpetServer;
 import carpet.utils.CommandHelper;
 import com.ice2974.carpeticeaddition.command.KillItemCommandMc261;
+import com.ice2974.carpeticeaddition.command.MachineStatusCommandMc261;
 import com.ice2974.carpeticeaddition.rules.BotTabListNameHelper;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionEndPlatformSettings;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionHighVersionSettings;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
 import com.ice2974.carpeticeaddition.translation.CarpetIceAdditionTranslations;
 import com.ice2974.carpeticeaddition.command.KillItemConfigManager;
+import com.ice2974.carpeticeaddition.command.MachineStatusConfigManager;
 import com.mojang.brigadier.CommandDispatcher;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
@@ -46,6 +48,7 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
 
     @Override
     public void onInitialize() {
+        MachineStatusCommandMc261.registerArgumentType();
         version = FabricLoader.getInstance()
                 .getModContainer(MOD_ID)
                 .orElseThrow(RuntimeException::new)
@@ -62,7 +65,7 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
         CarpetServer.settingsManager.parseSettingsClass(CarpetIceAdditionHighVersionSettings.class);
         CarpetServer.settingsManager.registerRuleObserver((source, rule, userInput) -> {
             String ruleName = rule.name();
-            if ("commandKillItem".equals(ruleName)) {
+            if ("commandKillItem".equals(ruleName) || "commandMachineStatus".equals(ruleName)) {
                 MinecraftServer server = source != null ? source.getServer() : CarpetServer.minecraft_server;
                 if (server != null) {
                     CommandHelper.notifyPlayersCommandsChanged(server);
@@ -91,16 +94,19 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
     @Override
     public void registerCommands(CommandDispatcher<CommandSourceStack> dispatcher, CommandBuildContext commandBuildContext) {
         KillItemCommandMc261.register(dispatcher);
+        MachineStatusCommandMc261.register(dispatcher);
     }
 
     @Override
     public void onServerLoaded(MinecraftServer server) {
         KillItemConfigManager.initialize(server.getWorldPath(LevelResource.ROOT));
+        MachineStatusConfigManager.initialize(server.getWorldPath(LevelResource.ROOT));
     }
 
     @Override
     public void onServerClosed(MinecraftServer server) {
         KillItemConfigManager.shutdown();
+        MachineStatusConfigManager.shutdown();
     }
 
     public static void reportFeatureCompatibilityIssue(String featureName, Throwable throwable) {

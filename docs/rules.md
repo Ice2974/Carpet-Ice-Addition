@@ -1,4 +1,4 @@
-﻿> 文档对应版本：`v2.1.0`
+﻿> 文档对应版本：`v2.2.0`
 
 ## 脚手架防误拆 (safeScaffoldingBreak)
 
@@ -125,6 +125,15 @@
 ## 掉落物清理指令 (commandKillItem)
 
 注册 /killitem 指令，允许按半径或全局清理掉落物，并支持黑名单与命名掉落物保护配置。
+
+- 类型: `String`
+- 默认值: `ops`
+- 可选值: `false`, `true`, `ops`, `0`, `1`, `2`, `3`, `4`
+- 分类: `ICE`, `COMMAND`
+
+## 机器状态检查命令 (commandMachineStatus)
+
+注册 /machineStatus 指令，用于保存生电机器关机时的目标方块状态，并查询当前哪些机器未处于保存的关机状态。
 
 - 类型: `String`
 - 默认值: `ops`

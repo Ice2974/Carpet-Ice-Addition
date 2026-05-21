@@ -9,6 +9,8 @@ import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
 import com.ice2974.carpeticeaddition.translation.CarpetIceAdditionTranslations;
 import com.ice2974.carpeticeaddition.command.KillItemCommand;
 import com.ice2974.carpeticeaddition.command.KillItemConfigManager;
+import com.ice2974.carpeticeaddition.command.MachineStatusCommand;
+import com.ice2974.carpeticeaddition.command.MachineStatusConfigManager;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
 import com.mojang.brigadier.CommandDispatcher;
@@ -44,6 +46,7 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
 
     @Override
     public void onInitialize() {
+        MachineStatusCommand.registerArgumentType();
         version = FabricLoader.getInstance()
                 .getModContainer(MOD_ID)
                 .orElseThrow(RuntimeException::new)
@@ -59,7 +62,7 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
         CarpetServer.settingsManager.parseSettingsClass(CarpetIceAdditionEndPlatformSettings.class);
         CarpetServer.settingsManager.registerRuleObserver((source, rule, userInput) -> {
             String ruleName = rule.name();
-            if ("commandKillItem".equals(ruleName)) {
+            if ("commandKillItem".equals(ruleName) || "commandMachineStatus".equals(ruleName)) {
                 MinecraftServer server = source != null ? source.getServer() : CarpetServer.minecraft_server;
                 if (server != null) {
                     CommandHelper.notifyPlayersCommandsChanged(server);
@@ -88,16 +91,19 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
     @Override
     public void registerCommands(CommandDispatcher<ServerCommandSource> dispatcher) {
         KillItemCommand.register(dispatcher);
+        MachineStatusCommand.register(dispatcher);
     }
 
     @Override
     public void onServerLoaded(MinecraftServer server) {
         KillItemConfigManager.initialize(server.getSavePath(WorldSavePath.ROOT));
+        MachineStatusConfigManager.initialize(server.getSavePath(WorldSavePath.ROOT));
     }
 
     @Override
     public void onServerClosed(MinecraftServer server) {
         KillItemConfigManager.shutdown();
+        MachineStatusConfigManager.shutdown();
     }
 
     public static void reportFeatureCompatibilityIssue(String featureName, Throwable throwable) {
