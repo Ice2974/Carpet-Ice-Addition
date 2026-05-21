@@ -1,5 +1,13 @@
 > Doc Version: `v2.1.0`
 
+## Command List
+
+| Command | Related Rule | Description |
+|---|---|---|
+| `/killitem` | `commandKillItem` | Clears item entities and manages the cleanup blacklist and named-item cleanup setting. |
+
+---
+
 ## /killitem
 
 ### Related Rule
