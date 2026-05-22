@@ -144,7 +144,7 @@
 
 玩家输入已适配的回档命令时，检查已保存的机器状态；如果存在未处于保存关机状态的机器，则向该玩家发送警告提示，不会拦截或修改回档命令。
 
-默认适配的备份 Mod：Quick Backup Multi（`/qb`, `/quickbackupmulti`）。
+默认适配的备份 Mod：Quick Backup Multi（`/qb`, `/quickbackupmulti`）。\
 默认适配的 MCDR 插件：Quick Backup Multi（`!!qb`）、Prime Backup（`!!pb`）、Chunk Backup（`!!cb`）。
 
 - 类型: `boolean`

@@ -144,7 +144,7 @@ Registers the /machineStatus command to save the target block state when a techn
 
 Checks saved machine states when a player enters a supported rollback command, and warns that player if any machines are not in their saved shutdown state. This rule does not block or modify rollback commands.
 
-Supported backup mod by default: Quick Backup Multi (`/qb`, `/quickbackupmulti`).
+Supported backup mod by default: Quick Backup Multi (`/qb`, `/quickbackupmulti`).\
 Supported MCDR plugins by default: Quick Backup Multi (`!!qb`), Prime Backup (`!!pb`), Chunk Backup (`!!cb`).
 
 - Type: `boolean`
