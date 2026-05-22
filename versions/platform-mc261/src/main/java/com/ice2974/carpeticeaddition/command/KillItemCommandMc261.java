@@ -14,6 +14,7 @@ import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
+import net.minecraft.commands.arguments.DimensionArgument;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.core.component.DataComponents;
@@ -68,14 +69,10 @@ public final class KillItemCommandMc261 {
                         .then(Commands.argument("radius", DoubleArgumentType.doubleArg(MIN_RADIUS, MAX_RADIUS))
                                 .executes(context -> executeRange(context, DoubleArgumentType.getDouble(context, "radius")))))
                 .then(Commands.literal("dimension")
-                        .then(Commands.argument("dimension", StringArgumentType.word())
-                                .suggests((context, builder) -> SharedSuggestionProvider.suggestResource(
-                                        context.getSource().getServer().levelKeys().stream().map(ResourceKey::identifier),
-                                        builder
-                                ))
+                        .then(Commands.argument("dimension", DimensionArgument.dimension())
                                 .executes(context -> executeDimension(
                                         context,
-                                        parseIdentifier(StringArgumentType.getString(context, "dimension"))
+                                        context.getArgument("dimension", Identifier.class)
                                 ))))
                 .then(Commands.literal("all")
                         .executes(KillItemCommandMc261::executeAll))

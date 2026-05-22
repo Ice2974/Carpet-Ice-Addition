@@ -19,6 +19,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
+import net.minecraft.commands.arguments.DimensionArgument;
 import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
 import net.minecraft.commands.arguments.coordinates.Coordinates;
 import net.minecraft.core.BlockPos;
@@ -73,17 +74,13 @@ public final class MachineStatusCommandMc261 {
         dispatcher.register(Commands.literal("machineStatus")
                 .requires(MachineStatusCommandMc261::canUseMachineStatus)
                 .then(Commands.literal("add")
-                        .then(Commands.argument("dimension", StringArgumentType.string())
-                                .suggests((context, builder) -> SharedSuggestionProvider.suggestResource(
-                                        context.getSource().getServer().levelKeys().stream().map(ResourceKey::identifier),
-                                        builder
-                                ))
+                        .then(Commands.argument("dimension", DimensionArgument.dimension())
                                 .then(Commands.argument("pos", BlockPosArgument.blockPos())
                                         .then(Commands.argument("name", StringArgumentType.greedyString())
                                                 .suggests(MachineStatusCommandMc261::suggestUnusedMachineNames)
                                                 .executes(context -> addMachine(
                                                         context,
-                                                        parseDimensionIdentifier(context, "dimension"),
+                                                        context.getArgument("dimension", Identifier.class),
                                                         BlockPosArgument.getBlockPos(context, "pos"),
                                                         parseSingleMachineName(StringArgumentType.getString(context, "name"))
                                                 ))))))
@@ -418,10 +415,6 @@ public final class MachineStatusCommandMc261 {
             throw INVALID_IDENTIFIER.create(rawIdentifier);
         }
         return identifier;
-    }
-
-    private static Identifier parseDimensionIdentifier(CommandContext<CommandSourceStack> context, String argumentName) throws CommandSyntaxException {
-        return parseIdentifier(context.getArgument(argumentName, String.class));
     }
 
     private static String validateMachineName(String rawName) throws CommandSyntaxException {
