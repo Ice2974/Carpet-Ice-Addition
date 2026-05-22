@@ -20,6 +20,8 @@
     "ServerWorldRecordWorldEventMixin",
     "SafeScaffoldingBreakMixin",
     "PlayerListEntryTabListNameMixin",
+    "ServerCommonNetworkHandlerAccessor",
+    "ServerPlayNetworkHandlerMachineStatusRollbackWarningMixin",
     "TrialSpawnerDataMixin"
   ],
   "injectors": {

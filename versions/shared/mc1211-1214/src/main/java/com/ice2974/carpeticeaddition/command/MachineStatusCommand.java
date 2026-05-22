@@ -264,11 +264,16 @@ public final class MachineStatusCommand {
     private static int listMachines(CommandContext<ServerCommandSource> context, MachineStatusKind filter) {
         List<MachineWithStatus> machines = collectMachines(context.getSource().getServer(), filter);
 
-        context.getSource().sendFeedback(MachineStatusCommand::headerLine, false);
+        context.getSource().sendFeedback(() -> listHeaderLine(filter), false);
+        if (filter == null) {
+            context.getSource().sendFeedback(() -> summaryLine(machines), false);
+        } else if (!machines.isEmpty()) {
+            context.getSource().sendFeedback(() -> countLine(machines.size()), false);
+        }
 
         if (machines.isEmpty()) {
             context.getSource().sendFeedback(
-                    () -> tr("command.carpet-ice-addition.machine_status.list.empty"),
+                    () -> emptyListLine(filter),
                     false
             );
             return 0;
@@ -283,47 +288,51 @@ public final class MachineStatusCommand {
     private static int showInfo(CommandContext<ServerCommandSource> context, String name) throws CommandSyntaxException {
         MachineRecord record = getMachineOrThrow(name);
         MachineRuntimeStatus status = evaluateStatus(context.getSource().getServer(), record);
+        MachineStatusStateUtil.ParsedState savedState = MachineStatusStateUtil.parse(record.shutdownBlockState());
+        MachineStatusStateUtil.ParsedState currentState = status.currentStateRaw() == null
+                ? null
+                : MachineStatusStateUtil.parse(status.currentStateRaw());
+        String position = formatPos(new BlockPos(record.x(), record.y(), record.z()));
 
-        context.getSource().sendFeedback(MachineStatusCommand::headerLine, false);
+        context.getSource().sendFeedback(MachineStatusCommand::detailHeaderLine, false);
+        context.getSource().sendFeedback(() -> fieldLine("command.carpet-ice-addition.machine_status.info.label.machine", white(record.name())), false);
+        context.getSource().sendFeedback(() -> fieldLine("command.carpet-ice-addition.machine_status.info.label.status", statusTag(status.kind())), false);
+        context.getSource().sendFeedback(() -> fieldLine("command.carpet-ice-addition.machine_status.info.label.dimension", white(record.dimension())), false);
+        context.getSource().sendFeedback(() -> fieldLine("command.carpet-ice-addition.machine_status.info.label.position", white(position)), false);
 
-        context.getSource().sendFeedback(
-                () -> tr("command.carpet-ice-addition.machine_status.info.machine", record.name()),
-                false
-        );
-        context.getSource().sendFeedback(
-                () -> tr("command.carpet-ice-addition.machine_status.info.dimension", record.dimension()),
-                false
-        );
-        context.getSource().sendFeedback(
-                () -> tr(
-                        "command.carpet-ice-addition.machine_status.info.position",
-                        Integer.toString(record.x()),
-                        Integer.toString(record.y()),
-                        Integer.toString(record.z())
-                ),
-                false
-        );
-        context.getSource().sendFeedback(
-                () -> tr(
-                        "command.carpet-ice-addition.machine_status.info.saved_state",
-                        record.shutdownBlockState()
-                ),
-                false
-        );
-        context.getSource().sendFeedback(
-                () -> tr(
-                        "command.carpet-ice-addition.machine_status.info.current_state",
-                        status.currentStateText().getString()
-                ),
-                false
-        );
-        context.getSource().sendFeedback(
-                () -> tr(
-                        "command.carpet-ice-addition.machine_status.info.status",
-                        trString(status.kind.translationKey())
-                ),
-                false
-        );
+        switch (status.kind()) {
+            case RUNNING, STOPPED -> {
+                context.getSource().sendFeedback(() -> fieldLine("command.carpet-ice-addition.machine_status.info.label.block", white(blockId(savedState, record.shutdownBlockState()))), false);
+                context.getSource().sendFeedback(() -> fieldLine("command.carpet-ice-addition.machine_status.info.label.saved_state", white(propertiesText(savedState, record.shutdownBlockState()))), false);
+                context.getSource().sendFeedback(() -> fieldLine("command.carpet-ice-addition.machine_status.info.label.current_state", white(propertiesText(currentState, status.currentStateRaw()))), false);
+            }
+            case UNLOADED -> {
+                context.getSource().sendFeedback(() -> fieldLine("command.carpet-ice-addition.machine_status.info.label.saved_block", white(blockId(savedState, record.shutdownBlockState()))), false);
+                context.getSource().sendFeedback(() -> fieldLine("command.carpet-ice-addition.machine_status.info.label.saved_state", white(propertiesText(savedState, record.shutdownBlockState()))), false);
+                context.getSource().sendFeedback(() -> fieldLine("command.carpet-ice-addition.machine_status.info.label.current_state", white(trString("command.carpet-ice-addition.machine_status.current_state.chunk_not_loaded"))), false);
+            }
+            case INVALID -> {
+                switch (status.reason()) {
+                    case DIMENSION_UNAVAILABLE -> {
+                        context.getSource().sendFeedback(() -> fieldLine("command.carpet-ice-addition.machine_status.info.label.current_state", white(trString("command.carpet-ice-addition.machine_status.current_state.dimension_not_found"))), false);
+                        context.getSource().sendFeedback(() -> fieldLine("command.carpet-ice-addition.machine_status.info.label.reason", white(trString("command.carpet-ice-addition.machine_status.info.reason.dimension_unavailable"))), false);
+                    }
+                    case TARGET_BLOCK_MISSING, BLOCK_TYPE_CHANGED -> {
+                        context.getSource().sendFeedback(() -> fieldLine("command.carpet-ice-addition.machine_status.info.label.saved_block", white(blockId(savedState, record.shutdownBlockState()))), false);
+                        context.getSource().sendFeedback(() -> fieldLine("command.carpet-ice-addition.machine_status.info.label.current_block", white(blockId(currentState, status.currentStateRaw()))), false);
+                        context.getSource().sendFeedback(() -> fieldLine("command.carpet-ice-addition.machine_status.info.label.reason", white(trString(status.reason().translationKey()))), false);
+                    }
+                    case INVALID_STATE -> {
+                        context.getSource().sendFeedback(() -> fieldLine("command.carpet-ice-addition.machine_status.info.label.saved_block", white(blockId(savedState, record.shutdownBlockState()))), false);
+                        context.getSource().sendFeedback(() -> fieldLine("command.carpet-ice-addition.machine_status.info.label.saved_state", white(propertiesText(savedState, record.shutdownBlockState()))), false);
+                        context.getSource().sendFeedback(() -> fieldLine("command.carpet-ice-addition.machine_status.info.label.current_state", white(status.currentStateText().getString())), false);
+                        context.getSource().sendFeedback(() -> fieldLine("command.carpet-ice-addition.machine_status.info.label.reason", white(trString("command.carpet-ice-addition.machine_status.info.reason.invalid_state"))), false);
+                    }
+                    case NONE -> {
+                    }
+                }
+            }
+        }
         return 1;
     }
 
@@ -342,7 +351,9 @@ public final class MachineStatusCommand {
         if (dimensionId == null) {
             return new MachineRuntimeStatus(
                     MachineStatusKind.INVALID,
-                    tr("command.carpet-ice-addition.machine_status.current_state.dimension_not_found")
+                    tr("command.carpet-ice-addition.machine_status.current_state.dimension_not_found"),
+                    null,
+                    MachineStatusIssueReason.DIMENSION_UNAVAILABLE
             );
         }
 
@@ -350,7 +361,9 @@ public final class MachineStatusCommand {
         if (world == null) {
             return new MachineRuntimeStatus(
                     MachineStatusKind.INVALID,
-                    tr("command.carpet-ice-addition.machine_status.current_state.dimension_not_found")
+                    tr("command.carpet-ice-addition.machine_status.current_state.dimension_not_found"),
+                    null,
+                    MachineStatusIssueReason.DIMENSION_UNAVAILABLE
             );
         }
 
@@ -358,7 +371,9 @@ public final class MachineStatusCommand {
         if (!isChunkLoaded(world, pos)) {
             return new MachineRuntimeStatus(
                     MachineStatusKind.UNLOADED,
-                    tr("command.carpet-ice-addition.machine_status.current_state.chunk_not_loaded")
+                    tr("command.carpet-ice-addition.machine_status.current_state.chunk_not_loaded"),
+                    null,
+                    MachineStatusIssueReason.NONE
             );
         }
 
@@ -366,17 +381,20 @@ public final class MachineStatusCommand {
         ParsedState savedState = MachineStatusStateUtil.parse(record.shutdownBlockState());
         ParsedState currentState = MachineStatusStateUtil.parse(currentStateString);
         if (savedState == null || currentState == null) {
-            return new MachineRuntimeStatus(MachineStatusKind.INVALID, Text.literal(currentStateString));
+            return new MachineRuntimeStatus(MachineStatusKind.INVALID, Text.literal(currentStateString), currentStateString, MachineStatusIssueReason.INVALID_STATE);
         }
 
         if (!savedState.blockId().equals(currentState.blockId())) {
-            return new MachineRuntimeStatus(MachineStatusKind.INVALID, Text.literal(currentStateString));
+            MachineStatusIssueReason reason = currentState.blockId().equals("minecraft:air") && !savedState.blockId().equals("minecraft:air")
+                    ? MachineStatusIssueReason.TARGET_BLOCK_MISSING
+                    : MachineStatusIssueReason.BLOCK_TYPE_CHANGED;
+            return new MachineRuntimeStatus(MachineStatusKind.INVALID, Text.literal(currentStateString), currentStateString, reason);
         }
 
         if (savedState.properties().equals(currentState.properties())) {
-            return new MachineRuntimeStatus(MachineStatusKind.STOPPED, Text.literal(currentStateString));
+            return new MachineRuntimeStatus(MachineStatusKind.STOPPED, Text.literal(currentStateString), currentStateString, MachineStatusIssueReason.NONE);
         }
-        return new MachineRuntimeStatus(MachineStatusKind.RUNNING, Text.literal(currentStateString));
+        return new MachineRuntimeStatus(MachineStatusKind.RUNNING, Text.literal(currentStateString), currentStateString, MachineStatusIssueReason.NONE);
     }
 
     private static MachineRecord getMachineOrThrow(String name) throws CommandSyntaxException {
@@ -529,8 +547,32 @@ public final class MachineStatusCommand {
                 .toList();
     }
 
-    private static Text headerLine() {
-        return tr("command.carpet-ice-addition.machine_status.header").formatted(Formatting.GOLD);
+    private static Text listHeaderLine(MachineStatusKind filter) {
+        return titleLine(filter == null
+                ? "command.carpet-ice-addition.machine_status.title.list"
+                : switch (filter) {
+                    case RUNNING -> "command.carpet-ice-addition.machine_status.title.list.running";
+                    case INVALID -> "command.carpet-ice-addition.machine_status.title.list.invalid";
+                    case STOPPED -> "command.carpet-ice-addition.machine_status.title.list.stopped";
+                    case UNLOADED -> "command.carpet-ice-addition.machine_status.title.list.unloaded";
+                });
+    }
+
+    private static Text detailHeaderLine() {
+        return titleLine("command.carpet-ice-addition.machine_status.title.info");
+    }
+
+    private static Text titleLine(String key) {
+        String title = trString(key);
+        int titleVisualWidth = visualWidth(title);
+        int totalWidth = Math.max(38, titleVisualWidth + 12);
+        int leftWidth = Math.max(4, (totalWidth - titleVisualWidth - 2) / 2);
+        int rightWidth = Math.max(4, totalWidth - titleVisualWidth - 2 - leftWidth);
+
+        MutableText line = Text.literal(repeat('=', leftWidth) + " ").formatted(Formatting.GOLD);
+        line.append(Text.literal(title).formatted(Formatting.YELLOW));
+        line.append(Text.literal(" " + repeat('=', rightWidth)).formatted(Formatting.GOLD));
+        return line;
     }
 
     private static String serializeBlockState(BlockState state) {
@@ -550,11 +592,9 @@ public final class MachineStatusCommand {
     private static Text formatMachineLine(MachineRecord record, MachineStatusKind kind) {
         MutableText line = Text.empty();
         line.append(statusTag(kind));
-        line.append(Text.literal(" "));
-        line.append(Text.literal(record.name()));
-        line.append(Text.literal(" - "));
-        line.append(Text.literal(record.dimension()));
-        line.append(Text.literal(" " + record.x() + " " + record.y() + " " + record.z() + " "));
+        line.append(Text.literal(" ").formatted(Formatting.GRAY));
+        line.append(Text.literal(record.name()).formatted(Formatting.WHITE));
+        line.append(Text.literal(" - " + record.dimension() + " " + record.x() + " " + record.y() + " " + record.z() + " ").formatted(Formatting.GRAY));
         line.append(infoButton(record.name()));
         return line;
     }
@@ -575,6 +615,89 @@ public final class MachineStatusCommand {
                         tr("command.carpet-ice-addition.machine_status.info.hover")
                 ));
         return Text.literal("[i]").setStyle(style);
+    }
+
+    private static Text summaryLine(List<MachineWithStatus> machines) {
+        long running = machines.stream().filter(machine -> machine.status.kind() == MachineStatusKind.RUNNING).count();
+        long invalid = machines.stream().filter(machine -> machine.status.kind() == MachineStatusKind.INVALID).count();
+        long stopped = machines.stream().filter(machine -> machine.status.kind() == MachineStatusKind.STOPPED).count();
+        long unloaded = machines.stream().filter(machine -> machine.status.kind() == MachineStatusKind.UNLOADED).count();
+
+        MutableText line = Text.empty();
+        appendSummarySegment(line, "command.carpet-ice-addition.machine_status.summary.total", machines.size(), false);
+        appendSummarySegment(line, "command.carpet-ice-addition.machine_status.summary.running", running, true);
+        appendSummarySegment(line, "command.carpet-ice-addition.machine_status.summary.invalid", invalid, true);
+        appendSummarySegment(line, "command.carpet-ice-addition.machine_status.summary.stopped", stopped, true);
+        appendSummarySegment(line, "command.carpet-ice-addition.machine_status.summary.unloaded", unloaded, true);
+        return line;
+    }
+
+    private static void appendSummarySegment(MutableText line, String labelKey, long value, boolean withSeparator) {
+        if (withSeparator) {
+            line.append(Text.literal(" | ").formatted(Formatting.DARK_GRAY));
+        }
+        line.append(Text.literal(trString(labelKey)).formatted(Formatting.GRAY));
+        line.append(Text.literal(Long.toString(value)).formatted(Formatting.WHITE));
+    }
+
+    private static Text countLine(int count) {
+        return Text.literal(trString("command.carpet-ice-addition.machine_status.list.count", count)).formatted(Formatting.GRAY);
+    }
+
+    private static Text emptyListLine(MachineStatusKind filter) {
+        String key = filter == null
+                ? "command.carpet-ice-addition.machine_status.list.empty"
+                : switch (filter) {
+                    case RUNNING -> "command.carpet-ice-addition.machine_status.list.empty.running";
+                    case INVALID -> "command.carpet-ice-addition.machine_status.list.empty.invalid";
+                    case STOPPED -> "command.carpet-ice-addition.machine_status.list.empty.stopped";
+                    case UNLOADED -> "command.carpet-ice-addition.machine_status.list.empty.unloaded";
+                };
+        return Text.literal(trString(key)).formatted(Formatting.GRAY);
+    }
+
+    private static Text fieldLine(String labelKey, Text value) {
+        MutableText line = Text.literal(trString(labelKey)).formatted(Formatting.GRAY);
+        line.append(value);
+        return line;
+    }
+
+    private static Text white(String value) {
+        return Text.literal(value).formatted(Formatting.WHITE);
+    }
+
+    private static String blockId(MachineStatusStateUtil.ParsedState state, String rawState) {
+        if (state != null) {
+            return state.blockId();
+        }
+        if (rawState == null) {
+            return trString("command.carpet-ice-addition.machine_status.state_properties.none");
+        }
+        int bracketIndex = rawState.indexOf('[');
+        return bracketIndex >= 0 ? rawState.substring(0, bracketIndex).trim() : rawState.trim();
+    }
+
+    private static String propertiesText(MachineStatusStateUtil.ParsedState state, String rawState) {
+        if (state != null) {
+            if (state.properties().isEmpty()) {
+                return trString("command.carpet-ice-addition.machine_status.state_properties.none");
+            }
+            return state.properties().entrySet().stream()
+                    .map(entry -> entry.getKey() + "=" + entry.getValue())
+                    .collect(Collectors.joining(", "));
+        }
+        if (rawState == null || rawState.isBlank()) {
+            return trString("command.carpet-ice-addition.machine_status.state_properties.none");
+        }
+        int start = rawState.indexOf('[');
+        int end = rawState.lastIndexOf(']');
+        if (start >= 0 && end > start) {
+            String properties = rawState.substring(start + 1, end).trim();
+            return properties.isEmpty()
+                    ? trString("command.carpet-ice-addition.machine_status.state_properties.none")
+                    : properties.replace(",", ", ");
+        }
+        return trString("command.carpet-ice-addition.machine_status.state_properties.none");
     }
 
     private static MutableText tr(String key, Object... args) {
@@ -618,11 +741,41 @@ public final class MachineStatusCommand {
                 .replace("\"", "\\\"") + "\"";
     }
 
+    private static int visualWidth(String text) {
+        int width = 0;
+        for (int i = 0; i < text.length(); i++) {
+            width += text.charAt(i) <= 0x7F ? 1 : 2;
+        }
+        return width;
+    }
+
+    private static String repeat(char ch, int count) {
+        return String.valueOf(ch).repeat(Math.max(0, count));
+    }
+
     private static boolean canUseMachineStatus(ServerCommandSource source) {
         return CommandHelper.canUseCommand(source, CarpetIceAdditionSettings.commandMachineStatus);
     }
 
-    private record MachineRuntimeStatus(MachineStatusKind kind, Text currentStateText) {
+    private enum MachineStatusIssueReason {
+        NONE(null),
+        DIMENSION_UNAVAILABLE("command.carpet-ice-addition.machine_status.info.reason.dimension_unavailable"),
+        BLOCK_TYPE_CHANGED("command.carpet-ice-addition.machine_status.info.reason.block_type_changed"),
+        TARGET_BLOCK_MISSING("command.carpet-ice-addition.machine_status.info.reason.block_missing"),
+        INVALID_STATE("command.carpet-ice-addition.machine_status.info.reason.invalid_state");
+
+        private final String translationKey;
+
+        MachineStatusIssueReason(String translationKey) {
+            this.translationKey = translationKey;
+        }
+
+        public String translationKey() {
+            return this.translationKey;
+        }
+    }
+
+    private record MachineRuntimeStatus(MachineStatusKind kind, Text currentStateText, String currentStateRaw, MachineStatusIssueReason reason) {
     }
 
     private record MachineWithStatus(MachineRecord record, MachineRuntimeStatus status) {

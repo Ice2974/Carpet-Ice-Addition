@@ -18,6 +18,8 @@
     "BlockItemEasyWaterloggedBlockPlacementMixin",
     "SafeScaffoldingBreakMixin",
     "PlayerListEntryTabListNameMixin",
+    "ServerCommonNetworkHandlerAccessor",
+    "ServerPlayNetworkHandlerMachineStatusRollbackWarningMixin",
     "ServerWorldPhantomSpawnWarningMixin",
     "ServerWorldRecordWorldEventMixin",
     "TrialSpawnerDataMixin"
