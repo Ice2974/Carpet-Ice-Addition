@@ -74,6 +74,9 @@ public final class CarpetIceAdditionSettings {
     )
     public static String commandMachineStatus = "ops";
 
+    @Rule(categories = {ICE, SURVIVAL})
+    public static boolean machineStatusRollbackWarning = false;
+
     @Rule(
             categories = {ICE},
             options = {"#none", "[Bot]"},

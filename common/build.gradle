@@ -16,5 +16,6 @@ tasks.withType(JavaCompile).configureEach {
 dependencies {
     compileOnly "carpet:fabric-carpet:${project.mc1211_carpet_version}"
     compileOnly "com.google.code.gson:gson:2.11.0"
+    compileOnly "net.fabricmc:fabric-loader:${project.loader_version}"
     compileOnly "org.slf4j:slf4j-api:2.0.17"
 }

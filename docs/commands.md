@@ -78,3 +78,52 @@
 | `运行中` | 目标区块已加载、可以读取当前方块状态、方块类型未变化，但当前状态与保存的关机状态不同 |
 | `关机` | 目标区块已加载，且当前方块状态与保存的关机状态完全一致 |
 | `未加载` | 维度存在，但目标区块当前未加载；命令不会为了检查状态而强制加载区块 |
+
+---
+
+## 回档前机器状态警告
+
+### 相关规则
+
+`machineStatusRollbackWarning`
+
+### 行为说明
+
+启用后，当玩家输入已适配的回档命令时，服务器会直接复用 `/machineStatus` 的内部状态检查逻辑，检查已保存机器中哪些处于“运行中”状态，并只向触发该输入的玩家发送警告。
+
+- 不会执行 `/machineStatus` 命令本身
+- 不会拦截、取消或修改原始回档命令/聊天消息
+- 不会修改备份 mod、MCDR 插件或 `/machineStatus` 已保存数据
+- 只提示“运行中”机器；`未加载` 和 `异常` 默认不提示
+
+### 已适配输入
+
+| 来源 | 默认匹配示例 |
+|---|---|
+| Minecraft 斜杠命令 | `/qb back 1`、`/qb restore 1`、`/quickbackupmulti back 1`、`/quickbackupmulti restore 1` |
+| 玩家聊天消息 | `!!qb back 1`、`!!pb back 1`、`!!cb back 1` |
+
+### 配置文件
+
+全局配置文件路径：`config/carpet-ice-addition/machine_status_rollback_warning.json`
+
+默认内容：
+
+```json
+{
+  "rollbackCommandPatterns": [
+    "^/?qb\\s+(back|restore)\\b.*",
+    "^/?quickbackupmulti\\s+(back|restore)\\b.*",
+    "^!!qb\\s+back\\b.*",
+    "^!!pb\\s+back\\b.*",
+    "^!!cb\\s+back\\b.*"
+  ]
+}
+```
+
+约定：
+
+- 首次命中检测时，如果配置文件不存在，会自动生成默认配置
+- 修改该配置后需要重启服务器，当前实现不支持热加载
+- 无效正则会被跳过，并在服务器日志中记录 warning
+- `/machineStatus` 的机器数据仍保存在当前世界存档目录下的 `carpet-ice-addition/machine_status.json`

@@ -21,6 +21,7 @@
     "ServerWorldRecordWorldEventMixin",
     "SafeScaffoldingBreakMixin",
     "PlayerListEntryTabListNameMixin",
+    "ServerGamePacketListenerImplMachineStatusRollbackWarningMixin",
     "ZombieMobsSpawnWithoutSpearsMixin",
     "PiglinMobsSpawnWithoutSpearsMixin"
   ],

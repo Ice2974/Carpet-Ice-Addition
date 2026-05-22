@@ -140,6 +140,18 @@
 - 可选值: `false`, `true`, `ops`, `0`, `1`, `2`, `3`, `4`
 - 分类: `ICE`, `COMMAND`, `SURVIVAL`
 
+## 回档前机器状态警告 (machineStatusRollbackWarning)
+
+玩家输入已适配的回档命令时，检查已保存的机器状态；如果存在未处于保存关机状态的机器，则向该玩家发送警告提示，不会拦截或修改回档命令。
+
+默认适配的备份 Mod：Quick Backup Multi（`/qb`, `/quickbackupmulti`）。
+默认适配的 MCDR 插件：Quick Backup Multi（`!!qb`）、Prime Backup（`!!pb`）、Chunk Backup（`!!cb`）。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `SURVIVAL`
+
 ## 假人免疫荆棘反伤 (fakePlayerIgnoreThornsDamage)
 
 假人在攻击带有荆棘附魔的生物或玩家时，不会受到荆棘造成的反伤。

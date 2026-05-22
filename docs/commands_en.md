@@ -78,3 +78,52 @@
 | `Running` | The target chunk is loaded, the current block state can be read, the block type is unchanged, and the current state differs from the saved shutdown state |
 | `Stopped` | The target chunk is loaded and the current block state exactly matches the saved shutdown state |
 | `Unloaded` | The dimension exists but the target chunk is not loaded; the command must not force-load it |
+
+---
+
+## Machine Status Rollback Warning
+
+### Related Rule
+
+`machineStatusRollbackWarning`
+
+### Behavior
+
+When enabled, entering a supported rollback command makes the server reuse the internal `/machineStatus` status-checking logic, collect saved machines that are currently `Running`, and warn only the player who triggered that input.
+
+- It does not execute the `/machineStatus` command itself
+- It does not block, cancel, or modify the original rollback command or chat message
+- It does not modify backup mods, MCDR plugins, or saved `/machineStatus` data
+- It only warns for `Running` machines; `Unloaded` and `Invalid` are ignored by default
+
+### Supported Inputs
+
+| Source | Default matching examples |
+|---|---|
+| Minecraft slash commands | `/qb back 1`, `/qb restore 1`, `/quickbackupmulti back 1`, `/quickbackupmulti restore 1` |
+| Player chat messages | `!!qb back 1`, `!!pb back 1`, `!!cb back 1` |
+
+### Config File
+
+Global config path: `config/carpet-ice-addition/machine_status_rollback_warning.json`
+
+Default content:
+
+```json
+{
+  "rollbackCommandPatterns": [
+    "^/?qb\\s+(back|restore)\\b.*",
+    "^/?quickbackupmulti\\s+(back|restore)\\b.*",
+    "^!!qb\\s+back\\b.*",
+    "^!!pb\\s+back\\b.*",
+    "^!!cb\\s+back\\b.*"
+  ]
+}
+```
+
+Notes:
+
+- The default config file is created automatically when the feature first checks an input and the file does not exist
+- Restart the server after editing this config; the current implementation does not hot-reload it
+- Invalid regex entries are skipped and logged as warnings
+- `/machineStatus` machine data still stays in the current world save directory at `carpet-ice-addition/machine_status.json`
