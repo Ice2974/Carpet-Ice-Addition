@@ -138,7 +138,7 @@ Registers the /machineStatus command to save the target block state when a techn
 - Type: `String`
 - Default: `ops`
 - Possible values: `false`, `true`, `ops`, `0`, `1`, `2`, `3`, `4`
-- Categories: `ICE`, `COMMAND`
+- Categories: `ICE`, `COMMAND`, `SURVIVAL`
 
 ## fakePlayerIgnoreThornsDamage
 

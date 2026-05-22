@@ -46,7 +46,6 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
 
     @Override
     public void onInitialize() {
-        MachineStatusCommand.registerArgumentType();
         version = FabricLoader.getInstance()
                 .getModContainer(MOD_ID)
                 .orElseThrow(RuntimeException::new)

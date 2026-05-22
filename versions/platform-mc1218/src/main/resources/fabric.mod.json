@@ -17,7 +17,7 @@
   "license": "PolyForm Noncommercial License 1.0.0",
   "icon": "assets/carpet-ice-addition/icon.png",
 
-  "environment": "*",
+  "environment": "server",
   "entrypoints": {
     "main": [
       "com.ice2974.carpeticeaddition.CarpetIceAdditionMod"

@@ -68,7 +68,7 @@ public final class CarpetIceAdditionSettings {
     public static String commandKillItem = "ops";
 
     @Rule(
-            categories = {ICE, COMMAND},
+            categories = {ICE, COMMAND, SURVIVAL},
             options = {"false", "true", "ops", "0", "1", "2", "3", "4"},
             validators = Validators.CommandLevel.class
     )

@@ -4,6 +4,7 @@ import com.ice2974.carpeticeaddition.CarpetIceAdditionMod;
 import com.ice2974.carpeticeaddition.rules.RealPlayerHelper;
 import com.ice2974.carpeticeaddition.rules.RuleMessageThrottle;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
+import com.ice2974.carpeticeaddition.translation.TranslationFormatUtil;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.item.ItemStack;
@@ -45,7 +46,7 @@ public abstract class SafeScaffoldingBreakMixin {
             }
 
             if (RuleMessageThrottle.shouldSendScaffoldingWarning(this.player)) {
-                this.player.sendMessage(Text.translatable("message.carpet-ice-addition.safe_scaffolding_break"), true);
+                this.player.sendMessage(Text.literal(TranslationFormatUtil.translate("message.carpet-ice-addition.safe_scaffolding_break")), true);
             }
             cir.setReturnValue(false);
         } catch (Throwable throwable) {

@@ -1,12 +1,14 @@
 package com.ice2974.carpeticeaddition.command;
 
 import carpet.utils.CommandHelper;
+import com.ice2974.carpeticeaddition.command.CommandStringParsingUtil.ParsedToken;
 import com.ice2974.carpeticeaddition.command.MachineStatusConfigManager.MachineRecord;
 import com.ice2974.carpeticeaddition.command.MachineStatusStateUtil.ParsedState;
+import com.ice2974.carpeticeaddition.translation.TranslationFormatUtil;
+import com.mojang.brigadier.StringReader;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
 import com.mojang.brigadier.CommandDispatcher;
-import com.mojang.brigadier.StringReader;
-import com.mojang.brigadier.arguments.ArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
@@ -17,7 +19,7 @@ import net.minecraft.block.BlockState;
 import net.minecraft.command.CommandSource;
 import net.minecraft.command.argument.BlockPosArgumentType;
 import net.minecraft.command.argument.IdentifierArgumentType;
-import net.minecraft.command.argument.serialize.ConstantArgumentSerializer;
+import net.minecraft.command.argument.PosArgument;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
@@ -34,7 +36,6 @@ import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-import net.fabricmc.fabric.api.command.v2.ArgumentTypeRegistry;
 
 import java.io.IOException;
 import java.util.Comparator;
@@ -48,36 +49,29 @@ import static net.minecraft.server.command.CommandManager.argument;
 import static net.minecraft.server.command.CommandManager.literal;
 
 public final class MachineStatusCommand {
-    private static final String MACHINE_NAME_ARGUMENT = "machine_name";
-    private static final String HEADER_TEXT = "========== Machine Status ==========";
     private static final DynamicCommandExceptionType INVALID_IDENTIFIER = new DynamicCommandExceptionType(
-            value -> Text.translatable("command.carpet-ice-addition.machine_status.error.invalid_identifier", value)
+            value -> tr("command.carpet-ice-addition.machine_status.error.invalid_identifier", value)
     );
     private static final DynamicCommandExceptionType MACHINE_EXISTS = new DynamicCommandExceptionType(
-            value -> Text.translatable("command.carpet-ice-addition.machine_status.error.name_exists", value)
+            value -> tr("command.carpet-ice-addition.machine_status.error.name_exists", value)
     );
     private static final DynamicCommandExceptionType MACHINE_NOT_FOUND = new DynamicCommandExceptionType(
-            value -> Text.translatable("command.carpet-ice-addition.machine_status.error.name_not_found", value)
+            value -> tr("command.carpet-ice-addition.machine_status.error.name_not_found", value)
     );
     private static final DynamicCommandExceptionType DIMENSION_NOT_FOUND = new DynamicCommandExceptionType(
-            value -> Text.translatable("command.carpet-ice-addition.machine_status.error.dimension_not_found", value)
+            value -> tr("command.carpet-ice-addition.machine_status.error.dimension_not_found", value)
     );
     private static final DynamicCommandExceptionType CHUNK_NOT_LOADED = new DynamicCommandExceptionType(
-            value -> Text.translatable("command.carpet-ice-addition.machine_status.error.chunk_not_loaded", value)
+            value -> tr("command.carpet-ice-addition.machine_status.error.chunk_not_loaded", value)
+    );
+    private static final DynamicCommandExceptionType INVALID_ARGUMENTS = new DynamicCommandExceptionType(
+            value -> tr("command.carpet-ice-addition.machine_status.error.invalid_arguments", value)
     );
     private static final SimpleCommandExceptionType CONFIG_SAVE_FAILED = new SimpleCommandExceptionType(
-            Text.translatable("command.carpet-ice-addition.machine_status.error.config_save_failed")
+            tr("command.carpet-ice-addition.machine_status.error.config_save_failed")
     );
 
     private MachineStatusCommand() {
-    }
-
-    public static void registerArgumentType() {
-        ArgumentTypeRegistry.registerArgumentType(
-                Identifier.of("carpet-ice-addition", "machine_status_single_token"),
-                SingleTokenArgumentType.class,
-                ConstantArgumentSerializer.of(SingleTokenArgumentType::singleToken)
-        );
     }
 
     public static void register(CommandDispatcher<ServerCommandSource> dispatcher) {
@@ -90,47 +84,45 @@ public final class MachineStatusCommand {
                                         builder
                                 ))
                                 .then(argument("pos", BlockPosArgumentType.blockPos())
-                                        .then(argument("name", SingleTokenArgumentType.singleToken())
+                                        .then(argument("name", StringArgumentType.greedyString())
                                                 .suggests(MachineStatusCommand::suggestUnusedMachineNames)
                                                 .executes(context -> addMachine(
                                                         context,
                                                         IdentifierArgumentType.getIdentifier(context, "dimension"),
                                                         BlockPosArgumentType.getBlockPos(context, "pos"),
-                                                        getMachineName(context, "name")
+                                                        parseSingleMachineName(StringArgumentType.getString(context, "name"))
                                                 ))))))
                 .then(literal("remove")
-                        .then(argument("name", SingleTokenArgumentType.singleToken())
-                                .suggests((context, builder) -> CommandSource.suggestMatching(machineNames(), builder))
-                                .executes(context -> removeMachine(context, getMachineName(context, "name")))))
+                        .then(argument("name", StringArgumentType.greedyString())
+                                .suggests(MachineStatusCommand::suggestMachineNames)
+                                .executes(context -> removeMachine(
+                                        context,
+                                        parseSingleMachineName(StringArgumentType.getString(context, "name"))
+                                ))))
                 .then(literal("rename")
-                        .then(argument("name", SingleTokenArgumentType.singleToken())
-                                .suggests((context, builder) -> CommandSource.suggestMatching(machineNames(), builder))
-                                .then(argument("newName", SingleTokenArgumentType.singleToken())
-                                        .suggests(MachineStatusCommand::suggestUnusedMachineNames)
-                                        .executes(context -> renameMachine(
-                                                context,
-                                                getMachineName(context, "name"),
-                                                getMachineName(context, "newName")
-                                        )))))
+                        .then(argument("arguments", StringArgumentType.greedyString())
+                                .suggests(MachineStatusCommand::suggestMachineNames)
+                                .executes(context -> {
+                                    ParsedRenameArguments arguments = parseRenameArguments(StringArgumentType.getString(context, "arguments"));
+                                    return renameMachine(context, arguments.name(), arguments.newName());
+                                })))
                 .then(literal("update")
-                        .then(argument("name", SingleTokenArgumentType.singleToken())
-                                .suggests((context, builder) -> CommandSource.suggestMatching(machineNames(), builder))
-                                .executes(context -> updateMachine(context, getMachineName(context, "name")))))
+                        .then(argument("name", StringArgumentType.greedyString())
+                                .suggests(MachineStatusCommand::suggestMachineNames)
+                                .executes(context -> updateMachine(
+                                        context,
+                                        parseSingleMachineName(StringArgumentType.getString(context, "name"))
+                                ))))
                 .then(literal("move")
-                        .then(argument("name", SingleTokenArgumentType.singleToken())
-                                .suggests((context, builder) -> CommandSource.suggestMatching(machineNames(), builder))
-                                .then(argument("dimension", IdentifierArgumentType.identifier())
-                                        .suggests((context, builder) -> CommandSource.suggestIdentifiers(
-                                                context.getSource().getServer().getWorldRegistryKeys().stream().map(RegistryKey::getValue),
-                                                builder
-                                        ))
-                                        .then(argument("pos", BlockPosArgumentType.blockPos())
-                                                .executes(context -> moveMachine(
-                                                        context,
-                                                        getMachineName(context, "name"),
-                                                        IdentifierArgumentType.getIdentifier(context, "dimension"),
-                                                        BlockPosArgumentType.getBlockPos(context, "pos")
-                                                ))))))
+                        .then(argument("arguments", StringArgumentType.greedyString())
+                                .suggests(MachineStatusCommand::suggestMachineNames)
+                                .executes(context -> {
+                                    ParsedMoveArguments arguments = parseMoveArguments(
+                                            context.getSource(),
+                                            StringArgumentType.getString(context, "arguments")
+                                    );
+                                    return moveMachine(context, arguments.name(), arguments.dimensionId(), arguments.pos());
+                                })))
                 .then(literal("list")
                         .executes(context -> listMachines(context, null))
                         .then(literal("running").executes(context -> listMachines(context, MachineStatusKind.RUNNING)))
@@ -138,9 +130,12 @@ public final class MachineStatusCommand {
                         .then(literal("invalid").executes(context -> listMachines(context, MachineStatusKind.INVALID)))
                         .then(literal("unloaded").executes(context -> listMachines(context, MachineStatusKind.UNLOADED))))
                 .then(literal("info")
-                        .then(argument("name", SingleTokenArgumentType.singleToken())
-                                .suggests((context, builder) -> CommandSource.suggestMatching(machineNames(), builder))
-                                .executes(context -> showInfo(context, getMachineName(context, "name"))))));
+                        .then(argument("name", StringArgumentType.greedyString())
+                                .suggests(MachineStatusCommand::suggestMachineNames)
+                                .executes(context -> showInfo(
+                                        context,
+                                        parseSingleMachineName(StringArgumentType.getString(context, "name"))
+                                )))));
     }
 
     private static int addMachine(
@@ -161,12 +156,12 @@ public final class MachineStatusCommand {
         }
 
         context.getSource().sendFeedback(
-                () -> Text.translatable(
+                () -> tr(
                         "command.carpet-ice-addition.machine_status.result.added",
-                        Text.literal(name),
-                        Text.literal(dimensionId.toString()),
-                        Text.literal(formatPos(pos)),
-                        Text.literal(shutdownState)
+                        name,
+                        dimensionId.toString(),
+                        formatPos(pos),
+                        shutdownState
                 ),
                 false
         );
@@ -182,7 +177,7 @@ public final class MachineStatusCommand {
         }
 
         context.getSource().sendFeedback(
-                () -> Text.translatable("command.carpet-ice-addition.machine_status.result.removed", Text.literal(name)),
+                () -> tr("command.carpet-ice-addition.machine_status.result.removed", name),
                 false
         );
         return 1;
@@ -199,10 +194,10 @@ public final class MachineStatusCommand {
         }
 
         context.getSource().sendFeedback(
-                () -> Text.translatable(
+                () -> tr(
                         "command.carpet-ice-addition.machine_status.result.renamed",
-                        Text.literal(name),
-                        Text.literal(newName)
+                        name,
+                        newName
                 ),
                 false
         );
@@ -225,11 +220,11 @@ public final class MachineStatusCommand {
         }
 
         context.getSource().sendFeedback(
-                () -> Text.translatable(
+                () -> tr(
                         "command.carpet-ice-addition.machine_status.result.updated",
-                        Text.literal(name),
-                        Text.literal(oldState),
-                        Text.literal(newState)
+                        name,
+                        oldState,
+                        newState
                 ),
                 false
         );
@@ -254,12 +249,12 @@ public final class MachineStatusCommand {
         }
 
         context.getSource().sendFeedback(
-                () -> Text.translatable(
+                () -> tr(
                         "command.carpet-ice-addition.machine_status.result.moved",
-                        Text.literal(name),
-                        Text.literal(dimensionId.toString()),
-                        Text.literal(formatPos(pos)),
-                        Text.literal(shutdownState)
+                        name,
+                        dimensionId.toString(),
+                        formatPos(pos),
+                        shutdownState
                 ),
                 false
         );
@@ -267,20 +262,13 @@ public final class MachineStatusCommand {
     }
 
     private static int listMachines(CommandContext<ServerCommandSource> context, MachineStatusKind filter) {
-        List<MachineWithStatus> machines = MachineStatusConfigManager.snapshot().stream()
-                .map(record -> new MachineWithStatus(record, evaluateStatus(context.getSource().getServer(), record)))
-                .filter(machine -> filter == null || machine.status.kind() == filter)
-                .sorted(Comparator
-                        .comparingInt((MachineWithStatus machine) -> machine.status.kind().sortOrder())
-                        .thenComparing(machine -> machine.record.name(), String.CASE_INSENSITIVE_ORDER)
-                        .thenComparing(machine -> machine.record.name()))
-                .toList();
+        List<MachineWithStatus> machines = collectMachines(context.getSource().getServer(), filter);
 
         context.getSource().sendFeedback(MachineStatusCommand::headerLine, false);
 
         if (machines.isEmpty()) {
             context.getSource().sendFeedback(
-                    () -> Text.translatable("command.carpet-ice-addition.machine_status.list.empty"),
+                    () -> tr("command.carpet-ice-addition.machine_status.list.empty"),
                     false
             );
             return 0;
@@ -299,44 +287,54 @@ public final class MachineStatusCommand {
         context.getSource().sendFeedback(MachineStatusCommand::headerLine, false);
 
         context.getSource().sendFeedback(
-                () -> Text.translatable("command.carpet-ice-addition.machine_status.info.machine", Text.literal(record.name())),
+                () -> tr("command.carpet-ice-addition.machine_status.info.machine", record.name()),
                 false
         );
         context.getSource().sendFeedback(
-                () -> Text.translatable("command.carpet-ice-addition.machine_status.info.dimension", Text.literal(record.dimension())),
+                () -> tr("command.carpet-ice-addition.machine_status.info.dimension", record.dimension()),
                 false
         );
         context.getSource().sendFeedback(
-                () -> Text.translatable(
+                () -> tr(
                         "command.carpet-ice-addition.machine_status.info.position",
-                        Text.literal(Integer.toString(record.x())),
-                        Text.literal(Integer.toString(record.y())),
-                        Text.literal(Integer.toString(record.z()))
+                        Integer.toString(record.x()),
+                        Integer.toString(record.y()),
+                        Integer.toString(record.z())
                 ),
                 false
         );
         context.getSource().sendFeedback(
-                () -> Text.translatable(
+                () -> tr(
                         "command.carpet-ice-addition.machine_status.info.saved_state",
-                        Text.literal(record.shutdownBlockState())
+                        record.shutdownBlockState()
                 ),
                 false
         );
         context.getSource().sendFeedback(
-                () -> Text.translatable(
+                () -> tr(
                         "command.carpet-ice-addition.machine_status.info.current_state",
-                        status.currentStateText()
+                        status.currentStateText().getString()
                 ),
                 false
         );
         context.getSource().sendFeedback(
-                () -> Text.translatable(
+                () -> tr(
                         "command.carpet-ice-addition.machine_status.info.status",
-                        Text.translatable(status.kind.translationKey())
+                        trString(status.kind.translationKey())
                 ),
                 false
         );
         return 1;
+    }
+
+    public static List<MachineRecord> getMachineRecordsByStatus(MinecraftServer server, MachineStatusKind filter) {
+        return collectMachines(server, filter).stream()
+                .map(MachineWithStatus::record)
+                .toList();
+    }
+
+    public static Text formatMachineStatusLine(MachineRecord record, MachineStatusKind kind) {
+        return formatMachineLine(record, kind);
     }
 
     private static MachineRuntimeStatus evaluateStatus(MinecraftServer server, MachineRecord record) {
@@ -344,7 +342,7 @@ public final class MachineStatusCommand {
         if (dimensionId == null) {
             return new MachineRuntimeStatus(
                     MachineStatusKind.INVALID,
-                    Text.translatable("command.carpet-ice-addition.machine_status.current_state.dimension_not_found")
+                    tr("command.carpet-ice-addition.machine_status.current_state.dimension_not_found")
             );
         }
 
@@ -352,7 +350,7 @@ public final class MachineStatusCommand {
         if (world == null) {
             return new MachineRuntimeStatus(
                     MachineStatusKind.INVALID,
-                    Text.translatable("command.carpet-ice-addition.machine_status.current_state.dimension_not_found")
+                    tr("command.carpet-ice-addition.machine_status.current_state.dimension_not_found")
             );
         }
 
@@ -360,7 +358,7 @@ public final class MachineStatusCommand {
         if (!isChunkLoaded(world, pos)) {
             return new MachineRuntimeStatus(
                     MachineStatusKind.UNLOADED,
-                    Text.translatable("command.carpet-ice-addition.machine_status.current_state.chunk_not_loaded")
+                    tr("command.carpet-ice-addition.machine_status.current_state.chunk_not_loaded")
             );
         }
 
@@ -427,25 +425,65 @@ public final class MachineStatusCommand {
         return world.getChunkManager().isChunkLoaded(pos.getX() >> 4, pos.getZ() >> 4);
     }
 
-    private static String getMachineName(CommandContext<ServerCommandSource> context, String argumentName) throws CommandSyntaxException {
-        return validateMachineName(context.getArgument(argumentName, String.class));
-    }
-
     private static String validateMachineName(String rawName) throws CommandSyntaxException {
         String normalized = rawName == null ? "" : rawName.trim();
-        if (normalized.isEmpty() || containsWhitespace(normalized)) {
+        if (normalized.isEmpty()) {
             throw INVALID_IDENTIFIER.create(rawName);
         }
         return normalized;
     }
 
-    private static boolean containsWhitespace(String value) {
-        for (int i = 0; i < value.length(); i++) {
-            if (Character.isWhitespace(value.charAt(i))) {
-                return true;
-            }
+    private static String parseSingleMachineName(String rawArgument) throws CommandSyntaxException {
+        ParsedToken token = requireToken(rawArgument, 0);
+        ensureNoTrailingContent(rawArgument, token.nextIndex());
+        return validateMachineName(token.value());
+    }
+
+    private static ParsedRenameArguments parseRenameArguments(String rawArguments) throws CommandSyntaxException {
+        ParsedToken nameToken = requireToken(rawArguments, 0);
+        ParsedToken newNameToken = requireToken(rawArguments, nameToken.nextIndex());
+        ensureNoTrailingContent(rawArguments, newNameToken.nextIndex());
+        return new ParsedRenameArguments(
+                validateMachineName(nameToken.value()),
+                validateMachineName(newNameToken.value())
+        );
+    }
+
+    private static ParsedMoveArguments parseMoveArguments(ServerCommandSource source, String rawArguments) throws CommandSyntaxException {
+        ParsedToken nameToken = requireToken(rawArguments, 0);
+        ParsedToken dimensionToken = requireToken(rawArguments, nameToken.nextIndex());
+        int positionStart = CommandStringParsingUtil.skipWhitespace(rawArguments, dimensionToken.nextIndex());
+        if (positionStart >= rawArguments.length()) {
+            throw INVALID_ARGUMENTS.create(rawArguments);
         }
-        return false;
+
+        String positionArgument = rawArguments.substring(positionStart);
+        StringReader reader = new StringReader(positionArgument);
+        PosArgument posArgument = BlockPosArgumentType.blockPos().parse(reader);
+        String trailing = positionArgument.substring(reader.getCursor()).trim();
+        if (!trailing.isEmpty()) {
+            throw INVALID_ARGUMENTS.create(rawArguments);
+        }
+
+        return new ParsedMoveArguments(
+                validateMachineName(nameToken.value()),
+                parseIdentifier(dimensionToken.value()),
+                posArgument.toAbsoluteBlockPos(source)
+        );
+    }
+
+    private static ParsedToken requireToken(String rawArguments, int startIndex) throws CommandSyntaxException {
+        ParsedToken token = CommandStringParsingUtil.parseNextToken(rawArguments, startIndex);
+        if (token == null) {
+            throw INVALID_ARGUMENTS.create(rawArguments);
+        }
+        return token;
+    }
+
+    private static void ensureNoTrailingContent(String rawArguments, int nextIndex) throws CommandSyntaxException {
+        if (CommandStringParsingUtil.skipWhitespace(rawArguments, nextIndex) != rawArguments.length()) {
+            throw INVALID_ARGUMENTS.create(rawArguments);
+        }
     }
 
     private static CompletableFuture<Suggestions> suggestUnusedMachineNames(CommandContext<ServerCommandSource> context, SuggestionsBuilder builder) {
@@ -466,8 +504,33 @@ public final class MachineStatusCommand {
         return builder.buildFuture();
     }
 
+    private static CompletableFuture<Suggestions> suggestMachineNames(CommandContext<ServerCommandSource> context, SuggestionsBuilder builder) {
+        String remaining = builder.getRemaining().toLowerCase(Locale.ROOT);
+        String unquotedRemaining = remaining.startsWith("\"") ? remaining.substring(1) : remaining;
+        for (String name : machineNames()) {
+            String suggestion = quoteMachineName(name);
+            String lowerSuggestion = suggestion.toLowerCase(Locale.ROOT);
+            String lowerName = name.toLowerCase(Locale.ROOT);
+            if (lowerSuggestion.startsWith(remaining) || lowerName.startsWith(unquotedRemaining)) {
+                builder.suggest(suggestion);
+            }
+        }
+        return builder.buildFuture();
+    }
+
+    private static List<MachineWithStatus> collectMachines(MinecraftServer server, MachineStatusKind filter) {
+        return MachineStatusConfigManager.snapshot().stream()
+                .map(record -> new MachineWithStatus(record, evaluateStatus(server, record)))
+                .filter(machine -> filter == null || machine.status.kind() == filter)
+                .sorted(Comparator
+                        .comparingInt((MachineWithStatus machine) -> machine.status.kind().sortOrder())
+                        .thenComparing(machine -> machine.record.name(), String.CASE_INSENSITIVE_ORDER)
+                        .thenComparing(machine -> machine.record.name()))
+                .toList();
+    }
+
     private static Text headerLine() {
-        return Text.literal(HEADER_TEXT).formatted(Formatting.GOLD);
+        return tr("command.carpet-ice-addition.machine_status.header").formatted(Formatting.GOLD);
     }
 
     private static String serializeBlockState(BlockState state) {
@@ -498,7 +561,7 @@ public final class MachineStatusCommand {
 
     private static Text statusTag(MachineStatusKind kind) {
         MutableText tag = Text.literal("[");
-        tag.append(Text.translatable(kind.translationKey()));
+        tag.append(tr(kind.translationKey()));
         tag.append(Text.literal("]"));
         return tag.formatted(statusFormatting(kind));
     }
@@ -506,11 +569,19 @@ public final class MachineStatusCommand {
     private static Text infoButton(String name) {
         Style style = Style.EMPTY
                 .withColor(Formatting.AQUA)
-                .withClickEvent(new ClickEvent.RunCommand("/machineStatus info " + name))
+                .withClickEvent(new ClickEvent.RunCommand("/machineStatus info " + quoteMachineName(name)))
                 .withHoverEvent(new HoverEvent.ShowText(
-                        Text.translatable("command.carpet-ice-addition.machine_status.info.hover")
+                        tr("command.carpet-ice-addition.machine_status.info.hover")
                 ));
         return Text.literal("[i]").setStyle(style);
+    }
+
+    private static MutableText tr(String key, Object... args) {
+        return Text.literal(TranslationFormatUtil.translate(key, args));
+    }
+
+    private static String trString(String key, Object... args) {
+        return TranslationFormatUtil.translate(key, args);
     }
 
     private static Formatting statusFormatting(MachineStatusKind kind) {
@@ -537,6 +608,15 @@ public final class MachineStatusCommand {
         return dimensionId + " " + pos.getX() + " " + pos.getY() + " " + pos.getZ();
     }
 
+    private static String quoteMachineName(String name) {
+        if (name.indexOf(' ') < 0 && name.indexOf('"') < 0 && name.indexOf('\\') < 0) {
+            return name;
+        }
+        return "\"" + name
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"") + "\"";
+    }
+
     private static boolean canUseMachineStatus(ServerCommandSource source) {
         return CommandHelper.canUseCommand(source, CarpetIceAdditionSettings.commandMachineStatus);
     }
@@ -547,21 +627,9 @@ public final class MachineStatusCommand {
     private record MachineWithStatus(MachineRecord record, MachineRuntimeStatus status) {
     }
 
-    public static final class SingleTokenArgumentType implements ArgumentType<String> {
-        private SingleTokenArgumentType() {
-        }
+    private record ParsedRenameArguments(String name, String newName) {
+    }
 
-        private static SingleTokenArgumentType singleToken() {
-            return new SingleTokenArgumentType();
-        }
-
-        @Override
-        public String parse(StringReader reader) {
-            int start = reader.getCursor();
-            while (reader.canRead() && !Character.isWhitespace(reader.peek())) {
-                reader.skip();
-            }
-            return reader.getString().substring(start, reader.getCursor());
-        }
+    private record ParsedMoveArguments(String name, Identifier dimensionId, BlockPos pos) {
     }
 }

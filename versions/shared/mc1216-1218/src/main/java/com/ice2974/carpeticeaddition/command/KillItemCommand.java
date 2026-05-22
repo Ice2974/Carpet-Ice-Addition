@@ -1,6 +1,7 @@
 package com.ice2974.carpeticeaddition.command;
 
 import carpet.utils.CommandHelper;
+import com.ice2974.carpeticeaddition.translation.TranslationFormatUtil;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.DoubleArgumentType;
@@ -42,19 +43,19 @@ public final class KillItemCommand {
     private static final double MAX_RADIUS = 1024.0D;
 
     private static final SimpleCommandExceptionType PLAYER_ONLY = new SimpleCommandExceptionType(
-            Text.translatable("command.carpet-ice-addition.killitem.error.player_only")
+            tr("command.carpet-ice-addition.killitem.error.player_only")
     );
     private static final DynamicCommandExceptionType INVALID_IDENTIFIER = new DynamicCommandExceptionType(
-            value -> Text.translatable("command.carpet-ice-addition.killitem.error.invalid_identifier", value)
+            value -> tr("command.carpet-ice-addition.killitem.error.invalid_identifier", value)
     );
     private static final DynamicCommandExceptionType DIMENSION_NOT_FOUND = new DynamicCommandExceptionType(
-            value -> Text.translatable("command.carpet-ice-addition.killitem.error.dimension_not_found", value)
+            value -> tr("command.carpet-ice-addition.killitem.error.dimension_not_found", value)
     );
     private static final DynamicCommandExceptionType ITEM_NOT_FOUND = new DynamicCommandExceptionType(
-            value -> Text.translatable("command.carpet-ice-addition.killitem.error.item_not_found", value)
+            value -> tr("command.carpet-ice-addition.killitem.error.item_not_found", value)
     );
     private static final SimpleCommandExceptionType CONFIG_SAVE_FAILED = new SimpleCommandExceptionType(
-            Text.translatable("command.carpet-ice-addition.killitem.error.config_save_failed")
+            tr("command.carpet-ice-addition.killitem.error.config_save_failed")
     );
 
     private KillItemCommand() {
@@ -124,7 +125,7 @@ public final class KillItemCommand {
         );
         ClearResult result = clearInBox((ServerWorld) player.getWorld(), box, itemEntity -> itemEntity.squaredDistanceTo(center) <= radiusSquared, config);
         context.getSource().sendFeedback(
-                () -> Text.translatable(
+                () -> tr(
                         "command.carpet-ice-addition.killitem.result.range",
                         result.entityCount,
                         formatRadius(radius),
@@ -141,10 +142,10 @@ public final class KillItemCommand {
         KillItemConfigManager.Snapshot config = KillItemConfigManager.snapshot();
         ClearResult result = clearInWorld(world, config);
         context.getSource().sendFeedback(
-                () -> Text.translatable(
+                () -> tr(
                         "command.carpet-ice-addition.killitem.result.dimension",
                         result.entityCount,
-                        Text.literal(dimensionId.toString()),
+                        dimensionId.toString(),
                         result.itemCount,
                         result.summaryText()
                 ),
@@ -164,7 +165,7 @@ public final class KillItemCommand {
             }
         }
         context.getSource().sendFeedback(
-                () -> Text.translatable(
+                () -> tr(
                         "command.carpet-ice-addition.killitem.result.all",
                         total.entityCount,
                         total.itemCount,
@@ -178,7 +179,7 @@ public final class KillItemCommand {
     private static int showBlacklist(CommandContext<ServerCommandSource> context) {
         Set<String> blacklist = KillItemConfigManager.snapshot().blacklist();
         context.getSource().sendFeedback(
-                () -> Text.translatable(
+                () -> tr(
                         "command.carpet-ice-addition.killitem.config.blacklist.list",
                         blacklist.size(),
                         formatBlacklist(blacklist)
@@ -193,11 +194,11 @@ public final class KillItemCommand {
         try {
             boolean changed = KillItemConfigManager.addBlacklistItem(itemId.toString());
             context.getSource().sendFeedback(
-                    () -> Text.translatable(
+                    () -> tr(
                             changed
                                     ? "command.carpet-ice-addition.killitem.config.blacklist.added"
                                     : "command.carpet-ice-addition.killitem.config.blacklist.already_present",
-                            Text.literal(itemId.toString())
+                            itemId.toString()
                     ),
                     false
             );
@@ -212,11 +213,11 @@ public final class KillItemCommand {
         try {
             boolean changed = KillItemConfigManager.removeBlacklistItem(itemId.toString());
             context.getSource().sendFeedback(
-                    () -> Text.translatable(
+                    () -> tr(
                             changed
                                     ? "command.carpet-ice-addition.killitem.config.blacklist.removed"
                                     : "command.carpet-ice-addition.killitem.config.blacklist.not_present",
-                            Text.literal(itemId.toString())
+                            itemId.toString()
                     ),
                     false
             );
@@ -230,7 +231,7 @@ public final class KillItemCommand {
         try {
             boolean changed = KillItemConfigManager.clearBlacklist();
             context.getSource().sendFeedback(
-                    () -> Text.translatable(
+                    () -> tr(
                             changed
                                     ? "command.carpet-ice-addition.killitem.config.blacklist.cleared"
                                     : "command.carpet-ice-addition.killitem.config.blacklist.already_empty"
@@ -246,9 +247,9 @@ public final class KillItemCommand {
     private static int showClearNamedItems(CommandContext<ServerCommandSource> context) {
         boolean clearNamedItems = KillItemConfigManager.snapshot().clearNamedItems();
         context.getSource().sendFeedback(
-                () -> Text.translatable(
+                () -> tr(
                         "command.carpet-ice-addition.killitem.config.clear_named_items.value",
-                        Text.translatable(booleanKey(clearNamedItems))
+                        trString(booleanKey(clearNamedItems))
                 ),
                 false
         );
@@ -259,11 +260,11 @@ public final class KillItemCommand {
         try {
             boolean changed = KillItemConfigManager.setClearNamedItems(value);
             context.getSource().sendFeedback(
-                    () -> Text.translatable(
+                    () -> tr(
                             changed
                                     ? "command.carpet-ice-addition.killitem.config.clear_named_items.updated"
                                     : "command.carpet-ice-addition.killitem.config.clear_named_items.unchanged",
-                            Text.translatable(booleanKey(value))
+                            trString(booleanKey(value))
                     ),
                     false
             );
@@ -347,7 +348,7 @@ public final class KillItemCommand {
 
     private static Text formatBlacklist(Set<String> blacklist) {
         if (blacklist.isEmpty()) {
-            return Text.translatable("command.carpet-ice-addition.killitem.summary.none");
+            return tr("command.carpet-ice-addition.killitem.summary.none");
         }
         return Text.literal(String.join(", ", blacklist));
     }
@@ -401,7 +402,7 @@ public final class KillItemCommand {
 
         private Text summaryText() {
             if (this.summaryEntries.isEmpty()) {
-                return Text.translatable("command.carpet-ice-addition.killitem.summary.none");
+                return tr("command.carpet-ice-addition.killitem.summary.none");
             }
 
             MutableText text = Text.empty();
@@ -411,14 +412,22 @@ public final class KillItemCommand {
                     text.append(Text.literal(", "));
                 }
                 first = false;
-                text.append(Text.translatable(
+                text.append(tr(
                         "command.carpet-ice-addition.killitem.summary.entry",
-                        entry.displayText.copy(),
+                        entry.displayText.getString(),
                         entry.itemCount
                 ));
             }
             return text;
         }
+    }
+
+    private static MutableText tr(String key, Object... args) {
+        return Text.literal(TranslationFormatUtil.translate(key, args));
+    }
+
+    private static String trString(String key, Object... args) {
+        return TranslationFormatUtil.translate(key, args);
     }
 
     private static final class SummaryEntry {

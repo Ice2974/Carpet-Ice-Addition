@@ -68,7 +68,7 @@
 |---|---|---|
 | `<dimension>` | Dimension registry ID | `minecraft:overworld`, `minecraft:the_nether`, `minecraft:the_end` |
 | `<pos>` | Target block position | `100 64 -20` |
-| `<name>` | Unique machine name without spaces; single-token names such as Chinese, English, digits, and underscores are supported | `ironFarm`, `刷铁机`, `gold_farm_1` |
+| `<name>` | Unique machine name. Names without spaces can be entered directly, including Chinese names; if the name contains spaces or other content that should be preserved exactly, wrap it in double quotes | `ironFarm`, `刷铁机`, `"Piglin Trading Hall"`, `"Nether Portal Switch"` |
 
 ### Status Meanings
 

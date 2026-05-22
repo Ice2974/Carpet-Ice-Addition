@@ -138,7 +138,7 @@
 - 类型: `String`
 - 默认值: `ops`
 - 可选值: `false`, `true`, `ops`, `0`, `1`, `2`, `3`, `4`
-- 分类: `ICE`, `COMMAND`
+- 分类: `ICE`, `COMMAND`, `SURVIVAL`
 
 ## 假人免疫荆棘反伤 (fakePlayerIgnoreThornsDamage)
 
