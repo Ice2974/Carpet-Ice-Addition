@@ -85,19 +85,40 @@
 
 ## 构建与验证
 
-- 默认使用仓库内 `./gradlew` 执行编译、构建和验证；依赖版本、平台参数和构建基线以 `gradle.properties` 及当前构建脚本为准。
-- 如果 `docs/` 中另有本地 Gradle 或构建环境约定，优先按 `docs/` 执行。
-- 涉及 `common/` 改动时，至少验证 `:common:compileJava` 和受影响平台模块的 `compileJava`。
-- 涉及跨平台公共逻辑时，优先确认所有当前支持平台都能完成编译。
-- 因环境限制无法运行验证命令时，需要在回复中说明未验证项目和原因。
+* 默认使用仓库内 Gradle Wrapper 执行编译、构建和验证；Windows 下优先使用 `.\gradlew.bat`。
+* 仓库的 `gradle/wrapper/gradle-wrapper.properties` 必须保留 Gradle 8.8 官方下载链接，不要改成本地路径。
+* Java 版本由 Gradle Java Toolchain 自动选择，不要在任务中手动切换 `JAVA_HOME`，也不要把本机 JDK 绝对路径写入仓库级 `gradle.properties`、`build.gradle` 或其他提交文件。
+* 本机已通过用户级 Gradle 配置提供本地 JDK。构建前如需确认 Java Toolchain 状态，可运行：
 
-## Java 运行环境约定
+```powershell
+.\gradlew.bat -q javaToolchains
+```
 
-* 执行 Gradle、构建、测试或其他 Java 相关命令前，优先使用当前 shell 环境中的 `java` / `JAVA_HOME`。
-* 如果当前 Java 不可用、版本不兼容，或执行命令时报出 Java 版本相关错误，不要立即放弃；应检查 `D:\RuntimeLibraries\Java` 目录下是否存在其他 JDK/JRE 版本。
-* 如发现可用的 Java 版本，可在当前任务的命令环境中临时设置 `JAVA_HOME` 和 `PATH` 后重新执行验证命令。
-* 临时切换 Java 版本时，需要在回复中说明实际使用的 Java 路径、Java 版本，以及重新执行过的构建/测试命令结果。
-* 不要擅自修改系统级 Java 配置；除非任务明确要求，只允许在当前命令会话或当前项目范围内临时调整。
+* Forge 1.20.1 相关构建应使用 Java 17 toolchain。
+* NeoForge 1.21.1 相关构建应使用 Java 21 toolchain。
+* 当前运行 Gradle 的 JVM 可以不是目标编译 JVM；以 Gradle Toolchain 实际选择结果为准。
+* 如果构建过程中提示缺少 Java 17 / Java 21，或尝试通过 Foojay 自动下载 JDK，应先停止扩大修改范围，并在回复中说明：
+
+  * `.\gradlew.bat -q javaToolchains` 的输出摘要；
+  * 缺少哪个 Java 版本；
+  * 是否误用了仓库级 Java 路径配置；
+  * 待人工确认项。
+* 修改构建脚本后，优先验证完整构建：
+
+```powershell
+.\gradlew.bat build
+```
+
+* 如果完整构建失败，再分别验证受影响模块：
+
+```powershell
+.\gradlew.bat projects
+.\gradlew.bat tasks
+.\gradlew.bat :<forge模块实际路径>:build
+.\gradlew.bat :<neoforge模块实际路径>:build
+```
+
+* 因环境限制无法运行验证命令时，需要在回复中说明未验证项目和原因。
 
 ## 默认不要修改
 
