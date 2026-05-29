@@ -8,6 +8,7 @@ classes/
 publish/
 
 # Minecraft
+.minecraft/
 **/run/
 logs/
 crash-reports/
