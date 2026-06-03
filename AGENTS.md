@@ -94,32 +94,6 @@
 .\gradlew.bat -q javaToolchains
 ```
 
-* Forge 1.20.1 相关构建应使用 Java 17 toolchain。
-* NeoForge 1.21.1 相关构建应使用 Java 21 toolchain。
-* 当前运行 Gradle 的 JVM 可以不是目标编译 JVM；以 Gradle Toolchain 实际选择结果为准。
-* 如果构建过程中提示缺少 Java 17 / Java 21，或尝试通过 Foojay 自动下载 JDK，应先停止扩大修改范围，并在回复中说明：
-
-  * `.\gradlew.bat -q javaToolchains` 的输出摘要；
-  * 缺少哪个 Java 版本；
-  * 是否误用了仓库级 Java 路径配置；
-  * 待人工确认项。
-* 修改构建脚本后，优先验证完整构建：
-
-```powershell
-.\gradlew.bat build
-```
-
-* 如果完整构建失败，再分别验证受影响模块：
-
-```powershell
-.\gradlew.bat projects
-.\gradlew.bat tasks
-.\gradlew.bat :<forge模块实际路径>:build
-.\gradlew.bat :<neoforge模块实际路径>:build
-```
-
-* 因环境限制无法运行验证命令时，需要在回复中说明未验证项目和原因。
-
 ## 默认不要修改
 
 除非任务明确要求，默认不要修改：
