@@ -26,6 +26,30 @@
 - `THIRD_PARTY_NOTICES.md`：第三方来源、许可证、致谢、移植 / 参考 / 重写说明的维护文件；不替代 `LICENSE`，也不作为项目功能状态来源。
 - `references/`：本地参考资料目录，不作为项目事实来源，不修改其中内容。
 
+## 固定项目标识
+
+以下为项目长期固定命名，除非任务明确要求重命名，否则不要修改：
+
+| 标识类型 | 固定值 |
+|---|---|
+| Display Name / 项目名称 | `Carpet Ice Addition` |
+| Mod ID | `carpet-ice-addition` |
+| Java Package | `com.ice2974.carpeticeaddition` |
+| Maven Group | `com.ice2974` |
+| Archives Base Name | `carpet-ice-addition`（平台 jar 附加 `-mcXXXX` 后缀） |
+| 主入口类（各平台共用） | `com.ice2974.carpeticeaddition.CarpetIceAdditionMod` |
+| 规则分类内部名 | `CarpetIceAddition`（对应翻译键 `carpet.category.CarpetIceAddition`，显示值 `Ice`） |
+| 资源 namespace | `carpet-ice-addition`（assets 路径 `assets/carpet-ice-addition/`） |
+| Mixin package | `com.ice2974.carpeticeaddition.mixins` |
+| Mixin 配置命名 | `carpet-ice-addition-mcXXXX.mixins.json`（`mcXXXX` 为平台版本后缀） |
+| GitHub 仓库 | `Ice2974/Carpet-Ice-Addition` |
+
+约束：
+- `gradle.properties` 中的 `mod_id`、`mod_name`、`maven_group`、`archives_base_name` 是上述标识的单一来源，修改时必须同步所有 `fabric.mod.json`、Java 常量、语言文件和 mixin 配置。
+- 各平台 `CarpetIceAdditionMod.java` 中的 `MOD_ID` 和 `MOD_NAME` 常量必须与 `gradle.properties` 保持一致。
+- `compatibilityLevel`（`JAVA_21` / `JAVA_25`）随平台版本变化，不视为固定标识，不要为统一而强行对齐。
+- 规则分类内部名 `CarpetIceAddition` 与翻译键 `carpet.category.CarpetIceAddition` 绑定，修改一处必须同步另一处及语言文件。
+
 ## shared 与跨版本规则
 
 - 严禁把整个 `versions/shared/` 加入 `settings.gradle`。
