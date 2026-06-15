@@ -15,6 +15,7 @@
 - 不要根据 `AGENTS.md` 推断当前支持版本、规则数量或功能状态。
 - 不能验证的内容要明确说明，不能伪装为已测试或已确认。
 - 对实现范围、跨版本差异、第三方来源、兼容性或验证结果不确定时，写入回复的“待人工确认项”。
+- 单次任务提示词只补充本次任务特有要求；未重复说明的通用约束仍以本文件为准。
 
 ## 目录边界
 
@@ -86,13 +87,24 @@
 ## 构建与验证
 
 * 默认使用仓库内 Gradle Wrapper 执行编译、构建和验证；Windows 下优先使用 `.\gradlew.bat`。
-* 仓库的 `gradle/wrapper/gradle-wrapper.properties` 必须保留 Gradle 8.8 官方下载链接，不要改成本地路径。
 * Java 版本由 Gradle Java Toolchain 自动选择，不要在任务中手动切换 `JAVA_HOME`，也不要把本机 JDK 绝对路径写入仓库级 `gradle.properties`、`build.gradle` 或其他提交文件。
 * 本机已通过用户级 Gradle 配置提供本地 JDK。构建前如需确认 Java Toolchain 状态，可运行：
-
 ```powershell
 .\gradlew.bat -q javaToolchains
 ```
+* 只修改 Markdown 文档时，至少运行 `git diff --check`。
+* 修改源码、资源、构建脚本、Mixin、平台入口或 sourceSets 时，先运行 `git diff --check`，再运行受影响模块的 `compileJava`。
+* 涉及 `common/`、`versions/shared/` 或跨平台公共逻辑时，优先验证所有当前支持平台的编译。
+* 如果因环境限制无法运行验证命令，需要在回复中明确说明未验证内容、原因和风险。
+* 不要把未运行的游戏内测试、多人测试或启动测试写成已通过。
+
+## 日志与测试边界
+
+- 服务端日志不要刷屏，高频路径不要每 tick 输出。
+- 用户操作失败、配置读取失败、配置写入失败、命令执行失败、兼容性阻断等关键路径可以记录 debug / warn。
+- 不要在正常玩家操作中大量输出 info。
+- 不要把玩家隐私、服务器敏感路径或无关环境信息写入日志。
+- Agent 可以编译项目、生成测试清单、补充排查日志，但不负责最终人工游戏内验收。
 
 ## 默认不要修改
 
@@ -103,7 +115,7 @@
 - `.gitignore`
 - `LICENSE`
 - `THIRD_PARTY_NOTICES.md`（但任务涉及许可证、第三方来源、移植 / 参考说明或 clean-room 重写时，需要按维护约定同步检查）
-- `references/` 目录内容
+- `references/`
 - `AGENTS.md`
 - 发布平台元数据
 - 与当前任务无关的构建脚本
