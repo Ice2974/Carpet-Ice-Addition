@@ -1,4 +1,4 @@
-> Doc Version: `v2.2.0`
+> Doc Version: `v2.3.0`
 
 ## safeScaffoldingBreak
 
@@ -180,6 +180,15 @@ Warns players at the start of the night when they reach the vanilla insomnia tim
 - Default: `false`
 - Possible values: `false`, `true`
 - Categories: `ICE`, `SURVIVAL`
+
+## neutralPhantoms
+
+Makes phantoms neutral toward players: they will not attack players first, but will fight back when attacked.
+
+- Type: `boolean`
+- Default: `false`
+- Possible values: `false`, `true`
+- Categories: `ICE`, `FEATURE`
 
 ## easyWaterloggedBlockPlacement
 

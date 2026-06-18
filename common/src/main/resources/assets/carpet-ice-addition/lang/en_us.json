@@ -17,6 +17,7 @@
   "carpet.rule.mobsSpawnWithoutSpears.desc": "Prevents naturally spawned zombies, zombie villagers, husks, zombified piglins, and piglins from holding spears.",
   "carpet.rule.disablePlayerAttackingTamedMobs.desc": "Players cannot damage their own tamed mobs while PVP is enabled, and cannot damage any player-owned tamed mobs while PVP is disabled.",
   "carpet.rule.phantomSpawnWarning.desc": "Warns players at the start of the night when they reach the vanilla insomnia time threshold for phantom spawning.",
+  "carpet.rule.neutralPhantoms.desc": "Makes phantoms neutral toward players: they will not attack players first, but will fight back when attacked.",
   "carpet.rule.botTabListNamePrefix.desc": "Add a prefix to the Bot in the TabList, using & to represent text color.",
   "carpet.rule.botTabListNameSuffix.desc": "Add a suffix to the Bot in the TabList, using & to represent text color.",
   "carpet.rule.commandKillItem.desc": "Registers the /killitem command for clearing item entities by radius or globally, with blacklist and named-item protection settings.",

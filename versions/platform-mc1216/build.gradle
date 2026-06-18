@@ -22,6 +22,7 @@ sourceSets {
         java {
             srcDir rootProject.file('versions/shared/mc121x/src/main/java')
             srcDir rootProject.file('versions/shared/mc1213-12111/src/main/java')
+            srcDir rootProject.file('versions/shared/mc1213-12110/src/main/java')
             srcDir rootProject.file('versions/shared/mc1215-12111/src/main/java')
             srcDir rootProject.file('versions/shared/mc1215-1218/src/main/java')
             srcDir rootProject.file('versions/shared/mc1216-1218/src/main/java/com/ice2974/carpeticeaddition/command')

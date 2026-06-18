@@ -1,4 +1,4 @@
-﻿> 文档对应版本：`v2.2.0`
+﻿> 文档对应版本：`v2.3.0`
 
 ## 脚手架防误拆 (safeScaffoldingBreak)
 
@@ -180,6 +180,15 @@
 - 默认值: `false`
 - 可选值: `false`, `true`
 - 分类: `ICE`, `SURVIVAL`
+
+## 中立幻翼 (neutralPhantoms)
+
+幻翼不会主动攻击玩家，但在被玩家攻击后会进行反击。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`
 
 ## 轻松含水放置 (easyWaterloggedBlockPlacement)
 

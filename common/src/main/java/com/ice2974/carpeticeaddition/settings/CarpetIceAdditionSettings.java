@@ -60,6 +60,9 @@ public final class CarpetIceAdditionSettings {
     @Rule(categories = {ICE, SURVIVAL})
     public static boolean phantomSpawnWarning = false;
 
+    @Rule(categories = {ICE, FEATURE})
+    public static boolean neutralPhantoms = false;
+
     @Rule(
             categories = {ICE, COMMAND},
             options = {"false", "true", "ops", "0", "1", "2", "3", "4"},
