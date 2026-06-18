@@ -2,15 +2,13 @@ package com.ice2974.carpeticeaddition.mixins;
 
 import com.ice2974.carpeticeaddition.rules.NeutralPhantomsRetaliationTracker;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
+import java.util.UUID;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.EntityReference;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.NeutralMob;
 import net.minecraft.world.entity.monster.Phantom;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.gamerules.GameRules;
 import org.spongepowered.asm.mixin.Mixin;
@@ -20,11 +18,11 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(Phantom.class)
-public abstract class PhantomNeutralPhantomsMixin extends Mob implements NeutralMob, NeutralPhantomsRetaliationTracker {
+public abstract class PhantomNeutralPhantomsMixin extends Mob implements NeutralPhantomsRetaliationTracker {
     @Unique
-    private EntityReference<LivingEntity> carpetIceAddition$neutralPhantomsTarget;
+    private UUID carpetIceAddition$neutralPhantomsTargetUuid;
     @Unique
-    private long carpetIceAddition$neutralPhantomsAngerEndTime = -1L;
+    private int carpetIceAddition$neutralPhantomsTargetEntityId = -1;
 
     protected PhantomNeutralPhantomsMixin(EntityType<? extends Mob> entityType, Level level) {
         super(entityType, level);
@@ -32,13 +30,14 @@ public abstract class PhantomNeutralPhantomsMixin extends Mob implements Neutral
 
     @Override
     public void carpetIceAddition$recordNeutralPhantomsRetaliationTarget(ServerPlayer player) {
-        this.carpetIceAddition$neutralPhantomsTarget = EntityReference.of(player.getUUID());
+        this.carpetIceAddition$neutralPhantomsTargetUuid = player.getUUID();
+        this.carpetIceAddition$neutralPhantomsTargetEntityId = player.getId();
         this.setTarget(player);
     }
 
     @Inject(method = "tick", at = @At("TAIL"))
     private void carpetIceAddition$tickNeutralPhantomsRetaliation(CallbackInfo ci) {
-        if (!CarpetIceAdditionSettings.neutralPhantoms || this.carpetIceAddition$neutralPhantomsTarget == null) {
+        if (!CarpetIceAdditionSettings.neutralPhantoms || this.carpetIceAddition$neutralPhantomsTargetUuid == null) {
             return;
         }
         if (!(this.level() instanceof ServerLevel serverLevel)) {
@@ -46,68 +45,36 @@ public abstract class PhantomNeutralPhantomsMixin extends Mob implements Neutral
         }
 
         LivingEntity target = this.getTargetUnchecked();
-        if (target instanceof ServerPlayer player && this.carpetIceAddition$neutralPhantomsTarget.matches(player)) {
-            if (player.isAlive()) {
-                return;
-            }
-            this.setTarget(null);
-            if (carpetIceAddition$shouldForgiveDeadPlayers(serverLevel)) {
-                this.carpetIceAddition$clearNeutralPhantomsRetaliationTarget();
-            }
+        if (target != null && target.isAlive()) {
+            this.carpetIceAddition$neutralPhantomsTargetEntityId = target.getId();
             return;
         }
 
+        this.setTarget(null);
         ServerPlayer player = serverLevel.getServer()
                 .getPlayerList()
-                .getPlayer(this.carpetIceAddition$neutralPhantomsTarget.getUUID());
+                .getPlayer(this.carpetIceAddition$neutralPhantomsTargetUuid);
         if (player != null && player.isAlive()) {
+            if (player.getId() != this.carpetIceAddition$neutralPhantomsTargetEntityId
+                    && carpetIceAddition$shouldForgiveDeadPlayers(serverLevel)) {
+                this.carpetIceAddition$clearNeutralPhantomsRetaliationTarget();
+                return;
+            }
+            this.carpetIceAddition$neutralPhantomsTargetEntityId = player.getId();
             this.setTarget(player);
             return;
         }
 
-        this.setTarget(null);
         if (player != null && carpetIceAddition$shouldForgiveDeadPlayers(serverLevel)) {
             this.carpetIceAddition$clearNeutralPhantomsRetaliationTarget();
-        }
-    }
-
-    @Override
-    public void playerDied(ServerLevel serverLevel, Player player) {
-        if (!CarpetIceAdditionSettings.neutralPhantoms || this.carpetIceAddition$neutralPhantomsTarget == null) {
-            return;
-        }
-        if (!this.carpetIceAddition$neutralPhantomsTarget.matches(player)) {
             return;
         }
 
-        this.setTarget(null);
-        if (carpetIceAddition$shouldForgiveDeadPlayers(serverLevel)) {
+        if (target instanceof ServerPlayer && carpetIceAddition$shouldForgiveDeadPlayers(serverLevel)) {
             this.carpetIceAddition$clearNeutralPhantomsRetaliationTarget();
+        } else if (player != null) {
+            this.carpetIceAddition$neutralPhantomsTargetEntityId = player.getId();
         }
-    }
-
-    @Override
-    public long getPersistentAngerEndTime() {
-        return this.carpetIceAddition$neutralPhantomsAngerEndTime;
-    }
-
-    @Override
-    public void setPersistentAngerEndTime(long angerEndTime) {
-        this.carpetIceAddition$neutralPhantomsAngerEndTime = angerEndTime;
-    }
-
-    @Override
-    public EntityReference<LivingEntity> getPersistentAngerTarget() {
-        return this.carpetIceAddition$neutralPhantomsTarget;
-    }
-
-    @Override
-    public void setPersistentAngerTarget(EntityReference<LivingEntity> target) {
-        this.carpetIceAddition$neutralPhantomsTarget = target;
-    }
-
-    @Override
-    public void startPersistentAngerTimer() {
     }
 
     @Unique
@@ -117,7 +84,7 @@ public abstract class PhantomNeutralPhantomsMixin extends Mob implements Neutral
 
     @Unique
     private void carpetIceAddition$clearNeutralPhantomsRetaliationTarget() {
-        this.carpetIceAddition$neutralPhantomsTarget = null;
-        this.carpetIceAddition$neutralPhantomsAngerEndTime = -1L;
+        this.carpetIceAddition$neutralPhantomsTargetUuid = null;
+        this.carpetIceAddition$neutralPhantomsTargetEntityId = -1;
     }
 }

@@ -1,6 +1,7 @@
 package com.ice2974.carpeticeaddition.rules;
 
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
+import com.ice2974.carpeticeaddition.translation.TranslationFormatUtil;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -19,7 +20,7 @@ public final class PhantomSpawnWarningHelper {
     private static final long NIGHT_WARNING_TICK = 13000L;
     private static final long NIGHT_WARNING_END_TICK = 13020L;
     private static final int MIN_TIME_SINCE_REST = 72000;
-    private static final String WARNING_MESSAGE_ZH = "\u4eca\u665a\u53ef\u80fd\u4f1a\u751f\u6210\u5e7b\u7ffc\uff0c\u5efa\u8bae\u7761\u89c9\u3002";
+    private static final String WARNING_MESSAGE_KEY = "message.carpet-ice-addition.phantom_spawn_warning";
     private static long lastProcessedNight = Long.MIN_VALUE;
 
     private PhantomSpawnWarningHelper() {
@@ -62,7 +63,7 @@ public final class PhantomSpawnWarningHelper {
             return;
         }
         for (ServerPlayer player : onlinePlayers) {
-            player.sendSystemMessage(Component.literal(WARNING_MESSAGE_ZH), false);
+            player.sendSystemMessage(Component.literal(TranslationFormatUtil.translate(WARNING_MESSAGE_KEY)), false);
         }
     }
 
