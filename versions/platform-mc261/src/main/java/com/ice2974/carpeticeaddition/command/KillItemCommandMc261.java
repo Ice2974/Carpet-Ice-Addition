@@ -319,7 +319,7 @@ public final class KillItemCommandMc261 {
 
     private static Component summaryText(ClearResult result, String title, String resultId) {
         List<SummaryEntry> entries = result.sortedEntries();
-        MutableComponent text = Component.literal("[KillItem] " + title);
+        MutableComponent text = Component.literal("\n[KillItem] " + title);
         text.append("\n");
         text.append(tr("command.carpet-ice-addition.killitem.result.entities", formatCount(result.entityCount)));
         text.append("\n");
@@ -343,7 +343,7 @@ public final class KillItemCommandMc261 {
     }
 
     private static Component detailText(CachedKillItemResult result, int page, int totalPages) {
-        MutableComponent text = Component.literal("[KillItem] ");
+        MutableComponent text = Component.literal("\n[KillItem] ");
         text.append(tr("command.carpet-ice-addition.killitem.detail.header", page, totalPages));
         text.append("\n");
         text.append(tr("command.carpet-ice-addition.killitem.detail.scope", result.scopeText));
@@ -389,7 +389,7 @@ public final class KillItemCommandMc261 {
     }
 
     private static Component expiredDetailText() {
-        return Component.literal("[KillItem] ").append(tr("command.carpet-ice-addition.killitem.detail.expired"));
+        return Component.literal("\n[KillItem] ").append(tr("command.carpet-ice-addition.killitem.detail.expired"));
     }
 
     private static String formatSummaryEntries(List<SummaryEntry> entries) {
