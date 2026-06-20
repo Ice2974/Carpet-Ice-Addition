@@ -22,6 +22,7 @@
 | `/killitem range <radius>` | Clears item entities within the specified radius around the player executing the command in the current dimension |
 | `/killitem dimension <dimension>` | Clears item entities in the specified dimension |
 | `/killitem all` | Clears item entities in all loaded dimensions |
+| `/killitem detail <resultId> <page>` | Shows cached cleanup details by page, usually triggered by `[Expand]`, `[Previous]`, or `[Next]` in chat, and does not clear items again |
 | `/killitem config blacklist` | Shows the current item blacklist |
 | `/killitem config blacklist add <item>` | Adds the specified item to the blacklist |
 | `/killitem config blacklist remove <item>` | Removes the specified item from the blacklist |
@@ -35,10 +36,14 @@
 |---|---|---|
 | `<radius>` | Cleanup radius, only used by `/killitem range` | `64` |
 | `<dimension>` | Dimension registry ID | `minecraft:overworld`, `minecraft:the_nether`, `minecraft:the_end` |
+| `<resultId>` | Cleanup detail cache ID, provided automatically by the clickable cleanup result buttons | `a1b2c3...` |
+| `<page>` | Cleanup detail page number; values below 1 use page 1, and values beyond the end use the last page | `1` |
 | `<item>` | Item registry ID | `minecraft:diamond`, `minecraft:netherite_ingot` |
 | `<true\|false>` | Boolean toggle | `true`, `false` |
 
-Cleanup results always count the full entity and item totals; if there are too many item detail groups, the feedback detail list may be truncated.
+Cleanup results are shown as a multi-line summary with entity count, item count, and up to 5 item detail groups. If there are more than 5 groups, player chat feedback shows `[Expand]`; clicking it runs `/killitem detail <resultId> <page>` to view cached paged details and does not rerun `/killitem all`, `/killitem dimension`, or `/killitem range`.
+
+Cleanup detail caches expire after about 10 minutes, after which the cleanup command must be run again. Console, command block, and RCON cleanup executions only show a plain truncated summary and do not provide clickable expansion.
 
 ---
 

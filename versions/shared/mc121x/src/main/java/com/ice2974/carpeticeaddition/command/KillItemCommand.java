@@ -5,6 +5,7 @@ import com.ice2974.carpeticeaddition.translation.TranslationFormatUtil;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.DoubleArgumentType;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -23,18 +24,28 @@ import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.MutableText;
+import net.minecraft.text.Style;
 import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 
 import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
+import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Predicate;
 
 import static net.minecraft.server.command.CommandManager.argument;
@@ -43,7 +54,11 @@ import static net.minecraft.server.command.CommandManager.literal;
 public final class KillItemCommand {
     private static final double MIN_RADIUS = 1.0D;
     private static final double MAX_RADIUS = 1024.0D;
-    private static final int SUMMARY_ENTRY_LIMIT = 20;
+    private static final int SUMMARY_ENTRY_LIMIT = 5;
+    private static final int DETAIL_PAGE_SIZE = 10;
+    private static final int MAX_CACHED_RESULTS_PER_PLAYER = 5;
+    private static final long DETAIL_CACHE_TTL_MILLIS = 10L * 60L * 1000L;
+    private static final Map<UUID, LinkedHashMap<String, CachedKillItemResult>> DETAIL_CACHE = new HashMap<>();
 
     private static final SimpleCommandExceptionType PLAYER_ONLY = new SimpleCommandExceptionType(
             tr("command.carpet-ice-addition.killitem.error.player_only")
@@ -82,6 +97,14 @@ public final class KillItemCommand {
                                 ))))
                 .then(literal("all")
                         .executes(KillItemCommand::executeAll))
+                .then(literal("detail")
+                        .then(argument("resultId", StringArgumentType.word())
+                                .then(argument("page", IntegerArgumentType.integer())
+                                        .executes(context -> showDetail(
+                                                context,
+                                                StringArgumentType.getString(context, "resultId"),
+                                                IntegerArgumentType.getInteger(context, "page")
+                                        )))))
                 .then(literal("config")
                         .then(literal("blacklist")
                                 .executes(KillItemCommand::showBlacklist)
@@ -126,16 +149,14 @@ public final class KillItemCommand {
                 center.y + radius,
                 center.z + radius
         );
-        ClearResult result = clearInBox((ServerWorld) player.getEntityWorld(), box, itemEntity -> itemEntity.squaredDistanceTo(center) <= radiusSquared, config);
-        context.getSource().sendFeedback(
-                () -> tr(
-                        "command.carpet-ice-addition.killitem.result.range",
-                        result.entityCount,
-                        formatRadius(radius),
-                        result.itemCount,
-                        result.summaryText()
-                ),
-                false
+        ServerWorld world = (ServerWorld) player.getEntityWorld();
+        ClearResult result = clearInBox(world, box, itemEntity -> itemEntity.squaredDistanceTo(center) <= radiusSquared, config);
+        String formattedRadius = formatRadius(radius);
+        sendClearResult(
+                context.getSource(),
+                result,
+                trString("command.carpet-ice-addition.killitem.result.title.range", formattedRadius),
+                trString("command.carpet-ice-addition.killitem.detail.scope.range", world.getRegistryKey().getValue().toString(), formattedRadius)
         );
         return result.entityCount;
     }
@@ -144,15 +165,11 @@ public final class KillItemCommand {
         ServerWorld world = getWorld(context.getSource().getServer(), dimensionId);
         KillItemConfigManager.Snapshot config = KillItemConfigManager.snapshot();
         ClearResult result = clearInWorld(world, config);
-        context.getSource().sendFeedback(
-                () -> tr(
-                        "command.carpet-ice-addition.killitem.result.dimension",
-                        result.entityCount,
-                        dimensionId.toString(),
-                        result.itemCount,
-                        result.summaryText()
-                ),
-                false
+        sendClearResult(
+                context.getSource(),
+                result,
+                trString("command.carpet-ice-addition.killitem.result.title.dimension", dimensionId.toString()),
+                dimensionId.toString()
         );
         return result.entityCount;
     }
@@ -167,16 +184,32 @@ public final class KillItemCommand {
                 total.merge(clearInWorld(world, config));
             }
         }
-        context.getSource().sendFeedback(
-                () -> tr(
-                        "command.carpet-ice-addition.killitem.result.all",
-                        total.entityCount,
-                        total.itemCount,
-                        total.summaryText()
-                ),
-                false
+        sendClearResult(
+                context.getSource(),
+                total,
+                trString("command.carpet-ice-addition.killitem.result.title.all"),
+                trString("command.carpet-ice-addition.killitem.detail.scope.all")
         );
         return total.entityCount;
+    }
+
+    private static int showDetail(CommandContext<ServerCommandSource> context, String resultId, int page) {
+        Entity entity = context.getSource().getEntity();
+        if (!(entity instanceof ServerPlayerEntity player)) {
+            context.getSource().sendFeedback(KillItemCommand::expiredDetailText, false);
+            return 0;
+        }
+
+        CachedKillItemResult result = getCachedResult(player.getUuid(), resultId);
+        if (result == null || result.entries.isEmpty()) {
+            context.getSource().sendFeedback(KillItemCommand::expiredDetailText, false);
+            return 0;
+        }
+
+        int totalPages = Math.max(1, (result.entries.size() + DETAIL_PAGE_SIZE - 1) / DETAIL_PAGE_SIZE);
+        int resolvedPage = Math.max(1, Math.min(page, totalPages));
+        context.getSource().sendFeedback(() -> detailText(result, resolvedPage, totalPages), false);
+        return resolvedPage;
     }
 
     private static int showBlacklist(CommandContext<ServerCommandSource> context) {
@@ -277,6 +310,202 @@ public final class KillItemCommand {
         }
     }
 
+    private static void sendClearResult(ServerCommandSource source, ClearResult result, String title, String detailScope) {
+        Entity entity = source.getEntity();
+        String resultId = null;
+        if (entity instanceof ServerPlayerEntity player && result.summaryEntries.size() > SUMMARY_ENTRY_LIMIT) {
+            resultId = cacheResult(player.getUuid(), detailScope, result);
+        }
+        String finalResultId = resultId;
+        source.sendFeedback(() -> summaryText(result, title, finalResultId), false);
+    }
+
+    private static Text summaryText(ClearResult result, String title, String resultId) {
+        List<SummaryEntry> entries = result.sortedEntries();
+        MutableText text = Text.literal("[KillItem] " + title);
+        text.append(Text.literal("\n"));
+        text.append(tr("command.carpet-ice-addition.killitem.result.entities", formatCount(result.entityCount)));
+        text.append(Text.literal("\n"));
+        text.append(tr("command.carpet-ice-addition.killitem.result.items", formatCount(result.itemCount)));
+        text.append(Text.literal("\n"));
+        text.append(tr("command.carpet-ice-addition.killitem.result.details", formatSummaryEntries(entries)));
+
+        int omittedEntries = Math.max(0, entries.size() - SUMMARY_ENTRY_LIMIT);
+        if (omittedEntries > 0) {
+            text.append(Text.literal("\n"));
+            text.append(tr("command.carpet-ice-addition.killitem.result.more", omittedEntries));
+            if (resultId != null) {
+                text.append(Text.literal(" "));
+                text.append(commandButton(
+                        "command.carpet-ice-addition.killitem.button.expand",
+                        "/killitem detail " + resultId + " 1"
+                ));
+            }
+        }
+        return text;
+    }
+
+    private static Text detailText(CachedKillItemResult result, int page, int totalPages) {
+        MutableText text = Text.literal("[KillItem] ");
+        text.append(tr("command.carpet-ice-addition.killitem.detail.header", page, totalPages));
+        text.append(Text.literal("\n"));
+        text.append(tr("command.carpet-ice-addition.killitem.detail.scope", result.scopeText));
+        text.append(Text.literal("\n"));
+        text.append(tr(
+                "command.carpet-ice-addition.killitem.detail.total",
+                formatCount(result.entityCount),
+                formatCount(result.itemCount)
+        ));
+
+        int startIndex = (page - 1) * DETAIL_PAGE_SIZE;
+        int endIndex = Math.min(startIndex + DETAIL_PAGE_SIZE, result.entries.size());
+        for (int index = startIndex; index < endIndex; index++) {
+            CachedSummaryEntry entry = result.entries.get(index);
+            text.append(Text.literal("\n"));
+            text.append(tr(
+                    "command.carpet-ice-addition.killitem.detail.entry",
+                    String.format(Locale.ROOT, "%02d", index + 1),
+                    entry.displayName,
+                    formatCount(entry.itemCount)
+            ));
+        }
+
+        if (totalPages > 1) {
+            text.append(Text.literal("\n"));
+            if (page > 1) {
+                text.append(commandButton(
+                        "command.carpet-ice-addition.killitem.button.previous",
+                        "/killitem detail " + result.resultId + " " + (page - 1)
+                ));
+            }
+            if (page > 1 && page < totalPages) {
+                text.append(Text.literal(" "));
+            }
+            if (page < totalPages) {
+                text.append(commandButton(
+                        "command.carpet-ice-addition.killitem.button.next",
+                        "/killitem detail " + result.resultId + " " + (page + 1)
+                ));
+            }
+        }
+        return text;
+    }
+
+    private static Text expiredDetailText() {
+        return Text.literal("[KillItem] ").append(tr("command.carpet-ice-addition.killitem.detail.expired"));
+    }
+
+    private static String formatSummaryEntries(List<SummaryEntry> entries) {
+        if (entries.isEmpty()) {
+            return trString("command.carpet-ice-addition.killitem.summary.none");
+        }
+        List<String> formattedEntries = new ArrayList<>();
+        int limit = Math.min(SUMMARY_ENTRY_LIMIT, entries.size());
+        for (int index = 0; index < limit; index++) {
+            SummaryEntry entry = entries.get(index);
+            formattedEntries.add(trString(
+                    "command.carpet-ice-addition.killitem.summary.entry",
+                    entry.displayName,
+                    formatCount(entry.itemCount)
+            ));
+        }
+        return String.join(trString("command.carpet-ice-addition.killitem.summary.separator"), formattedEntries);
+    }
+
+    private static String cacheResult(UUID playerUuid, String scopeText, ClearResult result) {
+        cleanupExpiredCache();
+        String resultId = UUID.randomUUID().toString().replace("-", "");
+        LinkedHashMap<String, CachedKillItemResult> playerCache = DETAIL_CACHE.computeIfAbsent(playerUuid, ignored -> new LinkedHashMap<>());
+        playerCache.put(resultId, new CachedKillItemResult(
+                resultId,
+                scopeText,
+                result.entityCount,
+                result.itemCount,
+                result.sortedEntries().stream().map(CachedSummaryEntry::new).toList(),
+                System.currentTimeMillis() + DETAIL_CACHE_TTL_MILLIS
+        ));
+        while (playerCache.size() > MAX_CACHED_RESULTS_PER_PLAYER) {
+            Iterator<String> iterator = playerCache.keySet().iterator();
+            if (!iterator.hasNext()) {
+                break;
+            }
+            iterator.next();
+            iterator.remove();
+        }
+        return resultId;
+    }
+
+    private static CachedKillItemResult getCachedResult(UUID playerUuid, String resultId) {
+        cleanupExpiredCache();
+        Map<String, CachedKillItemResult> playerCache = DETAIL_CACHE.get(playerUuid);
+        if (playerCache == null) {
+            return null;
+        }
+        return playerCache.get(resultId);
+    }
+
+    private static void cleanupExpiredCache() {
+        long now = System.currentTimeMillis();
+        Iterator<Map.Entry<UUID, LinkedHashMap<String, CachedKillItemResult>>> playerIterator = DETAIL_CACHE.entrySet().iterator();
+        while (playerIterator.hasNext()) {
+            Map.Entry<UUID, LinkedHashMap<String, CachedKillItemResult>> playerEntry = playerIterator.next();
+            playerEntry.getValue().values().removeIf(result -> result.expiresAtMillis <= now);
+            if (playerEntry.getValue().isEmpty()) {
+                playerIterator.remove();
+            }
+        }
+    }
+
+    private static Text commandButton(String key, String command) {
+        return tr(key).setStyle(commandButtonStyle(command));
+    }
+
+    private static Style commandButtonStyle(String command) {
+        Style style = Style.EMPTY.withColor(Formatting.AQUA);
+        try {
+            return withNewTextEvents(style, command);
+        } catch (ReflectiveOperationException | ClassCastException ignored) {
+            try {
+                return withLegacyTextEvents(style, command);
+            } catch (ReflectiveOperationException | ClassCastException ignoredAgain) {
+                return style;
+            }
+        }
+    }
+
+    private static Style withNewTextEvents(Style style, String command) throws ReflectiveOperationException {
+        Class<?> clickEventClass = Class.forName("net.minecraft.text.ClickEvent");
+        Class<?> runCommandClass = Class.forName("net.minecraft.text.ClickEvent$RunCommand");
+        Object clickEvent = runCommandClass.getConstructor(String.class).newInstance(command);
+        Method withClickEvent = Style.class.getMethod("withClickEvent", clickEventClass);
+        style = (Style) withClickEvent.invoke(style, clickEvent);
+
+        Class<?> hoverEventClass = Class.forName("net.minecraft.text.HoverEvent");
+        Class<?> showTextClass = Class.forName("net.minecraft.text.HoverEvent$ShowText");
+        Object hoverEvent = showTextClass.getConstructor(Text.class).newInstance(tr("command.carpet-ice-addition.killitem.button.hover"));
+        Method withHoverEvent = Style.class.getMethod("withHoverEvent", hoverEventClass);
+        return (Style) withHoverEvent.invoke(style, hoverEvent);
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static Style withLegacyTextEvents(Style style, String command) throws ReflectiveOperationException {
+        Class<?> clickEventClass = Class.forName("net.minecraft.text.ClickEvent");
+        Class<?> clickActionClass = Class.forName("net.minecraft.text.ClickEvent$Action");
+        Object runCommandAction = Enum.valueOf((Class<Enum>) clickActionClass.asSubclass(Enum.class), "RUN_COMMAND");
+        Constructor<?> clickConstructor = clickEventClass.getConstructor(clickActionClass, String.class);
+        Object clickEvent = clickConstructor.newInstance(runCommandAction, command);
+        Method withClickEvent = Style.class.getMethod("withClickEvent", clickEventClass);
+        style = (Style) withClickEvent.invoke(style, clickEvent);
+
+        Class<?> hoverEventClass = Class.forName("net.minecraft.text.HoverEvent");
+        Class<?> hoverActionClass = Class.forName("net.minecraft.text.HoverEvent$Action");
+        Object showTextAction = Enum.valueOf((Class<Enum>) hoverActionClass.asSubclass(Enum.class), "SHOW_TEXT");
+        Constructor<?> hoverConstructor = hoverEventClass.getConstructor(hoverActionClass, Text.class);
+        Object hoverEvent = hoverConstructor.newInstance(showTextAction, tr("command.carpet-ice-addition.killitem.button.hover"));
+        Method withHoverEvent = Style.class.getMethod("withHoverEvent", hoverEventClass);
+        return (Style) withHoverEvent.invoke(style, hoverEvent);
+    }
+
     private static ServerPlayerEntity getPlayer(ServerCommandSource source) throws CommandSyntaxException {
         Entity entity = source.getEntity();
         if (entity instanceof ServerPlayerEntity player) {
@@ -355,11 +584,11 @@ public final class KillItemCommand {
         return config.clearNamedItems() || (stack.get(DataComponentTypes.CUSTOM_NAME) == null && !itemEntity.hasCustomName());
     }
 
-    private static Text formatBlacklist(Set<String> blacklist) {
+    private static String formatBlacklist(Set<String> blacklist) {
         if (blacklist.isEmpty()) {
-            return tr("command.carpet-ice-addition.killitem.summary.none");
+            return trString("command.carpet-ice-addition.killitem.summary.none");
         }
-        return Text.literal(String.join(", ", blacklist));
+        return String.join(", ", blacklist);
     }
 
     private static String booleanKey(boolean value) {
@@ -375,8 +604,20 @@ public final class KillItemCommand {
         return String.format(Locale.ROOT, "%.2f", radius);
     }
 
+    private static String formatCount(long value) {
+        return NumberFormat.getIntegerInstance(Locale.US).format(value);
+    }
+
     private static boolean canUseKillItem(ServerCommandSource source) {
         return CommandHelper.canUseCommand(source, com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings.commandKillItem);
+    }
+
+    private static MutableText tr(String key, Object... args) {
+        return Text.literal(TranslationFormatUtil.translate(key, args));
+    }
+
+    private static String trString(String key, Object... args) {
+        return TranslationFormatUtil.translate(key, args);
     }
 
     private static final class ClearResult {
@@ -390,13 +631,12 @@ public final class KillItemCommand {
             this.itemCount += stack.getCount();
 
             String itemId = Registries.ITEM.getId(stack.getItem()).toString();
-            Text displayText = itemEntity.hasCustomName()
-                    ? itemEntity.getCustomName().copy()
-                    : stack.getName().copy();
-            String displayKey = displayText.getString();
-            String summaryKey = itemId + "|" + displayKey;
+            String displayName = itemEntity.hasCustomName()
+                    ? itemEntity.getCustomName().getString()
+                    : stack.getName().getString();
+            String summaryKey = itemId + "|" + displayName;
 
-            SummaryEntry entry = this.summaryEntries.computeIfAbsent(summaryKey, key -> new SummaryEntry(displayText));
+            SummaryEntry entry = this.summaryEntries.computeIfAbsent(summaryKey, key -> new SummaryEntry(itemId, displayName));
             entry.itemCount += stack.getCount();
         }
 
@@ -404,62 +644,73 @@ public final class KillItemCommand {
             this.entityCount += other.entityCount;
             this.itemCount += other.itemCount;
             other.summaryEntries.forEach((key, value) -> {
-                SummaryEntry entry = this.summaryEntries.computeIfAbsent(key, ignored -> new SummaryEntry(value.displayText.copy()));
+                SummaryEntry entry = this.summaryEntries.computeIfAbsent(key, ignored -> new SummaryEntry(value.itemId, value.displayName));
                 entry.itemCount += value.itemCount;
             });
         }
 
-        private Text summaryText() {
-            if (this.summaryEntries.isEmpty()) {
-                return tr("command.carpet-ice-addition.killitem.summary.none");
-            }
-
-            MutableText text = Text.empty();
-            boolean first = true;
-            int index = 0;
-            for (SummaryEntry entry : this.summaryEntries.values()) {
-                if (index >= SUMMARY_ENTRY_LIMIT) {
-                    break;
-                }
-                if (!first) {
-                    text.append(Text.literal(", "));
-                }
-                first = false;
-                text.append(tr(
-                        "command.carpet-ice-addition.killitem.summary.entry",
-                        entry.displayText.getString(),
-                        entry.itemCount
-                ));
-                index++;
-            }
-            int omittedEntries = this.summaryEntries.size() - SUMMARY_ENTRY_LIMIT;
-            if (omittedEntries > 0) {
-                if (!first) {
-                    text.append(Text.literal(", "));
-                }
-                text.append(tr(
-                        "command.carpet-ice-addition.killitem.summary.truncated",
-                        omittedEntries
-                ));
-            }
-            return text;
+        private List<SummaryEntry> sortedEntries() {
+            return this.summaryEntries.values().stream()
+                    .map(SummaryEntry::copy)
+                    .sorted(Comparator
+                            .comparingLong((SummaryEntry entry) -> entry.itemCount).reversed()
+                            .thenComparing(entry -> entry.displayName)
+                            .thenComparing(entry -> entry.itemId))
+                    .toList();
         }
     }
 
-    private static MutableText tr(String key, Object... args) {
-        return Text.literal(TranslationFormatUtil.translate(key, args));
-    }
-
-    private static String trString(String key, Object... args) {
-        return TranslationFormatUtil.translate(key, args);
-    }
-
     private static final class SummaryEntry {
-        private final Text displayText;
+        private final String itemId;
+        private final String displayName;
         private long itemCount;
 
-        private SummaryEntry(Text displayText) {
-            this.displayText = displayText;
+        private SummaryEntry(String itemId, String displayName) {
+            this.itemId = itemId;
+            this.displayName = displayName;
+        }
+
+        private SummaryEntry copy() {
+            SummaryEntry copy = new SummaryEntry(this.itemId, this.displayName);
+            copy.itemCount = this.itemCount;
+            return copy;
+        }
+    }
+
+    private static final class CachedSummaryEntry {
+        private final String itemId;
+        private final String displayName;
+        private final long itemCount;
+
+        private CachedSummaryEntry(SummaryEntry entry) {
+            this.itemId = entry.itemId;
+            this.displayName = entry.displayName;
+            this.itemCount = entry.itemCount;
+        }
+    }
+
+    private static final class CachedKillItemResult {
+        private final String resultId;
+        private final String scopeText;
+        private final int entityCount;
+        private final long itemCount;
+        private final List<CachedSummaryEntry> entries;
+        private final long expiresAtMillis;
+
+        private CachedKillItemResult(
+                String resultId,
+                String scopeText,
+                int entityCount,
+                long itemCount,
+                List<CachedSummaryEntry> entries,
+                long expiresAtMillis
+        ) {
+            this.resultId = resultId;
+            this.scopeText = scopeText;
+            this.entityCount = entityCount;
+            this.itemCount = itemCount;
+            this.entries = List.copyOf(entries);
+            this.expiresAtMillis = expiresAtMillis;
         }
     }
 }

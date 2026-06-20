@@ -22,6 +22,7 @@
 | `/killitem range <radius>` | 以执行命令的玩家为中心，清理当前维度指定半径内的掉落物 |
 | `/killitem dimension <dimension>` | 清理指定维度中的掉落物 |
 | `/killitem all` | 清理所有已加载维度中的掉落物 |
+| `/killitem detail <resultId> <page>` | 查看缓存的清理明细分页，通常由清理结果中的 `[展开]`、`[上一页]`、`[下一页]` 触发，不会重新清理物品 |
 | `/killitem config blacklist` | 显示当前物品黑名单 |
 | `/killitem config blacklist add <item>` | 将指定物品加入黑名单 |
 | `/killitem config blacklist remove <item>` | 将指定物品移出黑名单 |
@@ -35,10 +36,14 @@
 |---|---|---|
 | `<radius>` | 清理半径，只对 `/killitem range` 生效 | `64` |
 | `<dimension>` | 维度注册表 ID | `minecraft:overworld`、`minecraft:the_nether`、`minecraft:the_end` |
+| `<resultId>` | 清理明细缓存 ID，由清理结果中的点击按钮自动提供 | `a1b2c3...` |
+| `<page>` | 清理明细页码，小于 1 时按第 1 页处理，超过末页时按最后一页处理 | `1` |
 | `<item>` | 物品注册表 ID | `minecraft:diamond`、`minecraft:netherite_ingot` |
 | `<true\|false>` | 布尔值开关 | `true`、`false` |
 
-清理结果会完整统计实体数和物品数；如果物品明细分组过多，反馈中的明细列表可能截断显示。
+清理结果会以多行摘要显示实体数、物品数和最多 5 类物品明细；如果明细超过 5 类，玩家聊天反馈会显示 `[展开]`，点击后通过 `/killitem detail <resultId> <page>` 查看缓存的完整分页明细，不会重新执行 `/killitem all`、`/killitem dimension` 或 `/killitem range`。
+
+清理明细缓存约 10 分钟后过期，过期后需要重新执行清理命令。控制台、命令方块和 RCON 执行清理命令时只显示普通截断摘要，不生成可点击展开按钮。
 
 ---
 
