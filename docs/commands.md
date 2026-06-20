@@ -38,6 +38,8 @@
 | `<item>` | 物品注册表 ID | `minecraft:diamond`、`minecraft:netherite_ingot` |
 | `<true\|false>` | 布尔值开关 | `true`、`false` |
 
+清理结果会完整统计实体数和物品数；如果物品明细分组过多，反馈中的明细列表可能截断显示。
+
 ---
 
 ## /machineStatus

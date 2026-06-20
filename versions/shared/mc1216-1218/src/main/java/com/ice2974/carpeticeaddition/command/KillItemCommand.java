@@ -30,7 +30,9 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -41,6 +43,7 @@ import static net.minecraft.server.command.CommandManager.literal;
 public final class KillItemCommand {
     private static final double MIN_RADIUS = 1.0D;
     private static final double MAX_RADIUS = 1024.0D;
+    private static final int SUMMARY_ENTRY_LIMIT = 20;
 
     private static final SimpleCommandExceptionType PLAYER_ONLY = new SimpleCommandExceptionType(
             tr("command.carpet-ice-addition.killitem.error.player_only")
@@ -312,8 +315,14 @@ public final class KillItemCommand {
 
     private static ClearResult clearInWorld(ServerWorld world, KillItemConfigManager.Snapshot config) {
         ClearResult result = new ClearResult();
+        List<ItemEntity> itemsToClear = new ArrayList<>();
         for (Entity entity : world.iterateEntities()) {
             if (entity instanceof ItemEntity itemEntity && shouldClear(itemEntity, config)) {
+                itemsToClear.add(itemEntity);
+            }
+        }
+        for (ItemEntity itemEntity : itemsToClear) {
+            if (!itemEntity.isRemoved() && shouldClear(itemEntity, config)) {
                 result.record(itemEntity);
                 itemEntity.discard();
             }
@@ -372,7 +381,7 @@ public final class KillItemCommand {
 
     private static final class ClearResult {
         private int entityCount;
-        private int itemCount;
+        private long itemCount;
         private final LinkedHashMap<String, SummaryEntry> summaryEntries = new LinkedHashMap<>();
 
         private void record(ItemEntity itemEntity) {
@@ -407,7 +416,11 @@ public final class KillItemCommand {
 
             MutableText text = Text.empty();
             boolean first = true;
+            int index = 0;
             for (SummaryEntry entry : this.summaryEntries.values()) {
+                if (index >= SUMMARY_ENTRY_LIMIT) {
+                    break;
+                }
                 if (!first) {
                     text.append(Text.literal(", "));
                 }
@@ -416,6 +429,17 @@ public final class KillItemCommand {
                         "command.carpet-ice-addition.killitem.summary.entry",
                         entry.displayText.getString(),
                         entry.itemCount
+                ));
+                index++;
+            }
+            int omittedEntries = this.summaryEntries.size() - SUMMARY_ENTRY_LIMIT;
+            if (omittedEntries > 0) {
+                if (!first) {
+                    text.append(Text.literal(", "));
+                }
+                text.append(tr(
+                        "command.carpet-ice-addition.killitem.summary.truncated",
+                        omittedEntries
                 ));
             }
             return text;
@@ -432,7 +456,7 @@ public final class KillItemCommand {
 
     private static final class SummaryEntry {
         private final Text displayText;
-        private int itemCount;
+        private long itemCount;
 
         private SummaryEntry(Text displayText) {
             this.displayText = displayText;

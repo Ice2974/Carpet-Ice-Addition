@@ -51,6 +51,7 @@
   "command.carpet-ice-addition.killitem.config.clear_named_items.unchanged": "clearNamedItems is already %s.",
   "command.carpet-ice-addition.killitem.summary.none": "none",
   "command.carpet-ice-addition.killitem.summary.entry": "%1$s x%2$s",
+  "command.carpet-ice-addition.killitem.summary.truncated": "%s more item groups not shown",
   "command.carpet-ice-addition.machine_status.error.invalid_identifier": "Invalid resource id: %s",
   "command.carpet-ice-addition.machine_status.error.name_exists": "Machine %s already exists.",
   "command.carpet-ice-addition.machine_status.error.name_not_found": "Machine %s was not found.",

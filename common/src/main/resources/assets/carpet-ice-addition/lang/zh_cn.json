@@ -74,6 +74,7 @@
   "command.carpet-ice-addition.killitem.config.clear_named_items.unchanged": "clearNamedItems \u5df2\u7ecf\u662f %s\u3002",
   "command.carpet-ice-addition.killitem.summary.none": "\u65e0",
   "command.carpet-ice-addition.killitem.summary.entry": "%1$s x%2$s",
+  "command.carpet-ice-addition.killitem.summary.truncated": "\u53e6\u6709 %s \u7c7b\u7269\u54c1\u672a\u5217\u51fa",
   "command.carpet-ice-addition.machine_status.error.invalid_identifier": "\u65e0\u6548\u7684\u8d44\u6e90 ID\uff1a%s",
   "command.carpet-ice-addition.machine_status.error.name_exists": "\u673a\u5668 %s \u5df2\u5b58\u5728\u3002",
   "command.carpet-ice-addition.machine_status.error.name_not_found": "\u627e\u4e0d\u5230\u673a\u5668 %s\u3002",

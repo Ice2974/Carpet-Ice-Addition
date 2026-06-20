@@ -38,6 +38,8 @@
 | `<item>` | Item registry ID | `minecraft:diamond`, `minecraft:netherite_ingot` |
 | `<true\|false>` | Boolean toggle | `true`, `false` |
 
+Cleanup results always count the full entity and item totals; if there are too many item detail groups, the feedback detail list may be truncated.
+
 ---
 
 ## /machineStatus
