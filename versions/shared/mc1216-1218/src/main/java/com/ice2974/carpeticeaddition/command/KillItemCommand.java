@@ -34,6 +34,7 @@ import net.minecraft.world.World;
 
 import java.io.IOException;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.text.NumberFormat;
 import java.util.ArrayList;
@@ -462,48 +463,139 @@ public final class KillItemCommand {
 
     private static Style commandButtonStyle(String command) {
         Style style = Style.EMPTY.withColor(Formatting.AQUA);
+        style = withClickEvent(style, command);
+        return withHoverEvent(style);
+    }
+
+    private static Style withClickEvent(Style style, String command) {
         try {
-            return withNewTextEvents(style, command);
-        } catch (ReflectiveOperationException | ClassCastException ignored) {
-            try {
-                return withLegacyTextEvents(style, command);
-            } catch (ReflectiveOperationException | ClassCastException ignoredAgain) {
-                return style;
-            }
+            Class<?> clickEventClass = findStyleEventType("RUN_COMMAND");
+            Object clickEvent = createClickEvent(clickEventClass, command);
+            return applyStyleEvent(style, clickEventClass, clickEvent);
+        } catch (ReflectiveOperationException | ClassCastException | IllegalArgumentException ignored) {
+            return style;
         }
     }
 
-    private static Style withNewTextEvents(Style style, String command) throws ReflectiveOperationException {
-        Class<?> clickEventClass = Class.forName("net.minecraft.text.ClickEvent");
-        Class<?> runCommandClass = Class.forName("net.minecraft.text.ClickEvent$RunCommand");
-        Object clickEvent = runCommandClass.getConstructor(String.class).newInstance(command);
-        Method withClickEvent = Style.class.getMethod("withClickEvent", clickEventClass);
-        style = (Style) withClickEvent.invoke(style, clickEvent);
+    private static Style withHoverEvent(Style style) {
+        try {
+            Class<?> hoverEventClass = findStyleEventType("SHOW_TEXT");
+            Object hoverEvent = createHoverEvent(hoverEventClass, tr("command.carpet-ice-addition.killitem.button.hover"));
+            return applyStyleEvent(style, hoverEventClass, hoverEvent);
+        } catch (ReflectiveOperationException | ClassCastException | IllegalArgumentException ignored) {
+            return style;
+        }
+    }
 
-        Class<?> hoverEventClass = Class.forName("net.minecraft.text.HoverEvent");
-        Class<?> showTextClass = Class.forName("net.minecraft.text.HoverEvent$ShowText");
-        Object hoverEvent = showTextClass.getConstructor(Text.class).newInstance(tr("command.carpet-ice-addition.killitem.button.hover"));
-        Method withHoverEvent = Style.class.getMethod("withHoverEvent", hoverEventClass);
-        return (Style) withHoverEvent.invoke(style, hoverEvent);
+    private static Class<?> findStyleEventType(String actionName) throws NoSuchMethodException {
+        for (Field field : Style.class.getDeclaredFields()) {
+            Class<?> fieldType = field.getType();
+            if (findActionClass(fieldType, actionName) != null) {
+                return fieldType;
+            }
+        }
+        throw new NoSuchMethodException("No style event type for action " + actionName);
+    }
+
+    private static Object createClickEvent(Class<?> clickEventClass, String command) throws ReflectiveOperationException {
+        Class<?> actionClass = requireActionClass(clickEventClass, "RUN_COMMAND");
+        if (clickEventClass.isInterface()) {
+            for (Class<?> eventImplClass : clickEventClass.getDeclaredClasses()) {
+                if (clickEventClass.isAssignableFrom(eventImplClass)) {
+                    try {
+                        Constructor<?> constructor = eventImplClass.getDeclaredConstructor(String.class);
+                        Object clickEvent = constructor.newInstance(command);
+                        if (hasAction(clickEvent, clickEventClass, actionClass, "RUN_COMMAND")) {
+                            return clickEvent;
+                        }
+                    } catch (NoSuchMethodException ignored) {
+                        // Try the next nested event implementation.
+                    }
+                }
+            }
+            throw new NoSuchMethodException("No run command click event implementation");
+        }
+
+        Constructor<?> constructor = clickEventClass.getConstructor(actionClass, String.class);
+        return constructor.newInstance(actionConstant(actionClass, "RUN_COMMAND"), command);
+    }
+
+    private static Object createHoverEvent(Class<?> hoverEventClass, Text text) throws ReflectiveOperationException {
+        Class<?> actionClass = requireActionClass(hoverEventClass, "SHOW_TEXT");
+        if (hoverEventClass.isInterface()) {
+            for (Class<?> eventImplClass : hoverEventClass.getDeclaredClasses()) {
+                if (hoverEventClass.isAssignableFrom(eventImplClass)) {
+                    try {
+                        Constructor<?> constructor = eventImplClass.getDeclaredConstructor(Text.class);
+                        Object hoverEvent = constructor.newInstance(text);
+                        if (hasAction(hoverEvent, hoverEventClass, actionClass, "SHOW_TEXT")) {
+                            return hoverEvent;
+                        }
+                    } catch (NoSuchMethodException ignored) {
+                        // Try the next nested event implementation.
+                    }
+                }
+            }
+            throw new NoSuchMethodException("No show text hover event implementation");
+        }
+
+        for (Constructor<?> constructor : hoverEventClass.getConstructors()) {
+            Class<?>[] parameterTypes = constructor.getParameterTypes();
+            if (parameterTypes.length == 2
+                    && parameterTypes[0] == actionClass
+                    && parameterTypes[1].isAssignableFrom(Text.class)) {
+                return constructor.newInstance(actionConstant(actionClass, "SHOW_TEXT"), text);
+            }
+        }
+        throw new NoSuchMethodException("No legacy show text hover event constructor");
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
-    private static Style withLegacyTextEvents(Style style, String command) throws ReflectiveOperationException {
-        Class<?> clickEventClass = Class.forName("net.minecraft.text.ClickEvent");
-        Class<?> clickActionClass = Class.forName("net.minecraft.text.ClickEvent$Action");
-        Object runCommandAction = Enum.valueOf((Class<Enum>) clickActionClass.asSubclass(Enum.class), "RUN_COMMAND");
-        Constructor<?> clickConstructor = clickEventClass.getConstructor(clickActionClass, String.class);
-        Object clickEvent = clickConstructor.newInstance(runCommandAction, command);
-        Method withClickEvent = Style.class.getMethod("withClickEvent", clickEventClass);
-        style = (Style) withClickEvent.invoke(style, clickEvent);
+    private static Object actionConstant(Class<?> actionClass, String actionName) {
+        return Enum.valueOf((Class<Enum>) actionClass.asSubclass(Enum.class), actionName);
+    }
 
-        Class<?> hoverEventClass = Class.forName("net.minecraft.text.HoverEvent");
-        Class<?> hoverActionClass = Class.forName("net.minecraft.text.HoverEvent$Action");
-        Object showTextAction = Enum.valueOf((Class<Enum>) hoverActionClass.asSubclass(Enum.class), "SHOW_TEXT");
-        Constructor<?> hoverConstructor = hoverEventClass.getConstructor(hoverActionClass, Text.class);
-        Object hoverEvent = hoverConstructor.newInstance(showTextAction, tr("command.carpet-ice-addition.killitem.button.hover"));
-        Method withHoverEvent = Style.class.getMethod("withHoverEvent", hoverEventClass);
-        return (Style) withHoverEvent.invoke(style, hoverEvent);
+    private static boolean hasAction(Object event, Class<?> eventClass, Class<?> actionClass, String actionName) throws ReflectiveOperationException {
+        for (Method method : eventClass.getMethods()) {
+            if (method.getParameterCount() == 0 && method.getReturnType() == actionClass) {
+                Object action = method.invoke(event);
+                return action instanceof Enum<?> actionEnum && actionEnum.name().equals(actionName);
+            }
+        }
+        return false;
+    }
+
+    private static Class<?> requireActionClass(Class<?> eventClass, String actionName) throws NoSuchMethodException {
+        Class<?> actionClass = findActionClass(eventClass, actionName);
+        if (actionClass == null) {
+            throw new NoSuchMethodException("No action " + actionName + " on " + eventClass.getName());
+        }
+        return actionClass;
+    }
+
+    private static Class<?> findActionClass(Class<?> eventClass, String actionName) {
+        for (Class<?> nestedClass : eventClass.getDeclaredClasses()) {
+            if (nestedClass.isEnum()) {
+                for (Object constant : nestedClass.getEnumConstants()) {
+                    if (constant instanceof Enum<?> action && action.name().equals(actionName)) {
+                        return nestedClass;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    private static Style applyStyleEvent(Style style, Class<?> eventClass, Object event) throws ReflectiveOperationException {
+        for (Method method : Style.class.getMethods()) {
+            Class<?>[] parameterTypes = method.getParameterTypes();
+            if (method.getReturnType() == Style.class
+                    && parameterTypes.length == 1
+                    && parameterTypes[0].isAssignableFrom(eventClass)) {
+                return (Style) method.invoke(style, event);
+            }
+        }
+        throw new NoSuchMethodException("No style event setter for " + eventClass.getName());
     }
 
     private static ServerPlayerEntity getPlayer(ServerCommandSource source) throws CommandSyntaxException {
