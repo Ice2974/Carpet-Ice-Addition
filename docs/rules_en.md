@@ -75,7 +75,7 @@ Disables kelp natural growth from random ticks while keeping bonemeal growth unc
 - Possible values: `false`, `true`
 - Categories: `ICE`, `FEATURE`
 
-## canMineBuddingAmethyst
+## silkTouchBuddingAmethyst
 
 Budding amethyst can be collected with a suitable Silk Touch tool.
 

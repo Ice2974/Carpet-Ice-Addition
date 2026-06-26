@@ -75,7 +75,7 @@
 - 可选值: `false`, `true`
 - 分类: `ICE`, `FEATURE`
 
-## 可采集紫水晶母岩 (canMineBuddingAmethyst)
+## 可采集紫水晶母岩 (silkTouchBuddingAmethyst)
 
 使用带有精准采集附魔的合适工具可采集紫水晶母岩。
 

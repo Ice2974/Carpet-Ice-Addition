@@ -38,7 +38,7 @@ public abstract class CanMineBuddingAmethystMixin {
             ItemStack tool,
             CallbackInfo ci
     ) {
-        if (!CarpetIceAdditionSettings.canMineBuddingAmethyst
+        if (!CarpetIceAdditionSettings.silkTouchBuddingAmethyst
                ) {
             return;
         }
@@ -66,7 +66,7 @@ public abstract class CanMineBuddingAmethystMixin {
             state.spawnAfterBreak(serverWorld, pos, tool, true);
             ci.cancel();
         } catch (Throwable throwable) {
-            CarpetIceAdditionMod.reportFeatureCompatibilityIssue("canMineBuddingAmethyst", throwable);
+            CarpetIceAdditionMod.reportFeatureCompatibilityIssue("silkTouchBuddingAmethyst", throwable);
         }
     }
 }

@@ -117,7 +117,7 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
             flag = SPAWNERS_IGNORE_INVISIBLE_PLAYERS_ERROR_REPORTED;
         } else if ("disableKelpNaturalGrowth".equals(featureName)) {
             flag = DISABLE_KELP_NATURAL_GROWTH_ERROR_REPORTED;
-        } else if ("canMineBuddingAmethyst".equals(featureName)) {
+        } else if ("silkTouchBuddingAmethyst".equals(featureName)) {
             flag = CAN_MINE_BUDDING_AMETHYST_ERROR_REPORTED;
         } else if ("iceLikeMagmaBlocks".equals(featureName)) {
             flag = ICE_LIKE_MAGMA_BLOCKS_ERROR_REPORTED;
