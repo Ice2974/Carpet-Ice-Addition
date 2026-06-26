@@ -84,6 +84,15 @@ Budding amethyst can be collected by using a suitable tool with the Silk Touch e
 - Possible values: `false`, `true`
 - Categories: `ICE`, `FEATURE`
 
+## silkTouchFrostedIce
+
+Frosted ice drops 1 regular ice when broken by a player using any tool with the Silk Touch enchantment.
+
+- Type: `boolean`
+- Default: `false`
+- Possible values: `false`, `true`
+- Categories: `ICE`, `FEATURE`
+
 ## iceLikeMagmaBlocks
 
 Allows magma blocks broken by players with tools without Silk Touch to generate a lava source using ice-like support checks when the block below is a valid solid block or liquid block.

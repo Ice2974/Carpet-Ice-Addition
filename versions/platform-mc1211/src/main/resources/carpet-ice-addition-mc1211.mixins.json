@@ -4,6 +4,7 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "CanMineBuddingAmethystMixin",
+    "CanMineFrostedIceMixin",
     "CrafterBlockMixin",
     "RecipeManagerCraftableCoralBlocksMixin",
     "JukeboxManagerRecordWorldEventMixin",

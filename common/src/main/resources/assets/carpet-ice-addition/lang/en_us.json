@@ -7,6 +7,7 @@
   "carpet.rule.spawnersIgnoreInvisiblePlayers.desc": "Normal spawners, trial spawners, and ominous trial spawners ignore invisible players when checking nearby players.",
   "carpet.rule.disableKelpNaturalGrowth.desc": "Disable kelp natural growth from random ticks while keeping bonemeal growth unchanged.",
   "carpet.rule.silkTouchBuddingAmethyst.desc": "Budding amethyst can be collected by using a suitable tool with the Silk Touch enchantment.",
+  "carpet.rule.silkTouchFrostedIce.desc": "Frosted ice drops 1 regular ice when broken by a player using any tool with the Silk Touch enchantment.",
   "carpet.rule.iceLikeMagmaBlocks.desc": "Allows magma blocks broken by players with tools without Silk Touch to generate a lava source using ice-like support checks when the block below is a valid solid block or liquid block.",
   "carpet.rule.disableNyliumDecay.desc": "Crimson nylium and warped nylium will not decay into netherrack when covered by a block above.",
   "carpet.rule.fakePlayerIgnoreThornsDamage.desc": "Bots will not take reflected damage caused by Thorns when attacking entities or players equipped with Thorns.",
