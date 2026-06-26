@@ -29,6 +29,8 @@ replay_pid*
 .project
 *.code-workspace
 bin/
+.claude/
+.codex/
 
 # Git
 .shelf/
