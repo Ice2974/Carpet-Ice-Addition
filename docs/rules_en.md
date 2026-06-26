@@ -77,7 +77,7 @@ Disables kelp natural growth from random ticks while keeping bonemeal growth unc
 
 ## silkTouchBuddingAmethyst
 
-Budding amethyst can be collected with a suitable Silk Touch tool.
+Budding amethyst can be collected by using a suitable tool with the Silk Touch enchantment.
 
 - Type: `boolean`
 - Default: `false`
