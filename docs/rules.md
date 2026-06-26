@@ -86,7 +86,7 @@
 
 ## 可采集霜冰 (silkTouchFrostedIce)
 
-使用任意带有精准采集附魔的工具破坏霜冰时，会掉落 1 个普通冰
+使用任意带有精准采集附魔的工具破坏霜冰时，会掉落 1 个普通冰。
 
 - 类型: `boolean`
 - 默认值: `false`
@@ -118,7 +118,7 @@
 
 - 类型: `String`
 - 默认值: `#none`
-- 参考值: `#none`, `[Bot] `
+- 参考值: `#none`, `[Bot]`
 - 分类: `ICE`
 
 ## 假人Tab栏名称后缀 (botTabListNameSuffix)
@@ -128,7 +128,7 @@
 
 - 类型: `String`
 - 默认值: `#none`
-- 参考值: `#none`, ` [Fake]`
+- 参考值: `#none`, `[Fake]`
 - 分类: `ICE`
 
 ## 掉落物清理指令 (commandKillItem)

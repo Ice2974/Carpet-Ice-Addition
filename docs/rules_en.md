@@ -118,7 +118,7 @@ Add a prefix to bots in the Tab list, using `&` to represent text colors.\
 
 - Type: `String`
 - Default: `#none`
-- Suggested values: `#none`, `[Bot] `
+- Suggested values: `#none`, `[Bot]`
 - Categories: `ICE`
 
 ## botTabListNameSuffix
@@ -128,7 +128,7 @@ Add a suffix to bots in the Tab list, using `&` to represent text colors.\
 
 - Type: `String`
 - Default: `#none`
-- Suggested values: `#none`, ` [Fake]`
+- Suggested values: `#none`, `[Fake]`
 - Categories: `ICE`
 
 ## commandKillItem

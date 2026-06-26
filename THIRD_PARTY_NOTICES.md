@@ -22,4 +22,12 @@ Unless otherwise stated, the current implementations have been adapted or rewrit
 - Related rule `disablePlayerAttackingTamedMobs`
 - Original project DoormatCarpetExtension
 - License LGPL-3.0
-- Notes The rule behavior was inspired by the original project and has been rewrittenadjusted for Carpet Ice Addition.
+- Notes The rule behavior was inspired by the original project and has been rewritten and adjusted for Carpet Ice Addition.
+
+## carpet-redcraft-addons
+
+- Related rules `invisibleItemFrames`, `fixedItemFrames`
+- Original project carpet-redcraft-addons
+- Related original rule `betterItemFrames`
+- License AGPL-3.0
+- Notes The feature design references the `betterItemFrames` rule from carpet-redcraft-addons. The current implementation has been independently rewritten and adjusted for Carpet Ice Addition's target versions and layering structure.
