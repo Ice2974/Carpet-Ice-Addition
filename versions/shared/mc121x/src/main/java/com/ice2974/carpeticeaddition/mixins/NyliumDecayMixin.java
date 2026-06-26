@@ -22,8 +22,7 @@ public abstract class NyliumDecayMixin {
                     value = "INVOKE",
                     target = "Lnet/minecraft/server/world/ServerWorld;setBlockState(Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;)Z"
             ),
-            cancellable = true,
-            require = 0
+            cancellable = true
     )
     private void carpetIceAddition$disableNyliumDecay(
             BlockState state,
