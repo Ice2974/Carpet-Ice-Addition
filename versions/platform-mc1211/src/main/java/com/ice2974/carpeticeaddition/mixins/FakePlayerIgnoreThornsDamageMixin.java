@@ -7,7 +7,6 @@ import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.damage.DamageTypes;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.Desc;
 import org.spongepowered.asm.mixin.injection.At;
@@ -20,31 +19,11 @@ public abstract class FakePlayerIgnoreThornsDamageMixin {
     @Inject(
             target = @Desc(
                     value = "damage",
-                    args = {ServerWorld.class, DamageSource.class, float.class},
-                    ret = boolean.class
-            ),
-            at = @At("HEAD"),
-            cancellable = true,
-            require = 0
-    )
-    private void carpetIceAddition$ignoreThornsDamageForFakePlayerMc1211(
-            ServerWorld world,
-            DamageSource source,
-            float amount,
-            CallbackInfoReturnable<Boolean> cir
-    ) {
-        this.carpetIceAddition$tryCancelFakePlayerThornsDamage(source, cir);
-    }
-
-    @Inject(
-            target = @Desc(
-                    value = "damage",
                     args = {DamageSource.class, float.class},
                     ret = boolean.class
             ),
             at = @At("HEAD"),
-            cancellable = true,
-            require = 0
+            cancellable = true
     )
     private void carpetIceAddition$ignoreThornsDamageForFakePlayerMc1210(
             DamageSource source,
