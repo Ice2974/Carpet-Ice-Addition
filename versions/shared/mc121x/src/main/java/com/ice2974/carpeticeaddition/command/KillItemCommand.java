@@ -37,6 +37,7 @@ import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -683,8 +684,18 @@ public final class KillItemCommand {
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
-    private static Object actionConstant(Class<?> actionClass, String actionName) {
-        return Enum.valueOf((Class<Enum>) actionClass.asSubclass(Enum.class), actionName);
+    private static Object actionConstant(Class<?> actionClass, String actionName) throws ReflectiveOperationException {
+        // 新式（1.21.5+）Action 为 enum；旧式（1.21.1-1.21.4）HoverEvent$Action 为普通类，
+        // 常量为 public static final 字段。两种形态分别取值。
+        if (actionClass.isEnum()) {
+            return Enum.valueOf((Class<Enum>) actionClass.asSubclass(Enum.class), actionName);
+        }
+        Field field = actionClass.getDeclaredField(actionName);
+        if (!Modifier.isStatic(field.getModifiers())) {
+            throw new NoSuchFieldException("Action field " + actionName + " on " + actionClass.getName() + " is not static");
+        }
+        field.setAccessible(true);
+        return field.get(null);
     }
 
     private static boolean hasAction(Object event, Class<?> eventClass, Class<?> actionClass, String actionName) throws ReflectiveOperationException {
@@ -706,6 +717,7 @@ public final class KillItemCommand {
     }
 
     private static Class<?> findActionClass(Class<?> eventClass, String actionName) {
+        // 1) enum 形态：遍历嵌套枚举类的常量，按名称匹配。
         for (Class<?> nestedClass : eventClass.getDeclaredClasses()) {
             if (nestedClass.isEnum()) {
                 for (Object constant : nestedClass.getEnumConstants()) {
@@ -713,6 +725,23 @@ public final class KillItemCommand {
                         return nestedClass;
                     }
                 }
+            }
+        }
+        // 2) 普通类形态（旧式 HoverEvent$Action）：查找 public static final 字段，
+        // 字段类型为该嵌套类自身或其超类/接口，字段名等于 actionName。
+        for (Class<?> nestedClass : eventClass.getDeclaredClasses()) {
+            if (nestedClass.isEnum()) {
+                continue;
+            }
+            try {
+                Field field = nestedClass.getDeclaredField(actionName);
+                int modifiers = field.getModifiers();
+                if (Modifier.isStatic(modifiers) && Modifier.isFinal(modifiers)
+                        && field.getType().isAssignableFrom(nestedClass)) {
+                    return nestedClass;
+                }
+            } catch (NoSuchFieldException ignored) {
+                // 该嵌套类没有同名字段，尝试下一个。
             }
         }
         return null;
