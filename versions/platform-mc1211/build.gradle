@@ -100,10 +100,12 @@ if (sortedRangeParts.size() <= 1) {
     def upper = sortedRangeParts.last()
     def lowerParts = toVersionParts(lower)
     def upperParts = toVersionParts(upper)
-    def sameMajorMinor = lowerParts.size() >= 2
+    def sameMajorMinor = (
+            lowerParts.size() >= 2
             && upperParts.size() >= 2
             && lowerParts[0] == upperParts[0]
             && lowerParts[1] == upperParts[1]
+    )
     def patchSpan = Math.abs(toPatchValue(upperParts) - toPatchValue(lowerParts))
 
     if (sameMajorMinor && patchSpan >= 2) {
