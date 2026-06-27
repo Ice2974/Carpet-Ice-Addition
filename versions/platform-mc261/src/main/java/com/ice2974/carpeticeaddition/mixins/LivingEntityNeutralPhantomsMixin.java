@@ -1,5 +1,6 @@
 package com.ice2974.carpeticeaddition.mixins;
 
+import com.ice2974.carpeticeaddition.CarpetIceAdditionMod;
 import com.ice2974.carpeticeaddition.rules.NeutralPhantomsRetaliationTracker;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
 import net.minecraft.server.level.ServerLevel;
@@ -29,9 +30,13 @@ public abstract class LivingEntityNeutralPhantomsMixin {
         if (!((Object) this instanceof Phantom phantom)) {
             return;
         }
-        ServerPlayer player = carpetIceAddition$getAttackingPlayer(source);
-        if (player != null && phantom instanceof NeutralPhantomsRetaliationTracker tracker) {
-            tracker.carpetIceAddition$recordNeutralPhantomsRetaliationTarget(player);
+        try {
+            ServerPlayer player = carpetIceAddition$getAttackingPlayer(source);
+            if (player != null && phantom instanceof NeutralPhantomsRetaliationTracker tracker) {
+                tracker.carpetIceAddition$recordNeutralPhantomsRetaliationTarget(player);
+            }
+        } catch (Throwable throwable) {
+            CarpetIceAdditionMod.reportFeatureCompatibilityIssue("neutralPhantoms", throwable);
         }
     }
 

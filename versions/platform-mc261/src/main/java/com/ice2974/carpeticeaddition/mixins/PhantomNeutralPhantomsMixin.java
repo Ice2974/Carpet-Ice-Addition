@@ -1,5 +1,6 @@
 package com.ice2974.carpeticeaddition.mixins;
 
+import com.ice2974.carpeticeaddition.CarpetIceAdditionMod;
 import com.ice2974.carpeticeaddition.rules.NeutralPhantomsRetaliationTracker;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
 import java.util.UUID;
@@ -56,14 +57,49 @@ public abstract class PhantomNeutralPhantomsMixin implements NeutralPhantomsReta
         if (!((Object) this instanceof Phantom phantom)) {
             return;
         }
-        ServerLevel serverLevel = (ServerLevel) phantom.level();
-        boolean forgiveDeadPlayers = carpetIceAddition$shouldForgiveDeadPlayers(serverLevel);
+        try {
+            ServerLevel serverLevel = (ServerLevel) phantom.level();
+            boolean forgiveDeadPlayers = carpetIceAddition$shouldForgiveDeadPlayers(serverLevel);
 
-        LivingEntity target = this.getTarget();
-        if (target instanceof ServerPlayer targetPlayer
-                && targetPlayer.getUUID().equals(this.carpetIceAddition$neutralPhantomsTargetUuid)) {
-            if (!targetPlayer.isAlive() || targetPlayer.isRemoved()) {
+            LivingEntity target = this.getTarget();
+            if (target instanceof ServerPlayer targetPlayer
+                    && targetPlayer.getUUID().equals(this.carpetIceAddition$neutralPhantomsTargetUuid)) {
+                if (!targetPlayer.isAlive() || targetPlayer.isRemoved()) {
+                    this.setTarget(null);
+                    if (forgiveDeadPlayers) {
+                        this.carpetIceAddition$clearNeutralPhantomsRetaliationTarget();
+                    } else {
+                        this.carpetIceAddition$neutralPhantomsTargetEntityId = -1;
+                    }
+                    return;
+                }
+                if (targetPlayer.level() != serverLevel) {
+                    this.setTarget(null);
+                    return;
+                }
+                if (forgiveDeadPlayers
+                        && this.carpetIceAddition$neutralPhantomsTargetEntityId != -1
+                        && targetPlayer.getId() != this.carpetIceAddition$neutralPhantomsTargetEntityId) {
+                    this.carpetIceAddition$clearNeutralPhantomsRetaliationTarget();
+                    this.setTarget(null);
+                    return;
+                }
+                this.carpetIceAddition$neutralPhantomsTargetEntityId = targetPlayer.getId();
+                return;
+            }
+
+            LivingEntity uncheckedTarget = this.getTargetUnchecked();
+            if (uncheckedTarget != null) {
                 this.setTarget(null);
+            }
+
+            ServerPlayer player = serverLevel.getServer()
+                    .getPlayerList()
+                    .getPlayer(this.carpetIceAddition$neutralPhantomsTargetUuid);
+            if (player == null) {
+                return;
+            }
+            if (!player.isAlive() || player.isRemoved()) {
                 if (forgiveDeadPlayers) {
                     this.carpetIceAddition$clearNeutralPhantomsRetaliationTarget();
                 } else {
@@ -71,52 +107,21 @@ public abstract class PhantomNeutralPhantomsMixin implements NeutralPhantomsReta
                 }
                 return;
             }
-            if (targetPlayer.level() != serverLevel) {
-                this.setTarget(null);
+            if (player.level() != serverLevel) {
                 return;
             }
             if (forgiveDeadPlayers
                     && this.carpetIceAddition$neutralPhantomsTargetEntityId != -1
-                    && targetPlayer.getId() != this.carpetIceAddition$neutralPhantomsTargetEntityId) {
+                    && player.getId() != this.carpetIceAddition$neutralPhantomsTargetEntityId) {
                 this.carpetIceAddition$clearNeutralPhantomsRetaliationTarget();
-                this.setTarget(null);
                 return;
             }
-            this.carpetIceAddition$neutralPhantomsTargetEntityId = targetPlayer.getId();
-            return;
-        }
 
-        LivingEntity uncheckedTarget = this.getTargetUnchecked();
-        if (uncheckedTarget != null) {
-            this.setTarget(null);
+            this.carpetIceAddition$neutralPhantomsTargetEntityId = player.getId();
+            this.setTarget(player);
+        } catch (Throwable throwable) {
+            CarpetIceAdditionMod.reportFeatureCompatibilityIssue("neutralPhantoms", throwable);
         }
-
-        ServerPlayer player = serverLevel.getServer()
-                .getPlayerList()
-                .getPlayer(this.carpetIceAddition$neutralPhantomsTargetUuid);
-        if (player == null) {
-            return;
-        }
-        if (!player.isAlive() || player.isRemoved()) {
-            if (forgiveDeadPlayers) {
-                this.carpetIceAddition$clearNeutralPhantomsRetaliationTarget();
-            } else {
-                this.carpetIceAddition$neutralPhantomsTargetEntityId = -1;
-            }
-            return;
-        }
-        if (player.level() != serverLevel) {
-            return;
-        }
-        if (forgiveDeadPlayers
-                && this.carpetIceAddition$neutralPhantomsTargetEntityId != -1
-                && player.getId() != this.carpetIceAddition$neutralPhantomsTargetEntityId) {
-            this.carpetIceAddition$clearNeutralPhantomsRetaliationTarget();
-            return;
-        }
-
-        this.carpetIceAddition$neutralPhantomsTargetEntityId = player.getId();
-        this.setTarget(player);
     }
 
     @Inject(method = "addAdditionalSaveData", at = @At("TAIL"))
