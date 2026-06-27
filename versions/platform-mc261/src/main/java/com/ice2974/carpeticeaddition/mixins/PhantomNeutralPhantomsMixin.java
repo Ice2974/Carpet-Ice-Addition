@@ -64,7 +64,7 @@ public abstract class PhantomNeutralPhantomsMixin implements NeutralPhantomsReta
             LivingEntity target = this.getTarget();
             if (target instanceof ServerPlayer targetPlayer
                     && targetPlayer.getUUID().equals(this.carpetIceAddition$neutralPhantomsTargetUuid)) {
-                if (!targetPlayer.isAlive() || targetPlayer.isRemoved()) {
+                if (!targetPlayer.isAlive()) {
                     this.setTarget(null);
                     if (forgiveDeadPlayers) {
                         this.carpetIceAddition$clearNeutralPhantomsRetaliationTarget();
@@ -73,14 +73,11 @@ public abstract class PhantomNeutralPhantomsMixin implements NeutralPhantomsReta
                     }
                     return;
                 }
-                if (targetPlayer.level() != serverLevel) {
+                if (targetPlayer.isRemoved()) {
                     this.setTarget(null);
                     return;
                 }
-                if (forgiveDeadPlayers
-                        && this.carpetIceAddition$neutralPhantomsTargetEntityId != -1
-                        && targetPlayer.getId() != this.carpetIceAddition$neutralPhantomsTargetEntityId) {
-                    this.carpetIceAddition$clearNeutralPhantomsRetaliationTarget();
+                if (targetPlayer.level() != serverLevel) {
                     this.setTarget(null);
                     return;
                 }
@@ -99,7 +96,7 @@ public abstract class PhantomNeutralPhantomsMixin implements NeutralPhantomsReta
             if (player == null) {
                 return;
             }
-            if (!player.isAlive() || player.isRemoved()) {
+            if (!player.isAlive()) {
                 if (forgiveDeadPlayers) {
                     this.carpetIceAddition$clearNeutralPhantomsRetaliationTarget();
                 } else {
@@ -107,13 +104,10 @@ public abstract class PhantomNeutralPhantomsMixin implements NeutralPhantomsReta
                 }
                 return;
             }
-            if (player.level() != serverLevel) {
+            if (player.isRemoved()) {
                 return;
             }
-            if (forgiveDeadPlayers
-                    && this.carpetIceAddition$neutralPhantomsTargetEntityId != -1
-                    && player.getId() != this.carpetIceAddition$neutralPhantomsTargetEntityId) {
-                this.carpetIceAddition$clearNeutralPhantomsRetaliationTarget();
+            if (player.level() != serverLevel) {
                 return;
             }
 

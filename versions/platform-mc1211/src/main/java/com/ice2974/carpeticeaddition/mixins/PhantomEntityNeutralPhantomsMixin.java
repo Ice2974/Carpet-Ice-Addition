@@ -65,7 +65,7 @@ public abstract class PhantomEntityNeutralPhantomsMixin implements NeutralPhanto
             LivingEntity target = this.getTarget();
             if (target instanceof ServerPlayerEntity targetPlayer
                     && targetPlayer.getUuid().equals(this.carpetIceAddition$neutralPhantomsTargetUuid)) {
-                if (!targetPlayer.isAlive() || targetPlayer.isRemoved()) {
+                if (!targetPlayer.isAlive()) {
                     this.setTarget(null);
                     if (forgiveDeadPlayers) {
                         this.carpetIceAddition$clearNeutralPhantomsRetaliationTarget();
@@ -74,14 +74,11 @@ public abstract class PhantomEntityNeutralPhantomsMixin implements NeutralPhanto
                     }
                     return;
                 }
-                if (targetPlayer.getWorld() != serverWorld) {
+                if (targetPlayer.isRemoved()) {
                     this.setTarget(null);
                     return;
                 }
-                if (forgiveDeadPlayers
-                        && this.carpetIceAddition$neutralPhantomsTargetEntityId != -1
-                        && targetPlayer.getId() != this.carpetIceAddition$neutralPhantomsTargetEntityId) {
-                    this.carpetIceAddition$clearNeutralPhantomsRetaliationTarget();
+                if (targetPlayer.getWorld() != serverWorld) {
                     this.setTarget(null);
                     return;
                 }
@@ -99,7 +96,7 @@ public abstract class PhantomEntityNeutralPhantomsMixin implements NeutralPhanto
             if (player == null) {
                 return;
             }
-            if (!player.isAlive() || player.isRemoved()) {
+            if (!player.isAlive()) {
                 if (forgiveDeadPlayers) {
                     this.carpetIceAddition$clearNeutralPhantomsRetaliationTarget();
                 } else {
@@ -107,13 +104,10 @@ public abstract class PhantomEntityNeutralPhantomsMixin implements NeutralPhanto
                 }
                 return;
             }
-            if (player.getWorld() != serverWorld) {
+            if (player.isRemoved()) {
                 return;
             }
-            if (forgiveDeadPlayers
-                    && this.carpetIceAddition$neutralPhantomsTargetEntityId != -1
-                    && player.getId() != this.carpetIceAddition$neutralPhantomsTargetEntityId) {
-                this.carpetIceAddition$clearNeutralPhantomsRetaliationTarget();
+            if (player.getWorld() != serverWorld) {
                 return;
             }
 
