@@ -685,17 +685,60 @@ public final class KillItemCommand {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static Object actionConstant(Class<?> actionClass, String actionName) throws ReflectiveOperationException {
-        // 新式（1.21.5+）Action 为 enum；旧式（1.21.1-1.21.4）HoverEvent$Action 为普通类，
-        // 常量为 public static final 字段。两种形态分别取值。
+        // 新式（1.21.5+）Action 为 enum，常量名不被运行期映射重写，可直接按名取。
         if (actionClass.isEnum()) {
             return Enum.valueOf((Class<Enum>) actionClass.asSubclass(Enum.class), actionName);
         }
-        Field field = actionClass.getDeclaredField(actionName);
-        if (!Modifier.isStatic(field.getModifiers())) {
-            throw new NoSuchFieldException("Action field " + actionName + " on " + actionClass.getName() + " is not static");
+        // 旧式（1.21.1-1.21.4）HoverEvent$Action 为普通类，常量字段名在运行期
+        // intermediary 映射下被改写为 field_XXXX，不能按名查找；改为遍历静态常量
+        // 并按其序列化名（值内 String 实例字段，如 "show_text"）匹配，与字段映射命名无关。
+        Object constant = findPlainActionConstant(actionClass, actionName);
+        if (constant == null) {
+            throw new NoSuchFieldException("No action constant " + actionName + " on " + actionClass.getName());
         }
-        field.setAccessible(true);
-        return field.get(null);
+        return constant;
+    }
+
+    // 普通类形态 Action 常量查找：运行期字段名被 intermediary 重映射，不能按名取字段；
+    // 改为遍历该 Action 类自身的 public static final 字段，读取常量值后比较其序列化名。
+    // actionName 为开发期名称（如 "SHOW_TEXT"），序列化名为其小写形式（如 "show_text"）。
+    private static Object findPlainActionConstant(Class<?> actionClass, String actionName) {
+        String serialized = actionName.toLowerCase(Locale.ROOT);
+        try {
+            for (Field field : actionClass.getDeclaredFields()) {
+                int modifiers = field.getModifiers();
+                if (!Modifier.isStatic(modifiers) || !Modifier.isFinal(modifiers)) {
+                    continue;
+                }
+                if (!actionClass.isAssignableFrom(field.getType())) {
+                    continue;
+                }
+                field.setAccessible(true);
+                Object value = field.get(null);
+                if (value != null && serialized.equals(readActionSerializedName(value))) {
+                    return value;
+                }
+            }
+        } catch (ReflectiveOperationException ignored) {
+            // 字段访问失败则视为该常量未找到，继续尝试其它字段。
+        }
+        return null;
+    }
+
+    // 读取 Action 常量的序列化名（如 "show_text"），不依赖字段/方法名（运行期会被重映射）。
+    // HoverEvent$Action 实现了 StringIdentifiable，序列化名存储在唯一的 String 实例字段中。
+    private static String readActionSerializedName(Object action) throws ReflectiveOperationException {
+        for (Field field : action.getClass().getDeclaredFields()) {
+            if (Modifier.isStatic(field.getModifiers()) || field.getType() != String.class) {
+                continue;
+            }
+            field.setAccessible(true);
+            Object value = field.get(action);
+            if (value instanceof String s) {
+                return s;
+            }
+        }
+        return null;
     }
 
     private static boolean hasAction(Object event, Class<?> eventClass, Class<?> actionClass, String actionName) throws ReflectiveOperationException {
@@ -717,7 +760,8 @@ public final class KillItemCommand {
     }
 
     private static Class<?> findActionClass(Class<?> eventClass, String actionName) {
-        // 1) enum 形态：遍历嵌套枚举类的常量，按名称匹配。
+        // 1) enum 形态（1.21.5+ ClickEvent/HoverEvent Action 与 1.21.1-1.21.4 ClickEvent$Action）：
+        // 遍历嵌套枚举类的常量，按 enum 常量名匹配（enum 名不被运行期映射重写）。
         for (Class<?> nestedClass : eventClass.getDeclaredClasses()) {
             if (nestedClass.isEnum()) {
                 for (Object constant : nestedClass.getEnumConstants()) {
@@ -727,24 +771,43 @@ public final class KillItemCommand {
                 }
             }
         }
-        // 2) 普通类形态（旧式 HoverEvent$Action）：查找 public static final 字段，
-        // 字段类型为该嵌套类自身或其超类/接口，字段名等于 actionName。
+        // 2) 普通类形态（1.21.1-1.21.4 HoverEvent$Action）：运行期字段名被 intermediary
+        // 重映射为 field_XXXX，不能按名查找字段；改为遍历嵌套类的静态 final 字段，
+        // 读取常量值的序列化名（如 "show_text"）匹配。返回该嵌套类作为 actionClass。
+        String serialized = actionName.toLowerCase(Locale.ROOT);
         for (Class<?> nestedClass : eventClass.getDeclaredClasses()) {
             if (nestedClass.isEnum()) {
                 continue;
             }
-            try {
-                Field field = nestedClass.getDeclaredField(actionName);
-                int modifiers = field.getModifiers();
-                if (Modifier.isStatic(modifiers) && Modifier.isFinal(modifiers)
-                        && field.getType().isAssignableFrom(nestedClass)) {
-                    return nestedClass;
-                }
-            } catch (NoSuchFieldException ignored) {
-                // 该嵌套类没有同名字段，尝试下一个。
+            if (hasPlainActionConstant(nestedClass, serialized)) {
+                return nestedClass;
             }
         }
         return null;
+    }
+
+    // 普通类形态 Action 是否含序列化名匹配的静态 final 常量。运行期字段名不可用，
+    // 故按字段值的序列化名匹配；字段类型必须为该 Action 类自身或其超类/接口。
+    private static boolean hasPlainActionConstant(Class<?> actionClass, String serialized) {
+        try {
+            for (Field field : actionClass.getDeclaredFields()) {
+                int modifiers = field.getModifiers();
+                if (!Modifier.isStatic(modifiers) || !Modifier.isFinal(modifiers)) {
+                    continue;
+                }
+                if (!actionClass.isAssignableFrom(field.getType())) {
+                    continue;
+                }
+                field.setAccessible(true);
+                Object value = field.get(null);
+                if (value != null && serialized.equals(readActionSerializedName(value))) {
+                    return true;
+                }
+            }
+        } catch (ReflectiveOperationException ignored) {
+            // 字段访问失败则视为该类无匹配常量。
+        }
+        return false;
     }
 
     private static ServerPlayerEntity getPlayer(ServerCommandSource source) throws CommandSyntaxException {
