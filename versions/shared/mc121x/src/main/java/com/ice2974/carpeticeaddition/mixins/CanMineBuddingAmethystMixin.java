@@ -37,8 +37,7 @@ public abstract class CanMineBuddingAmethystMixin {
             ItemStack tool,
             CallbackInfo ci
     ) {
-        if (!CarpetIceAdditionSettings.silkTouchBuddingAmethyst
-               ) {
+        if (!CarpetIceAdditionSettings.silkTouchBuddingAmethyst) {
             return;
         }
 

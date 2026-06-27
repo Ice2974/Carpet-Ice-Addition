@@ -31,8 +31,7 @@ public abstract class NyliumDecayMixin {
             RandomSource random,
             CallbackInfo ci
     ) {
-        if (!CarpetIceAdditionSettings.disableNyliumDecay
-               ) {
+        if (!CarpetIceAdditionSettings.disableNyliumDecay) {
             return;
         }
 

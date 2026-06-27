@@ -34,8 +34,7 @@ public abstract class TrialSpawnerDataMixin {
             boolean requireLineOfSight
     ) {
         List<UUID> detectedPlayers = detector.detect(world, selector, pos, range, requireLineOfSight);
-        if (!CarpetIceAdditionSettings.spawnersIgnoreInvisiblePlayers
-               ) {
+        if (!CarpetIceAdditionSettings.spawnersIgnoreInvisiblePlayers) {
             return detectedPlayers;
         }
 

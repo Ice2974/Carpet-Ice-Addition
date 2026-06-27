@@ -27,8 +27,7 @@ public abstract class MobSpawnerLogicMixin {
             double z,
             double range
     ) {
-        if (!CarpetIceAdditionSettings.spawnersIgnoreInvisiblePlayers
-               ) {
+        if (!CarpetIceAdditionSettings.spawnersIgnoreInvisiblePlayers) {
             return world.isPlayerInRange(x, y, z, range);
         }
 

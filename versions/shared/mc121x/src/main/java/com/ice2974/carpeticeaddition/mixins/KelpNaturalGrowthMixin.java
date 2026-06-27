@@ -24,8 +24,7 @@ public abstract class KelpNaturalGrowthMixin {
             Random random,
             CallbackInfo ci
     ) {
-        if (!CarpetIceAdditionSettings.disableKelpNaturalGrowth
-               ) {
+        if (!CarpetIceAdditionSettings.disableKelpNaturalGrowth) {
             return;
         }
 
