@@ -49,7 +49,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 import static net.minecraft.server.command.CommandManager.argument;
@@ -471,10 +471,13 @@ public final class KillItemCommand {
     }
 
     // ClickEvent 与 HoverEvent 的反射解析结果各自独立缓存、独立失败标志，
-    // 一个事件构造失败不会全局禁用另一个事件。懒加载用 synchronized 双检锁，
-    // 保证要么发布完整可用的 styler，要么保持 null；不会出现半初始化状态。
-    private static volatile BiFunction<Style, String, Style> clickStyler;
-    private static volatile BiFunction<Style, Text, Style> hoverStyler;
+    // 一个事件构造失败不会全局禁用另一个事件。解析得到的不可变 EventBindings
+    // 一次性缓存 event class / action class / action 常量 / event 构造器 / Style setter，
+    // 之后每次按钮生成只执行 newInstance + Method.invoke，不再重复任何反射查找。
+    // 懒加载用 synchronized 双检锁，保证要么发布完整可用的 bindings，要么保持 null；
+    // 不会出现半初始化状态。
+    private static volatile EventBindings<String> clickBindings;
+    private static volatile EventBindings<Text> hoverBindings;
     private static final AtomicBoolean CLICK_EVENT_FAILED = new AtomicBoolean(false);
     private static final AtomicBoolean HOVER_EVENT_FAILED = new AtomicBoolean(false);
 
@@ -482,10 +485,10 @@ public final class KillItemCommand {
         if (CLICK_EVENT_FAILED.get()) {
             return style;
         }
-        BiFunction<Style, String, Style> applicator = clickStyler;
-        if (applicator == null) {
+        EventBindings<String> bindings = clickBindings;
+        if (bindings == null) {
             try {
-                applicator = loadClickStyler();
+                bindings = loadClickBindings();
             } catch (Throwable throwable) {
                 CLICK_EVENT_FAILED.set(true);
                 reportTextEventFailure("killitemTextEvents", throwable);
@@ -493,7 +496,8 @@ public final class KillItemCommand {
             }
         }
         try {
-            return applicator.apply(style, command);
+            Object clickEvent = bindings.eventFactory.apply(command);
+            return (Style) bindings.styleSetter.invoke(style, clickEvent);
         } catch (Throwable throwable) {
             CLICK_EVENT_FAILED.set(true);
             reportTextEventFailure("killitemTextEvents", throwable);
@@ -505,10 +509,10 @@ public final class KillItemCommand {
         if (HOVER_EVENT_FAILED.get()) {
             return style;
         }
-        BiFunction<Style, Text, Style> applicator = hoverStyler;
-        if (applicator == null) {
+        EventBindings<Text> bindings = hoverBindings;
+        if (bindings == null) {
             try {
-                applicator = loadHoverStyler();
+                bindings = loadHoverBindings();
             } catch (Throwable throwable) {
                 HOVER_EVENT_FAILED.set(true);
                 reportTextEventFailure("killitemTextEvents", throwable);
@@ -516,7 +520,8 @@ public final class KillItemCommand {
             }
         }
         try {
-            return applicator.apply(style, tr("command.carpet-ice-addition.killitem.button.hover"));
+            Object hoverEvent = bindings.eventFactory.apply(tr("command.carpet-ice-addition.killitem.button.hover"));
+            return (Style) bindings.styleSetter.invoke(style, hoverEvent);
         } catch (Throwable throwable) {
             HOVER_EVENT_FAILED.set(true);
             reportTextEventFailure("killitemTextEvents", throwable);
@@ -529,56 +534,142 @@ public final class KillItemCommand {
         CarpetIceAdditionMod.reportFeatureCompatibilityIssue(featureName, throwable);
     }
 
-    private static BiFunction<Style, String, Style> loadClickStyler() {
-        BiFunction<Style, String, Style> existing = clickStyler;
-        if (existing != null) {
-            return existing;
-        }
-        synchronized (KillItemCommand.class) {
-            if (clickStyler == null) {
-                final Class<?> clickEventClass;
-                try {
-                    clickEventClass = findStyleEventType("RUN_COMMAND");
-                } catch (ReflectiveOperationException e) {
-                    throw new RuntimeException(e);
-                }
-                clickStyler = (style, command) -> {
-                    try {
-                        Object clickEvent = createClickEvent(clickEventClass, command);
-                        return applyStyleEvent(style, clickEventClass, clickEvent);
-                    } catch (ReflectiveOperationException | ClassCastException | IllegalArgumentException e) {
-                        throw new RuntimeException(e);
-                    }
-                };
-            }
-            return clickStyler;
+    // 不可变：解析完成后所有字段不再变化，可安全发布给其它线程。
+    private static final class EventBindings<A> {
+        final Class<?> eventClass;
+        final Method styleSetter;
+        final Function<A, Object> eventFactory;
+
+        EventBindings(Class<?> eventClass, Method styleSetter, Function<A, Object> eventFactory) {
+            this.eventClass = eventClass;
+            this.styleSetter = styleSetter;
+            this.eventFactory = eventFactory;
         }
     }
 
-    private static BiFunction<Style, Text, Style> loadHoverStyler() {
-        BiFunction<Style, Text, Style> existing = hoverStyler;
+    private static EventBindings<String> loadClickBindings() throws ReflectiveOperationException {
+        EventBindings<String> existing = clickBindings;
         if (existing != null) {
             return existing;
         }
         synchronized (KillItemCommand.class) {
-            if (hoverStyler == null) {
-                final Class<?> hoverEventClass;
-                try {
-                    hoverEventClass = findStyleEventType("SHOW_TEXT");
-                } catch (ReflectiveOperationException e) {
-                    throw new RuntimeException(e);
-                }
-                hoverStyler = (style, text) -> {
-                    try {
-                        Object hoverEvent = createHoverEvent(hoverEventClass, text);
-                        return applyStyleEvent(style, hoverEventClass, hoverEvent);
-                    } catch (ReflectiveOperationException | ClassCastException | IllegalArgumentException e) {
-                        throw new RuntimeException(e);
-                    }
-                };
+            if (clickBindings == null) {
+                clickBindings = resolveClickBindings();
             }
-            return hoverStyler;
+            return clickBindings;
         }
+    }
+
+    private static EventBindings<Text> loadHoverBindings() throws ReflectiveOperationException {
+        EventBindings<Text> existing = hoverBindings;
+        if (existing != null) {
+            return existing;
+        }
+        synchronized (KillItemCommand.class) {
+            if (hoverBindings == null) {
+                hoverBindings = resolveHoverBindings();
+            }
+            return hoverBindings;
+        }
+    }
+
+    // 一次性解析 ClickEvent 全部反射元数据：event class、action class、action 常量、
+    // event 构造器、Style setter。解析期复用既有反射原语，解析结果全部缓存进 EventBindings。
+    @SuppressWarnings("unchecked")
+    private static EventBindings<String> resolveClickBindings() throws ReflectiveOperationException {
+        Class<?> clickEventClass = findStyleEventType("RUN_COMMAND");
+        Class<?> actionClass = requireActionClass(clickEventClass, "RUN_COMMAND");
+        Object actionConstant = actionConstant(actionClass, "RUN_COMMAND");
+        Constructor<?> constructor;
+        if (clickEventClass.isInterface()) {
+            constructor = findInterfaceEventConstructor(clickEventClass, actionClass, "RUN_COMMAND", String.class);
+        } else {
+            constructor = clickEventClass.getConstructor(actionClass, String.class);
+        }
+        Method styleSetter = findStyleSetter(clickEventClass);
+        Function<String, Object> factory = command -> {
+            try {
+                if (clickEventClass.isInterface()) {
+                    return constructor.newInstance(command);
+                }
+                return constructor.newInstance(actionConstant, command);
+            } catch (ReflectiveOperationException e) {
+                throw new RuntimeException(e);
+            }
+        };
+        return new EventBindings<>(clickEventClass, styleSetter, factory);
+    }
+
+    // 一次性解析 HoverEvent 全部反射元数据，结构与 resolveClickBindings 对称。
+    @SuppressWarnings("unchecked")
+    private static EventBindings<Text> resolveHoverBindings() throws ReflectiveOperationException {
+        Class<?> hoverEventClass = findStyleEventType("SHOW_TEXT");
+        Class<?> actionClass = requireActionClass(hoverEventClass, "SHOW_TEXT");
+        Object actionConstant = actionConstant(actionClass, "SHOW_TEXT");
+        Constructor<?> constructor;
+        if (hoverEventClass.isInterface()) {
+            constructor = findInterfaceEventConstructor(hoverEventClass, actionClass, "SHOW_TEXT", Text.class);
+        } else {
+            constructor = findLegacyHoverConstructor(hoverEventClass, actionClass);
+        }
+        Method styleSetter = findStyleSetter(hoverEventClass);
+        Function<Text, Object> factory = text -> {
+            try {
+                if (hoverEventClass.isInterface()) {
+                    return constructor.newInstance(text);
+                }
+                return constructor.newInstance(actionConstant, text);
+            } catch (ReflectiveOperationException e) {
+                throw new RuntimeException(e);
+            }
+        };
+        return new EventBindings<>(hoverEventClass, styleSetter, factory);
+    }
+
+    // 接口形态（1.21.5+）：在嵌套实现类中找到形如 (paramType) 的构造器，
+    // 并用 hasAction 验证其产出的事件 action 正确。仅解析期调用一次。
+    private static Constructor<?> findInterfaceEventConstructor(Class<?> eventClass, Class<?> actionClass,
+                                                                String actionName, Class<?> paramType) throws ReflectiveOperationException {
+        for (Class<?> eventImplClass : eventClass.getDeclaredClasses()) {
+            if (eventClass.isAssignableFrom(eventImplClass)) {
+                try {
+                    Constructor<?> constructor = eventImplClass.getDeclaredConstructor(paramType);
+                    Object sample = constructor.newInstance(paramType == String.class ? "" : Text.empty());
+                    if (hasAction(sample, eventClass, actionClass, actionName)) {
+                        return constructor;
+                    }
+                } catch (NoSuchMethodException ignored) {
+                    // Try the next nested event implementation.
+                }
+            }
+        }
+        throw new NoSuchMethodException("No " + actionName + " event implementation");
+    }
+
+    // 旧式 class 形态 HoverEvent：在公有构造器中匹配 (actionClass, Text)。
+    private static Constructor<?> findLegacyHoverConstructor(Class<?> hoverEventClass, Class<?> actionClass) throws NoSuchMethodException {
+        for (Constructor<?> constructor : hoverEventClass.getConstructors()) {
+            Class<?>[] parameterTypes = constructor.getParameterTypes();
+            if (parameterTypes.length == 2
+                    && parameterTypes[0] == actionClass
+                    && parameterTypes[1].isAssignableFrom(Text.class)) {
+                return constructor;
+            }
+        }
+        throw new NoSuchMethodException("No legacy show text hover event constructor");
+    }
+
+    // 在 Style 上找到接受 eventClass 的 setter（返回 Style、单参、参数可赋值）。
+    private static Method findStyleSetter(Class<?> eventClass) throws NoSuchMethodException {
+        for (Method method : Style.class.getMethods()) {
+            Class<?>[] parameterTypes = method.getParameterTypes();
+            if (method.getReturnType() == Style.class
+                    && parameterTypes.length == 1
+                    && parameterTypes[0].isAssignableFrom(eventClass)) {
+                return method;
+            }
+        }
+        throw new NoSuchMethodException("No style event setter for " + eventClass.getName());
     }
 
     private static Class<?> findStyleEventType(String actionName) throws NoSuchMethodException {
@@ -589,59 +680,6 @@ public final class KillItemCommand {
             }
         }
         throw new NoSuchMethodException("No style event type for action " + actionName);
-    }
-
-    private static Object createClickEvent(Class<?> clickEventClass, String command) throws ReflectiveOperationException {
-        Class<?> actionClass = requireActionClass(clickEventClass, "RUN_COMMAND");
-        if (clickEventClass.isInterface()) {
-            for (Class<?> eventImplClass : clickEventClass.getDeclaredClasses()) {
-                if (clickEventClass.isAssignableFrom(eventImplClass)) {
-                    try {
-                        Constructor<?> constructor = eventImplClass.getDeclaredConstructor(String.class);
-                        Object clickEvent = constructor.newInstance(command);
-                        if (hasAction(clickEvent, clickEventClass, actionClass, "RUN_COMMAND")) {
-                            return clickEvent;
-                        }
-                    } catch (NoSuchMethodException ignored) {
-                        // Try the next nested event implementation.
-                    }
-                }
-            }
-            throw new NoSuchMethodException("No run command click event implementation");
-        }
-
-        Constructor<?> constructor = clickEventClass.getConstructor(actionClass, String.class);
-        return constructor.newInstance(actionConstant(actionClass, "RUN_COMMAND"), command);
-    }
-
-    private static Object createHoverEvent(Class<?> hoverEventClass, Text text) throws ReflectiveOperationException {
-        Class<?> actionClass = requireActionClass(hoverEventClass, "SHOW_TEXT");
-        if (hoverEventClass.isInterface()) {
-            for (Class<?> eventImplClass : hoverEventClass.getDeclaredClasses()) {
-                if (hoverEventClass.isAssignableFrom(eventImplClass)) {
-                    try {
-                        Constructor<?> constructor = eventImplClass.getDeclaredConstructor(Text.class);
-                        Object hoverEvent = constructor.newInstance(text);
-                        if (hasAction(hoverEvent, hoverEventClass, actionClass, "SHOW_TEXT")) {
-                            return hoverEvent;
-                        }
-                    } catch (NoSuchMethodException ignored) {
-                        // Try the next nested event implementation.
-                    }
-                }
-            }
-            throw new NoSuchMethodException("No show text hover event implementation");
-        }
-
-        for (Constructor<?> constructor : hoverEventClass.getConstructors()) {
-            Class<?>[] parameterTypes = constructor.getParameterTypes();
-            if (parameterTypes.length == 2
-                    && parameterTypes[0] == actionClass
-                    && parameterTypes[1].isAssignableFrom(Text.class)) {
-                return constructor.newInstance(actionConstant(actionClass, "SHOW_TEXT"), text);
-            }
-        }
-        throw new NoSuchMethodException("No legacy show text hover event constructor");
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
@@ -678,18 +716,6 @@ public final class KillItemCommand {
             }
         }
         return null;
-    }
-
-    private static Style applyStyleEvent(Style style, Class<?> eventClass, Object event) throws ReflectiveOperationException {
-        for (Method method : Style.class.getMethods()) {
-            Class<?>[] parameterTypes = method.getParameterTypes();
-            if (method.getReturnType() == Style.class
-                    && parameterTypes.length == 1
-                    && parameterTypes[0].isAssignableFrom(eventClass)) {
-                return (Style) method.invoke(style, event);
-            }
-        }
-        throw new NoSuchMethodException("No style event setter for " + eventClass.getName());
     }
 
     private static ServerPlayerEntity getPlayer(ServerCommandSource source) throws CommandSyntaxException {
