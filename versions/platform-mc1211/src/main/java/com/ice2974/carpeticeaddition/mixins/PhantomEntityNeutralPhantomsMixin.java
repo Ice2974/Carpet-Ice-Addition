@@ -7,6 +7,7 @@ import java.util.UUID;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.entity.mob.PhantomEntity;
+import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.world.GameRules;
@@ -19,6 +20,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(MobEntity.class)
 public abstract class PhantomEntityNeutralPhantomsMixin implements NeutralPhantomsRetaliationTracker {
+    @Unique
+    private static final String CARPET_ICE_ADDITION$NEUTRAL_PHANTOMS_TARGET_UUID_KEY =
+            "carpet_ice_addition.neutral_phantoms_target_uuid";
+    @Unique
+    private static final String CARPET_ICE_ADDITION$NEUTRAL_PHANTOMS_TARGET_ENTITY_ID_KEY =
+            "carpet_ice_addition.neutral_phantoms_target_entity_id";
+
     @Unique
     private UUID carpetIceAddition$neutralPhantomsTargetUuid;
     @Unique
@@ -52,39 +60,103 @@ public abstract class PhantomEntityNeutralPhantomsMixin implements NeutralPhanto
         }
 
         try {
+            boolean forgiveDeadPlayers = serverWorld.getGameRules().getBoolean(GameRules.FORGIVE_DEAD_PLAYERS);
+
             LivingEntity target = this.getTarget();
-            if (target != null && target.isAlive()) {
-                this.carpetIceAddition$neutralPhantomsTargetEntityId = target.getId();
+            if (target instanceof ServerPlayerEntity targetPlayer
+                    && targetPlayer.getUuid().equals(this.carpetIceAddition$neutralPhantomsTargetUuid)) {
+                if (!targetPlayer.isAlive() || targetPlayer.isRemoved()) {
+                    this.setTarget(null);
+                    if (forgiveDeadPlayers) {
+                        this.carpetIceAddition$clearNeutralPhantomsRetaliationTarget();
+                    } else {
+                        this.carpetIceAddition$neutralPhantomsTargetEntityId = -1;
+                    }
+                    return;
+                }
+                if (targetPlayer.getWorld() != serverWorld) {
+                    this.setTarget(null);
+                    return;
+                }
+                if (forgiveDeadPlayers
+                        && this.carpetIceAddition$neutralPhantomsTargetEntityId != -1
+                        && targetPlayer.getId() != this.carpetIceAddition$neutralPhantomsTargetEntityId) {
+                    this.carpetIceAddition$clearNeutralPhantomsRetaliationTarget();
+                    this.setTarget(null);
+                    return;
+                }
+                this.carpetIceAddition$neutralPhantomsTargetEntityId = targetPlayer.getId();
                 return;
             }
 
-            this.setTarget(null);
+            if (target != null) {
+                this.setTarget(null);
+            }
+
             ServerPlayerEntity player = serverWorld.getServer()
                     .getPlayerManager()
                     .getPlayer(this.carpetIceAddition$neutralPhantomsTargetUuid);
-            if (player != null && player.isAlive()) {
-                if (player.getId() != this.carpetIceAddition$neutralPhantomsTargetEntityId
-                        && serverWorld.getGameRules().getBoolean(GameRules.FORGIVE_DEAD_PLAYERS)) {
+            if (player == null) {
+                return;
+            }
+            if (!player.isAlive() || player.isRemoved()) {
+                if (forgiveDeadPlayers) {
                     this.carpetIceAddition$clearNeutralPhantomsRetaliationTarget();
-                    return;
+                } else {
+                    this.carpetIceAddition$neutralPhantomsTargetEntityId = -1;
                 }
-                this.carpetIceAddition$neutralPhantomsTargetEntityId = player.getId();
-                this.setTarget(player);
                 return;
             }
-
-            if (player != null && serverWorld.getGameRules().getBoolean(GameRules.FORGIVE_DEAD_PLAYERS)) {
+            if (player.getWorld() != serverWorld) {
+                return;
+            }
+            if (forgiveDeadPlayers
+                    && this.carpetIceAddition$neutralPhantomsTargetEntityId != -1
+                    && player.getId() != this.carpetIceAddition$neutralPhantomsTargetEntityId) {
                 this.carpetIceAddition$clearNeutralPhantomsRetaliationTarget();
                 return;
             }
 
-            if (target instanceof ServerPlayerEntity && serverWorld.getGameRules().getBoolean(GameRules.FORGIVE_DEAD_PLAYERS)) {
-                this.carpetIceAddition$clearNeutralPhantomsRetaliationTarget();
-            } else if (player != null) {
-                this.carpetIceAddition$neutralPhantomsTargetEntityId = player.getId();
-            }
+            this.carpetIceAddition$neutralPhantomsTargetEntityId = player.getId();
+            this.setTarget(player);
         } catch (Throwable throwable) {
             CarpetIceAdditionMod.reportFeatureCompatibilityIssue("neutralPhantoms", throwable);
+        }
+    }
+
+    @Inject(method = "writeCustomDataToNbt", at = @At("TAIL"))
+    private void carpetIceAddition$writeNeutralPhantomsRetaliation(NbtCompound nbt, CallbackInfo ci) {
+        if (!((Object) this instanceof PhantomEntity)) {
+            return;
+        }
+        if (this.carpetIceAddition$neutralPhantomsTargetUuid == null) {
+            return;
+        }
+        nbt.putString(
+                CARPET_ICE_ADDITION$NEUTRAL_PHANTOMS_TARGET_UUID_KEY,
+                this.carpetIceAddition$neutralPhantomsTargetUuid.toString());
+        nbt.putInt(
+                CARPET_ICE_ADDITION$NEUTRAL_PHANTOMS_TARGET_ENTITY_ID_KEY,
+                this.carpetIceAddition$neutralPhantomsTargetEntityId);
+    }
+
+    @Inject(method = "readCustomDataFromNbt", at = @At("TAIL"))
+    private void carpetIceAddition$readNeutralPhantomsRetaliation(NbtCompound nbt, CallbackInfo ci) {
+        if (!((Object) this instanceof PhantomEntity)) {
+            return;
+        }
+        if (!nbt.contains(CARPET_ICE_ADDITION$NEUTRAL_PHANTOMS_TARGET_UUID_KEY)) {
+            return;
+        }
+        try {
+            this.carpetIceAddition$neutralPhantomsTargetUuid =
+                    UUID.fromString(nbt.getString(CARPET_ICE_ADDITION$NEUTRAL_PHANTOMS_TARGET_UUID_KEY));
+            this.carpetIceAddition$neutralPhantomsTargetEntityId = nbt.contains(
+                    CARPET_ICE_ADDITION$NEUTRAL_PHANTOMS_TARGET_ENTITY_ID_KEY)
+                    ? nbt.getInt(CARPET_ICE_ADDITION$NEUTRAL_PHANTOMS_TARGET_ENTITY_ID_KEY)
+                    : -1;
+        } catch (IllegalArgumentException exception) {
+            this.carpetIceAddition$clearNeutralPhantomsRetaliationTarget();
         }
     }
 

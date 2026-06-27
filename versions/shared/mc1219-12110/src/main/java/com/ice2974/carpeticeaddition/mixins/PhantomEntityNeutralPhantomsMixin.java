@@ -11,7 +11,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.storage.ReadView;
 import net.minecraft.storage.WriteView;
-import net.minecraft.world.rule.GameRules;
+import net.minecraft.world.GameRules;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -56,8 +56,7 @@ public abstract class PhantomEntityNeutralPhantomsMixin implements NeutralPhanto
         }
 
         try {
-            boolean forgiveDeadPlayers = Boolean.TRUE.equals(
-                    serverWorld.getGameRules().getValue(GameRules.FORGIVE_DEAD_PLAYERS));
+            boolean forgiveDeadPlayers = serverWorld.getGameRules().getBoolean(GameRules.FORGIVE_DEAD_PLAYERS);
 
             LivingEntity target = this.getTarget();
             if (target instanceof ServerPlayerEntity targetPlayer

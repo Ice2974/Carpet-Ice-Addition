@@ -7,11 +7,10 @@ import java.util.UUID;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.entity.mob.PhantomEntity;
+import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.storage.ReadView;
-import net.minecraft.storage.WriteView;
-import net.minecraft.world.rule.GameRules;
+import net.minecraft.world.GameRules;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -56,8 +55,7 @@ public abstract class PhantomEntityNeutralPhantomsMixin implements NeutralPhanto
         }
 
         try {
-            boolean forgiveDeadPlayers = Boolean.TRUE.equals(
-                    serverWorld.getGameRules().getValue(GameRules.FORGIVE_DEAD_PLAYERS));
+            boolean forgiveDeadPlayers = serverWorld.getGameRules().getBoolean(GameRules.FORGIVE_DEAD_PLAYERS);
 
             LivingEntity target = this.getTarget();
             if (target instanceof ServerPlayerEntity targetPlayer
@@ -71,7 +69,7 @@ public abstract class PhantomEntityNeutralPhantomsMixin implements NeutralPhanto
                     }
                     return;
                 }
-                if (targetPlayer.getEntityWorld() != serverWorld) {
+                if (targetPlayer.getWorld() != serverWorld) {
                     this.setTarget(null);
                     return;
                 }
@@ -104,7 +102,7 @@ public abstract class PhantomEntityNeutralPhantomsMixin implements NeutralPhanto
                 }
                 return;
             }
-            if (player.getEntityWorld() != serverWorld) {
+            if (player.getWorld() != serverWorld) {
                 return;
             }
             if (forgiveDeadPlayers
@@ -121,35 +119,37 @@ public abstract class PhantomEntityNeutralPhantomsMixin implements NeutralPhanto
         }
     }
 
-    @Inject(method = "writeCustomData", at = @At("TAIL"))
-    private void carpetIceAddition$writeNeutralPhantomsRetaliation(WriteView view, CallbackInfo ci) {
+    @Inject(method = "writeCustomDataToNbt", at = @At("TAIL"))
+    private void carpetIceAddition$writeNeutralPhantomsRetaliation(NbtCompound nbt, CallbackInfo ci) {
         if (!((Object) this instanceof PhantomEntity)) {
             return;
         }
         if (this.carpetIceAddition$neutralPhantomsTargetUuid == null) {
             return;
         }
-        view.putString(
+        nbt.putString(
                 CARPET_ICE_ADDITION$NEUTRAL_PHANTOMS_TARGET_UUID_KEY,
                 this.carpetIceAddition$neutralPhantomsTargetUuid.toString());
-        view.putInt(
+        nbt.putInt(
                 CARPET_ICE_ADDITION$NEUTRAL_PHANTOMS_TARGET_ENTITY_ID_KEY,
                 this.carpetIceAddition$neutralPhantomsTargetEntityId);
     }
 
-    @Inject(method = "readCustomData", at = @At("TAIL"))
-    private void carpetIceAddition$readNeutralPhantomsRetaliation(ReadView view, CallbackInfo ci) {
+    @Inject(method = "readCustomDataFromNbt", at = @At("TAIL"))
+    private void carpetIceAddition$readNeutralPhantomsRetaliation(NbtCompound nbt, CallbackInfo ci) {
         if (!((Object) this instanceof PhantomEntity)) {
             return;
         }
-        String uuidString = view.getString(CARPET_ICE_ADDITION$NEUTRAL_PHANTOMS_TARGET_UUID_KEY, "");
-        if (uuidString.isEmpty()) {
+        if (!nbt.contains(CARPET_ICE_ADDITION$NEUTRAL_PHANTOMS_TARGET_UUID_KEY)) {
             return;
         }
         try {
-            this.carpetIceAddition$neutralPhantomsTargetUuid = UUID.fromString(uuidString);
-            this.carpetIceAddition$neutralPhantomsTargetEntityId =
-                    view.getInt(CARPET_ICE_ADDITION$NEUTRAL_PHANTOMS_TARGET_ENTITY_ID_KEY, -1);
+            this.carpetIceAddition$neutralPhantomsTargetUuid =
+                    UUID.fromString(nbt.getString(CARPET_ICE_ADDITION$NEUTRAL_PHANTOMS_TARGET_UUID_KEY));
+            this.carpetIceAddition$neutralPhantomsTargetEntityId = nbt.contains(
+                    CARPET_ICE_ADDITION$NEUTRAL_PHANTOMS_TARGET_ENTITY_ID_KEY)
+                    ? nbt.getInt(CARPET_ICE_ADDITION$NEUTRAL_PHANTOMS_TARGET_ENTITY_ID_KEY)
+                    : -1;
         } catch (IllegalArgumentException exception) {
             this.carpetIceAddition$clearNeutralPhantomsRetaliationTarget();
         }
