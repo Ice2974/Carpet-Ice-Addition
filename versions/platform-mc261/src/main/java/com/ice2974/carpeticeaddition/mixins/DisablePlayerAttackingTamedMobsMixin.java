@@ -21,8 +21,7 @@ public abstract class DisablePlayerAttackingTamedMobsMixin {
     @Inject(
             method = "isInvulnerableTo(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/damagesource/DamageSource;)Z",
             at = @At("HEAD"),
-            cancellable = true,
-            require = 0
+            cancellable = true
     )
     private void carpetIceAddition$disablePlayerAttackingTamedMobs(
             ServerLevel world,
