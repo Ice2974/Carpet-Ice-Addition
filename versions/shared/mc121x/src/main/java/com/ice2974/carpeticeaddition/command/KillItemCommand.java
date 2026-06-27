@@ -1,6 +1,7 @@
 package com.ice2974.carpeticeaddition.command;
 
 import carpet.utils.CommandHelper;
+import com.ice2974.carpeticeaddition.CarpetIceAdditionMod;
 import com.ice2974.carpeticeaddition.translation.TranslationFormatUtil;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.BoolArgumentType;
@@ -47,6 +48,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiFunction;
 import java.util.function.Predicate;
 
 import static net.minecraft.server.command.CommandManager.argument;
@@ -467,23 +470,114 @@ public final class KillItemCommand {
         return withHoverEvent(style);
     }
 
+    // ClickEvent 与 HoverEvent 的反射解析结果各自独立缓存、独立失败标志，
+    // 一个事件构造失败不会全局禁用另一个事件。懒加载用 synchronized 双检锁，
+    // 保证要么发布完整可用的 styler，要么保持 null；不会出现半初始化状态。
+    private static volatile BiFunction<Style, String, Style> clickStyler;
+    private static volatile BiFunction<Style, Text, Style> hoverStyler;
+    private static final AtomicBoolean CLICK_EVENT_FAILED = new AtomicBoolean(false);
+    private static final AtomicBoolean HOVER_EVENT_FAILED = new AtomicBoolean(false);
+
     private static Style withClickEvent(Style style, String command) {
-        try {
-            Class<?> clickEventClass = findStyleEventType("RUN_COMMAND");
-            Object clickEvent = createClickEvent(clickEventClass, command);
-            return applyStyleEvent(style, clickEventClass, clickEvent);
-        } catch (ReflectiveOperationException | ClassCastException | IllegalArgumentException ignored) {
+        if (CLICK_EVENT_FAILED.get()) {
             return style;
         }
+        BiFunction<Style, String, Style> applicator = clickStyler;
+        if (applicator == null) {
+            try {
+                applicator = loadClickStyler();
+            } catch (Throwable throwable) {
+                CLICK_EVENT_FAILED.set(true);
+                reportTextEventFailure("killitemTextEvents", throwable);
+                return style;
+            }
+        }
+        try {
+            return applicator.apply(style, command);
+        } catch (Throwable throwable) {
+            CLICK_EVENT_FAILED.set(true);
+            reportTextEventFailure("killitemTextEvents", throwable);
+        }
+        return style;
     }
 
     private static Style withHoverEvent(Style style) {
-        try {
-            Class<?> hoverEventClass = findStyleEventType("SHOW_TEXT");
-            Object hoverEvent = createHoverEvent(hoverEventClass, tr("command.carpet-ice-addition.killitem.button.hover"));
-            return applyStyleEvent(style, hoverEventClass, hoverEvent);
-        } catch (ReflectiveOperationException | ClassCastException | IllegalArgumentException ignored) {
+        if (HOVER_EVENT_FAILED.get()) {
             return style;
+        }
+        BiFunction<Style, Text, Style> applicator = hoverStyler;
+        if (applicator == null) {
+            try {
+                applicator = loadHoverStyler();
+            } catch (Throwable throwable) {
+                HOVER_EVENT_FAILED.set(true);
+                reportTextEventFailure("killitemTextEvents", throwable);
+                return style;
+            }
+        }
+        try {
+            return applicator.apply(style, tr("command.carpet-ice-addition.killitem.button.hover"));
+        } catch (Throwable throwable) {
+            HOVER_EVENT_FAILED.set(true);
+            reportTextEventFailure("killitemTextEvents", throwable);
+        }
+        return style;
+    }
+
+    private static void reportTextEventFailure(String featureName, Throwable throwable) {
+        // 委托给项目既有的 feature-level 兼容性上报机制，首次失败 warn 一次，后续静默 fallback。
+        CarpetIceAdditionMod.reportFeatureCompatibilityIssue(featureName, throwable);
+    }
+
+    private static BiFunction<Style, String, Style> loadClickStyler() {
+        BiFunction<Style, String, Style> existing = clickStyler;
+        if (existing != null) {
+            return existing;
+        }
+        synchronized (KillItemCommand.class) {
+            if (clickStyler == null) {
+                final Class<?> clickEventClass;
+                try {
+                    clickEventClass = findStyleEventType("RUN_COMMAND");
+                } catch (ReflectiveOperationException e) {
+                    throw new RuntimeException(e);
+                }
+                clickStyler = (style, command) -> {
+                    try {
+                        Object clickEvent = createClickEvent(clickEventClass, command);
+                        return applyStyleEvent(style, clickEventClass, clickEvent);
+                    } catch (ReflectiveOperationException | ClassCastException | IllegalArgumentException e) {
+                        throw new RuntimeException(e);
+                    }
+                };
+            }
+            return clickStyler;
+        }
+    }
+
+    private static BiFunction<Style, Text, Style> loadHoverStyler() {
+        BiFunction<Style, Text, Style> existing = hoverStyler;
+        if (existing != null) {
+            return existing;
+        }
+        synchronized (KillItemCommand.class) {
+            if (hoverStyler == null) {
+                final Class<?> hoverEventClass;
+                try {
+                    hoverEventClass = findStyleEventType("SHOW_TEXT");
+                } catch (ReflectiveOperationException e) {
+                    throw new RuntimeException(e);
+                }
+                hoverStyler = (style, text) -> {
+                    try {
+                        Object hoverEvent = createHoverEvent(hoverEventClass, text);
+                        return applyStyleEvent(style, hoverEventClass, hoverEvent);
+                    } catch (ReflectiveOperationException | ClassCastException | IllegalArgumentException e) {
+                        throw new RuntimeException(e);
+                    }
+                };
+            }
+            return hoverStyler;
         }
     }
 
