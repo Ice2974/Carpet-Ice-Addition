@@ -26,8 +26,7 @@ public abstract class CanMineBuddingAmethystMixin {
     @Inject(
             method = "dropStacks(Lnet/minecraft/block/BlockState;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/entity/BlockEntity;Lnet/minecraft/entity/Entity;Lnet/minecraft/item/ItemStack;)V",
             at = @At("HEAD"),
-            cancellable = true,
-            require = 0
+            cancellable = true
     )
     private static void carpetIceAddition$dropBuddingAmethystWithSilkTouch(
             BlockState state,

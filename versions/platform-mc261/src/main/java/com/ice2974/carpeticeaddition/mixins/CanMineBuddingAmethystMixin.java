@@ -26,8 +26,7 @@ public abstract class CanMineBuddingAmethystMixin {
     @Inject(
             method = "dropResources(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/entity/BlockEntity;Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/item/ItemStack;)V",
             at = @At("HEAD"),
-            cancellable = true,
-            require = 0
+            cancellable = true
     )
     private static void carpetIceAddition$dropBuddingAmethystWithSilkTouch(
             BlockState state,
