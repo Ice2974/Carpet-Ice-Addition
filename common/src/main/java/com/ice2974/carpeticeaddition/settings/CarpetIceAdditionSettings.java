@@ -40,6 +40,9 @@ public final class CarpetIceAdditionSettings {
     public static boolean silkTouchFrostedIce = false;
 
     @Rule(categories = {ICE, FEATURE})
+    public static boolean frostedIceProperToolFix = false;
+
+    @Rule(categories = {ICE, FEATURE})
     public static boolean iceLikeMagmaBlocks = false;
 
     @Rule(categories = {ICE, FEATURE})

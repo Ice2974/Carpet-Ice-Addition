@@ -5,6 +5,7 @@
   "mixins": [
     "CanMineBuddingAmethystMixin",
     "CanMineFrostedIceMixin",
+    "FrostedIceProperToolFixMixin",
     "CrafterBlockMixin",
     "RecipeManagerCraftableCoralBlocksMixin",
     "JukeboxManagerRecordWorldEventMixin",

@@ -37,6 +37,7 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
     private static final AtomicBoolean DISABLE_KELP_NATURAL_GROWTH_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean CAN_MINE_BUDDING_AMETHYST_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean CAN_MINE_FROSTED_ICE_ERROR_REPORTED = new AtomicBoolean(false);
+    private static final AtomicBoolean FROSTED_ICE_PROPER_TOOL_FIX_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean ICE_LIKE_MAGMA_BLOCKS_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean DISABLE_NYLIUM_DECAY_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean BOT_TAB_LIST_NAME_ERROR_REPORTED = new AtomicBoolean(false);
@@ -126,6 +127,8 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
             flag = CAN_MINE_BUDDING_AMETHYST_ERROR_REPORTED;
         } else if ("silkTouchFrostedIce".equals(featureName)) {
             flag = CAN_MINE_FROSTED_ICE_ERROR_REPORTED;
+        } else if ("frostedIceProperToolFix".equals(featureName)) {
+            flag = FROSTED_ICE_PROPER_TOOL_FIX_ERROR_REPORTED;
         } else if ("iceLikeMagmaBlocks".equals(featureName)) {
             flag = ICE_LIKE_MAGMA_BLOCKS_ERROR_REPORTED;
         } else if ("disableNyliumDecay".equals(featureName)) {

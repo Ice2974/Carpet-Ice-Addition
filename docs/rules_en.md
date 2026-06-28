@@ -93,6 +93,17 @@ Frosted ice drops 1 regular ice when broken by a player using any tool with the 
 - Possible values: `false`, `true`
 - Categories: `ICE`, `FEATURE`
 
+## frostedIceProperToolFix
+
+Makes pickaxes the proper tools for breaking frosted ice, so that pickaxe mining speed is applied as if it were ice.
+
+Note: For real players to get the full mining-speed experience (break progress matching the server), the client must have both Carpet and this mod fully installed. If the client does not fully install Carpet and this mod, the real player's client-side break animation may not fully match the server's break timing.
+
+- Type: `boolean`
+- Default: `false`
+- Possible values: `false`, `true`
+- Categories: `ICE`, `FEATURE`
+
 ## iceLikeMagmaBlocks
 
 Allows magma blocks broken by players with tools without Silk Touch to generate a lava source using ice-like support checks when the block below is a valid solid block or liquid block.
