@@ -51,13 +51,21 @@ public abstract class PhantomNeutralPhantomsMixin implements NeutralPhantomsReta
 
     @Inject(method = "serverAiStep", at = @At("HEAD"))
     private void carpetIceAddition$tickNeutralPhantomsRetaliation(CallbackInfo ci) {
-        if (!CarpetIceAdditionSettings.neutralPhantoms || this.carpetIceAddition$neutralPhantomsTargetUuid == null) {
+        if (!CarpetIceAdditionSettings.neutralPhantoms) {
             return;
         }
         if (!((Object) this instanceof Phantom phantom)) {
             return;
         }
         try {
+            // 没有反击目标时，清除通过原版 PhantomAttackPlayerTargetGoal 锁定的普通玩家 target，
+            // 使规则开启后已经索敌玩家的幻翼在下一 tick 变中立；不影响非玩家 target。
+            if (this.carpetIceAddition$neutralPhantomsTargetUuid == null) {
+                if (this.getTargetUnchecked() instanceof ServerPlayer) {
+                    this.setTarget(null);
+                }
+                return;
+            }
             ServerLevel serverLevel = (ServerLevel) phantom.level();
             boolean forgiveDeadPlayers = carpetIceAddition$shouldForgiveDeadPlayers(serverLevel);
 

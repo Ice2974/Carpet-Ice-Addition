@@ -48,7 +48,7 @@ public abstract class PhantomEntityNeutralPhantomsMixin implements NeutralPhanto
 
     @Inject(method = "mobTick", at = @At("HEAD"))
     private void carpetIceAddition$tickNeutralPhantomsRetaliation(ServerWorld serverWorld, CallbackInfo ci) {
-        if (!CarpetIceAdditionSettings.neutralPhantoms || this.carpetIceAddition$neutralPhantomsTargetUuid == null) {
+        if (!CarpetIceAdditionSettings.neutralPhantoms) {
             return;
         }
         if (!((Object) this instanceof PhantomEntity)) {
@@ -56,6 +56,14 @@ public abstract class PhantomEntityNeutralPhantomsMixin implements NeutralPhanto
         }
 
         try {
+            // 没有反击目标时，清除通过原版 FindTargetGoal 锁定的普通玩家 target，
+            // 使规则开启后已经索敌玩家的幻翼在下一 tick 变中立；不影响非玩家 target。
+            if (this.carpetIceAddition$neutralPhantomsTargetUuid == null) {
+                if (this.getTarget() instanceof ServerPlayerEntity) {
+                    this.setTarget(null);
+                }
+                return;
+            }
             boolean forgiveDeadPlayers = Boolean.TRUE.equals(
                     serverWorld.getGameRules().getValue(GameRules.FORGIVE_DEAD_PLAYERS));
 
