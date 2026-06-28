@@ -178,7 +178,7 @@ public final class CarpetIceAdditionTranslations {
                 Map.entry("carpet.rule.recordWorldEventFix.desc", "Fixes the issue where a music disc can keep playing after being quickly inserted into and removed from a jukebox, which may also cause overlapping disc audio. See MC-112245."),
                 Map.entry("carpet.rule.spawnersIgnoreInvisiblePlayers.desc", "Normal spawners, trial spawners, and ominous trial spawners ignore invisible players when checking nearby players."),
                 Map.entry("carpet.rule.disableKelpNaturalGrowth.desc", "Disable kelp natural growth from random ticks."),
-                Map.entry("carpet.rule.disableAmethystGrowth.desc", "Budding amethyst blocks will no longer generate or grow amethyst buds or amethyst clusters during random ticks."),
+                Map.entry("carpet.rule.disableAmethystGrowth.desc", "Budding amethyst blocks will no longer generate amethyst buds or advance the growth of amethyst buds during random ticks."),
                 Map.entry("carpet.rule.silkTouchBuddingAmethyst.desc", "Budding amethyst can be collected by using a suitable tool with the Silk Touch enchantment."),
                 Map.entry("carpet.rule.silkTouchFrostedIce.desc", "Frosted ice drops 1 regular ice when broken by a player using any tool with the Silk Touch enchantment."),
                 Map.entry("carpet.rule.frostedIceProperToolFix.desc", "Makes pickaxes the proper tools for breaking frosted ice."),

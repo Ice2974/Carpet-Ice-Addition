@@ -77,7 +77,7 @@ Disables kelp natural growth from random ticks.
 
 ## disableAmethystGrowth
 
-Budding amethyst blocks will no longer generate or grow amethyst buds or amethyst clusters during random ticks.
+Budding amethyst blocks will no longer generate amethyst buds or advance the growth of amethyst buds during random ticks.
 
 - Type: `boolean`
 - Default: `false`
