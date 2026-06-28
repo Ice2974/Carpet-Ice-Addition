@@ -68,7 +68,7 @@
 
 ## 禁用海带自然生长 (disableKelpNaturalGrowth)
 
-禁用海带由随机刻触发的自然生长，不影响骨粉催熟。
+禁用海带由随机刻触发的自然生长。
 
 - 类型: `boolean`
 - 默认值: `false`

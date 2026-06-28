@@ -5,7 +5,7 @@
   "carpet.rule.craftableCoralBlocks.desc": "Allows 9 coral fans of the same type to be crafted into the corresponding coral block, including dead coral variants.",
   "carpet.rule.recordWorldEventFix.desc": "Fixes the issue where a music disc can keep playing after being quickly inserted into and removed from a jukebox, which may also cause overlapping disc audio. See MC-112245.",
   "carpet.rule.spawnersIgnoreInvisiblePlayers.desc": "Normal spawners, trial spawners, and ominous trial spawners ignore invisible players when checking nearby players.",
-  "carpet.rule.disableKelpNaturalGrowth.desc": "Disable kelp natural growth from random ticks while keeping bonemeal growth unchanged.",
+  "carpet.rule.disableKelpNaturalGrowth.desc": "Disable kelp natural growth from random ticks.",
   "carpet.rule.silkTouchBuddingAmethyst.desc": "Budding amethyst can be collected by using a suitable tool with the Silk Touch enchantment.",
   "carpet.rule.silkTouchFrostedIce.desc": "Frosted ice drops 1 regular ice when broken by a player using any tool with the Silk Touch enchantment.",
   "carpet.rule.frostedIceProperToolFix.desc": "Makes pickaxes the proper tools for breaking frosted ice.",

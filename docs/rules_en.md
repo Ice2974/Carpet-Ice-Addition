@@ -68,7 +68,7 @@ Normal spawners, trial spawners, and ominous trial spawners ignore invisible pla
 
 ## disableKelpNaturalGrowth
 
-Disables kelp natural growth from random ticks while keeping bonemeal growth unchanged.
+Disables kelp natural growth from random ticks.
 
 - Type: `boolean`
 - Default: `false`
