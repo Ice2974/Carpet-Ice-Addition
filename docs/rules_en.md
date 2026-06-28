@@ -75,6 +75,15 @@ Disables kelp natural growth from random ticks.
 - Possible values: `false`, `true`
 - Categories: `ICE`, `FEATURE`
 
+## disableAmethystGrowth
+
+Budding amethyst blocks will no longer generate or grow amethyst buds or amethyst clusters during random ticks.
+
+- Type: `boolean`
+- Default: `false`
+- Possible values: `false`, `true`
+- Categories: `ICE`, `FEATURE`
+
 ## silkTouchBuddingAmethyst
 
 Budding amethyst can be collected by using a suitable tool with the Silk Touch enchantment.

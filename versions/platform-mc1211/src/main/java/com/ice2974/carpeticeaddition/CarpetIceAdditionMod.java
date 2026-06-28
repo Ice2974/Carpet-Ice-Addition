@@ -34,6 +34,7 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
     private static final AtomicBoolean RECORD_WORLD_EVENT_FIX_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean SPAWNERS_IGNORE_INVISIBLE_PLAYERS_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean DISABLE_KELP_NATURAL_GROWTH_ERROR_REPORTED = new AtomicBoolean(false);
+    private static final AtomicBoolean DISABLE_AMETHYST_GROWTH_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean CAN_MINE_BUDDING_AMETHYST_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean CAN_MINE_FROSTED_ICE_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean FROSTED_ICE_PROPER_TOOL_FIX_ERROR_REPORTED = new AtomicBoolean(false);
@@ -121,6 +122,8 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
             flag = SPAWNERS_IGNORE_INVISIBLE_PLAYERS_ERROR_REPORTED;
         } else if ("disableKelpNaturalGrowth".equals(featureName)) {
             flag = DISABLE_KELP_NATURAL_GROWTH_ERROR_REPORTED;
+        } else if ("disableAmethystGrowth".equals(featureName)) {
+            flag = DISABLE_AMETHYST_GROWTH_ERROR_REPORTED;
         } else if ("silkTouchBuddingAmethyst".equals(featureName)) {
             flag = CAN_MINE_BUDDING_AMETHYST_ERROR_REPORTED;
         } else if ("silkTouchFrostedIce".equals(featureName)) {

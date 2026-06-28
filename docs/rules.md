@@ -75,6 +75,15 @@
 - 可选值: `false`, `true`
 - 分类: `ICE`, `FEATURE`
 
+## 禁用紫水晶生长 (disableAmethystGrowth)
+
+紫水晶母岩不会再通过随机刻生成或推进紫水晶芽和紫水晶簇的生长。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`
+
 ## 可采集紫水晶母岩 (silkTouchBuddingAmethyst)
 
 紫水晶母岩可使用带有精准采集附魔的合适工具采集。
