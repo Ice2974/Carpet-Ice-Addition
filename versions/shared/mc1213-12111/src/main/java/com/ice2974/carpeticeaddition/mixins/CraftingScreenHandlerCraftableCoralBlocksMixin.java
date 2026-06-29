@@ -1,17 +1,9 @@
 package com.ice2974.carpeticeaddition.mixins;
 
 import com.ice2974.carpeticeaddition.rules.CraftableCoralCraftingRefresher;
-import net.minecraft.inventory.CraftingResultInventory;
-import net.minecraft.inventory.RecipeInputInventory;
-import net.minecraft.recipe.CraftingRecipe;
-import net.minecraft.recipe.RecipeEntry;
+import net.minecraft.inventory.Inventory;
 import net.minecraft.screen.CraftingScreenHandler;
-import net.minecraft.screen.ScreenHandlerContext;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.entity.player.PlayerEntity;
-import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 
 /**
  * 3×3 工作台刷新 mixin（1.21.3~1.21.11）。
@@ -19,17 +11,20 @@ import org.spongepowered.asm.mixin.Shadow;
  * <p>规则切换时强制重算结果槽：直接调用 vanilla public {@link CraftingScreenHandler#onContentChanged}，
  * 让 vanilla 自行走完 {@code updateResult} 流程（B2 过滤在此生效，结果槽被清空/填充并由 vanilla 发包同步客户端）。
  *
- * <p>1.21.3+ 的输入/结果栏位于父类 {@code AbstractCraftingScreenHandler}（{@code craftingInventory} /
- * {@code craftingResultInventory}，protected final）。这里只 shadow 输入栏作为 {@code onContentChanged} 的参数，
- * 避免依赖具体内部状态。
+ * <p>不 {@code @Shadow} 任何字段：输入栏位于父类 {@code AbstractCraftingScreenHandler}（1.21.3+），
+ * 不同版本 {@code @Shadow} 引用的 intermediate 字段（field_52559）在运行时 mixin target（class_1714
+ * CraftingScreenHandler）自身不存在、且项目未生成 refmap，会触发
+ * {@code @Shadow field ... was not located} 崩溃。改为通过 vanilla public
+ * {@code getInputSlots()} 取输入槽、再取其 {@code inventory} 作为 {@code onContentChanged} 参数。
  */
 @Mixin(CraftingScreenHandler.class)
 public abstract class CraftingScreenHandlerCraftableCoralBlocksMixin implements CraftableCoralCraftingRefresher {
-    @Shadow @Final protected RecipeInputInventory craftingInventory;
-
     @Override
     public void carpetIceAddition$refreshCraftingResult() {
         CraftingScreenHandler self = (CraftingScreenHandler) (Object) this;
-        self.onContentChanged(craftingInventory);
+        Inventory craftingInventory = self.getInputSlots().isEmpty() ? null : self.getInputSlots().get(0).inventory;
+        if (craftingInventory != null) {
+            self.onContentChanged(craftingInventory);
+        }
     }
 }
