@@ -176,9 +176,10 @@ public final class CraftableCoralBlocksRecipeBookHelper {
         if (server == null) {
             return;
         }
-        // /reload 后 RecipeEntry 实例重建，必须清空缓存；并重置 incomplete warn，使本次 reload 能重新诊断。
+        // /reload 后 RecipeEntry 实例重建，必须清空缓存；并重置 incomplete / apply-fail warn，使本次 reload 能重新诊断。
         invalidateCoralRecipeCache();
         warnedIncomplete.clear();
+        warnedApplyFail.clear();
         syncRevision++;
         List<RecipeEntry<?>> coral = getCoralRecipes(server, TriggerPath.RELOAD);
         if (coral.isEmpty()) {
