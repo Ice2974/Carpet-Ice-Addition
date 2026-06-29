@@ -104,7 +104,7 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
     @Override
     public void onReload(MinecraftServer server) {
         try {
-            CraftableCoralBlocksRecipeBookHelper.onRuleChanged(server);
+            CraftableCoralBlocksRecipeBookHelper.onReload(server);
         } catch (Throwable throwable) {
             reportFeatureCompatibilityIssue("craftableCoralBlocks", throwable);
         }
@@ -133,6 +133,11 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
     public void onServerClosed(MinecraftServer server) {
         KillItemConfigManager.shutdown();
         MachineStatusConfigManager.shutdown();
+        try {
+            CraftableCoralBlocksRecipeBookHelper.onServerClosed(server);
+        } catch (Throwable throwable) {
+            reportFeatureCompatibilityIssue("craftableCoralBlocks", throwable);
+        }
     }
 
     public static void reportFeatureCompatibilityIssue(String featureName, Throwable throwable) {
