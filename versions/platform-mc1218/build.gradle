@@ -31,6 +31,7 @@ sourceSets {
         }
         resources {
             srcDir project(':common').file('src/main/resources')
+            srcDir rootProject.file('versions/shared/mc1213-12111/src/main/resources')
         }
     }
 }
