@@ -4,6 +4,7 @@ import carpet.CarpetExtension;
 import carpet.CarpetServer;
 import carpet.utils.CommandHelper;
 import com.ice2974.carpeticeaddition.rules.BotTabListNameHelper;
+import com.ice2974.carpeticeaddition.rules.CraftableCoralBlocksRecipeBookHelper;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionEndPlatformSettings;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
 import com.ice2974.carpeticeaddition.translation.CarpetIceAdditionTranslations;
@@ -16,6 +17,7 @@ import net.fabricmc.loader.api.FabricLoader;
 import com.mojang.brigadier.CommandDispatcher;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.command.ServerCommandSource;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.WorldSavePath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,6 +75,11 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
                 }
                 return;
             }
+            if ("craftableCoralBlocks".equals(ruleName)) {
+                MinecraftServer server = source != null ? source.getServer() : CarpetServer.minecraft_server;
+                CraftableCoralBlocksRecipeBookHelper.onRuleChanged(server);
+                return;
+            }
             if (!"botTabListNamePrefix".equals(ruleName) && !"botTabListNameSuffix".equals(ruleName)) {
                 return;
             }
@@ -83,6 +90,24 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
                 reportFeatureCompatibilityIssue("botTabListName", throwable);
             }
         });
+    }
+
+    @Override
+    public void onPlayerLoggedIn(ServerPlayerEntity player) {
+        try {
+            CraftableCoralBlocksRecipeBookHelper.onPlayerJoin(CarpetServer.minecraft_server, player);
+        } catch (Throwable throwable) {
+            reportFeatureCompatibilityIssue("craftableCoralBlocks", throwable);
+        }
+    }
+
+    @Override
+    public void onReload(MinecraftServer server) {
+        try {
+            CraftableCoralBlocksRecipeBookHelper.onRuleChanged(server);
+        } catch (Throwable throwable) {
+            reportFeatureCompatibilityIssue("craftableCoralBlocks", throwable);
+        }
     }
 
     @Override

@@ -28,10 +28,11 @@
     "ServerPlayNetworkHandlerMachineStatusRollbackWarningMixin",
     "ServerWorldPhantomSpawnWarningMixin",
     "ServerWorldRecordWorldEventMixin",
-    "TrialSpawnerDataMixin"
+    "TrialSpawnerDataMixin",
+    "CrafterBlockCraftableCoralBlocksMixin",
+    "CraftingScreenHandlerCraftableCoralBlocksMixin"
   ],
   "injectors": {
     "defaultRequire": 1
   }
 }
-

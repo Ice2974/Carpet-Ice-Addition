@@ -28,11 +28,11 @@
     "PlayerListEntryTabListNameMixin",
     "ServerCommonNetworkHandlerAccessor",
     "ServerPlayNetworkHandlerMachineStatusRollbackWarningMixin",
-    "TrialSpawnerDataMixin"
+    "TrialSpawnerDataMixin",
+    "CrafterBlockCraftableCoralBlocksMixin",
+    "CraftingScreenHandlerCraftableCoralBlocksMixin"
   ],
   "injectors": {
     "defaultRequire": 1
   }
 }
-
-

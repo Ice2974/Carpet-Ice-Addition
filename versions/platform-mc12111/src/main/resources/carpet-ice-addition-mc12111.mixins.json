@@ -30,11 +30,11 @@
     "ServerCommonNetworkHandlerAccessor",
     "ServerPlayNetworkHandlerMachineStatusRollbackWarningMixin",
     "ZombieEntityMobsSpawnWithoutSpearsMixin",
-    "PiglinEntityMobsSpawnWithoutSpearsMixin"
+    "PiglinEntityMobsSpawnWithoutSpearsMixin",
+    "CrafterBlockCraftableCoralBlocksMixin",
+    "CraftingScreenHandlerCraftableCoralBlocksMixin"
   ],
   "injectors": {
     "defaultRequire": 1
   }
 }
-
-
