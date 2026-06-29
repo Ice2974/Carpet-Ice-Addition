@@ -15,6 +15,7 @@ import com.ice2974.carpeticeaddition.command.MachineStatusConfigManager;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
 import com.mojang.brigadier.CommandDispatcher;
+import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -118,7 +119,7 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
 
 
     @Override
-    public void registerCommands(CommandDispatcher<ServerCommandSource> dispatcher) {
+    public void registerCommands(CommandDispatcher<ServerCommandSource> dispatcher, CommandRegistryAccess commandBuildContext) {
         KillItemCommand.register(dispatcher);
         MachineStatusCommand.register(dispatcher);
     }
