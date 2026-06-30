@@ -1,1 +1,1 @@
-> Doc Version: `v2.5.0`
+> Doc Version: `v2.6.0`
