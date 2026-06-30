@@ -30,7 +30,8 @@
     "ServerWorldRecordWorldEventMixin",
     "TrialSpawnerDataMixin",
     "CrafterBlockCraftableCoralBlocksMixin",
-    "CraftingScreenHandlerCraftableCoralBlocksMixin"
+    "CraftingScreenHandlerCraftableCoralBlocksMixin",
+    "CarpetServerOnServerClosedNullFixMixin"
   ],
   "injectors": {
     "defaultRequire": 1

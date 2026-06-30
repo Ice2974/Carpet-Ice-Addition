@@ -246,3 +246,12 @@ Prevents naturally spawned zombies, zombie villagers, husks, zombified piglins, 
 - Default: `false`
 - Possible values: `false`, `true`
 - Categories: `ICE`, `FEATURE`
+
+## carpetSingleplayerExitCrashFix `MC<=1.21.1`
+
+Fixes a Carpet crash that can happen when leaving a singleplayer world after previously joining a Carpet server.
+
+- Type: `boolean`
+- Default: `true`
+- Possible values: `false`, `true`
+- Categories: `ICE`, `BUGFIX`, `CLIENT`

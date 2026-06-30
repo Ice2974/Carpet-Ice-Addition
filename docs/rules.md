@@ -246,3 +246,12 @@
 - 默认值: `false`
 - 可选值: `false`, `true`
 - 分类: `ICE`, `FEATURE`
+
+## Carpet单人退出崩溃修复 (carpetSingleplayerExitCrashFix) `MC<=1.21.1`
+
+修复客户端进入过 Carpet 服务器后，再退出单人世界可能触发的 Carpet 崩溃。
+
+- 类型: `boolean`
+- 默认值: `true`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `BUGFIX`, `CLIENT`

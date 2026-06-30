@@ -6,6 +6,7 @@ import carpet.utils.CommandHelper;
 import com.ice2974.carpeticeaddition.rules.BotTabListNameHelper;
 import com.ice2974.carpeticeaddition.rules.CraftableCoralBlocksRecipeBookHelper;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionEndPlatformSettings;
+import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionLowVersionSettings;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
 import com.ice2974.carpeticeaddition.translation.CarpetIceAdditionTranslations;
 import com.ice2974.carpeticeaddition.command.KillItemCommand;
@@ -68,6 +69,7 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
     public void onGameStarted() {
         CarpetServer.settingsManager.parseSettingsClass(CarpetIceAdditionSettings.class);
         CarpetServer.settingsManager.parseSettingsClass(CarpetIceAdditionEndPlatformSettings.class);
+        CarpetServer.settingsManager.parseSettingsClass(CarpetIceAdditionLowVersionSettings.class);
         CarpetServer.settingsManager.registerRuleObserver((source, rule, userInput) -> {
             String ruleName = rule.name();
             if ("commandKillItem".equals(ruleName) || "commandMachineStatus".equals(ruleName)) {
