@@ -216,5 +216,8 @@ public final class CraftableCoralBlocksRecipeBookHelper {
         warnedIncomplete.clear();
         warnedApplyFail.clear();
         syncRevision = 0;
+        // 复位运行期冲突锁定状态，避免同 JVM 内下一个世界 / 服务器实例残留 conflictLocked=true
+        // 进而影响下一次 carpet.conf 加载或 validator 行为（导致 craftableCoralBlocks true 被错误拒绝）。
+        CraftableCoralBlocksState.setConflictLocked(false);
     }
 }
