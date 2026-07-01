@@ -1,7 +1,8 @@
 package com.ice2974.carpeticeaddition.mixins;
 
+import com.ice2974.carpeticeaddition.rules.CraftableCoralBlocksConflictDetector;
 import com.ice2974.carpeticeaddition.rules.CraftableCoralBlocksRecipes;
-import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
+import com.ice2974.carpeticeaddition.settings.CraftableCoralBlocksSettings;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeHolder;
@@ -18,23 +19,44 @@ import java.util.Optional;
 
 @Mixin(RecipeManager.class)
 public abstract class RecipeManagerCraftableCoralBlocksMixin {
+    /**
+     * 重载 A（普通查询，用于"找一个能合成的配方"）：effective=false 且原返回命中本模组 coral recipe 时，
+     * 改返回一个 namespace 外部的真实匹配，使外部同产物配方继续生效。无外部匹配才返回 empty。
+     */
     @Inject(method = "getRecipeFor(Lnet/minecraft/world/item/crafting/RecipeType;Lnet/minecraft/world/item/crafting/RecipeInput;Lnet/minecraft/world/level/Level;)Ljava/util/Optional;", at = @At("RETURN"), cancellable = true)
     private <I extends RecipeInput, T extends Recipe<I>> void carpetIceAddition$filterCoral(RecipeType<T> type, I input, Level level, CallbackInfoReturnable<Optional<RecipeHolder<T>>> cir) {
-        carpetIceAddition$filterCoral(cir);
+        if (CraftableCoralBlocksSettings.effective()) {
+            return;
+        }
+        Optional<RecipeHolder<T>> ret = cir.getReturnValue();
+        if (ret.isEmpty()) {
+            return;
+        }
+        if (!CraftableCoralBlocksRecipes.isCoralRecipeId(ret.get().id().identifier().toString())) {
+            return;
+        }
+        RecipeManager self = (RecipeManager) (Object) this;
+        cir.setReturnValue(CraftableCoralBlocksConflictDetector.findExternalMatch(self, type, input, level));
     }
 
+    /**
+     * 重载 B（带指定 id）：不找替代，命中本模组 coral recipe 且 effective=false 时返回 empty。
+     */
     @Inject(method = "getRecipeFor(Lnet/minecraft/world/item/crafting/RecipeType;Lnet/minecraft/world/item/crafting/RecipeInput;Lnet/minecraft/world/level/Level;Lnet/minecraft/resources/ResourceKey;)Ljava/util/Optional;", at = @At("RETURN"), cancellable = true)
     private <I extends RecipeInput, T extends Recipe<I>> void carpetIceAddition$filterCoralWithId(RecipeType<T> type, I input, Level level, ResourceKey<Recipe<?>> id, CallbackInfoReturnable<Optional<RecipeHolder<T>>> cir) {
-        carpetIceAddition$filterCoral(cir);
+        carpetIceAddition$filterCoralNoSubstitute(cir);
     }
 
+    /**
+     * 重载 C（带指定 holder）：不找替代，命中本模组 coral recipe 且 effective=false 时返回 empty。
+     */
     @Inject(method = "getRecipeFor(Lnet/minecraft/world/item/crafting/RecipeType;Lnet/minecraft/world/item/crafting/RecipeInput;Lnet/minecraft/world/level/Level;Lnet/minecraft/world/item/crafting/RecipeHolder;)Ljava/util/Optional;", at = @At("RETURN"), cancellable = true)
     private <I extends RecipeInput, T extends Recipe<I>> void carpetIceAddition$filterCoralWithHolder(RecipeType<T> type, I input, Level level, RecipeHolder<T> recipe, CallbackInfoReturnable<Optional<RecipeHolder<T>>> cir) {
-        carpetIceAddition$filterCoral(cir);
+        carpetIceAddition$filterCoralNoSubstitute(cir);
     }
 
-    private static <I extends RecipeInput, T extends Recipe<I>> void carpetIceAddition$filterCoral(CallbackInfoReturnable<Optional<RecipeHolder<T>>> cir) {
-        if (CarpetIceAdditionSettings.craftableCoralBlocks) {
+    private static <T extends Recipe<?>> void carpetIceAddition$filterCoralNoSubstitute(CallbackInfoReturnable<Optional<RecipeHolder<T>>> cir) {
+        if (CraftableCoralBlocksSettings.effective()) {
             return;
         }
         cir.getReturnValue().ifPresent(holder -> {

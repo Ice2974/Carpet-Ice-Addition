@@ -1,6 +1,6 @@
 package com.ice2974.carpeticeaddition.rules;
 
-import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
+import com.ice2974.carpeticeaddition.settings.CraftableCoralBlocksSettings;
 import net.minecraft.recipe.RecipeEntry;
 import net.minecraft.recipe.RecipeManager;
 import net.minecraft.server.MinecraftServer;
@@ -129,7 +129,7 @@ public final class CraftableCoralBlocksRecipeBookHelper {
             return false;
         }
         try {
-            if (CarpetIceAdditionSettings.craftableCoralBlocks) {
+            if (CraftableCoralBlocksSettings.effective()) {
                 player.unlockRecipes(coral);
             } else {
                 player.lockRecipes(coral);

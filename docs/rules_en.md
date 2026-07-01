@@ -47,6 +47,8 @@ Allows 9 coral fans of the same type to be crafted into the corresponding coral 
 - Possible values: `false`, `true`
 - Categories: `ICE`, `FEATURE`
 
+> If another datapack or mod provides a crafting recipe whose output matches one of this rule's built-in coral block recipes, the rule is automatically locked to `false` at runtime (built-in coral recipes stop applying, the external recipe keeps working) and a notice is broadcast to all online players. `carpet.conf` is not modified. Removing the conflicting datapack and running `/reload` releases the lock.
+
 ## recordWorldEventFix
 
 Fixes the issue where a music disc can keep playing after being quickly inserted into and removed from a jukebox, which may also cause overlapping disc audio. See MC-112245.\

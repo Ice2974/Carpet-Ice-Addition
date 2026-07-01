@@ -4,7 +4,10 @@ import carpet.CarpetExtension;
 import carpet.CarpetServer;
 import carpet.utils.CommandHelper;
 import com.ice2974.carpeticeaddition.rules.BotTabListNameHelper;
+import com.ice2974.carpeticeaddition.rules.CraftableCoralBlocksConflictDetector;
 import com.ice2974.carpeticeaddition.rules.CraftableCoralBlocksRecipeBookHelper;
+import com.ice2974.carpeticeaddition.rules.CraftableCoralBlocksState;
+import com.ice2974.carpeticeaddition.settings.CraftableCoralBlocksSettings;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionEndPlatformSettings;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionLowVersionSettings;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
@@ -70,6 +73,7 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
         CarpetServer.settingsManager.parseSettingsClass(CarpetIceAdditionSettings.class);
         CarpetServer.settingsManager.parseSettingsClass(CarpetIceAdditionEndPlatformSettings.class);
         CarpetServer.settingsManager.parseSettingsClass(CarpetIceAdditionLowVersionSettings.class);
+        CarpetServer.settingsManager.parseSettingsClass(CraftableCoralBlocksSettings.class);
         CarpetServer.settingsManager.registerRuleObserver((source, rule, userInput) -> {
             String ruleName = rule.name();
             if ("commandKillItem".equals(ruleName) || "commandMachineStatus".equals(ruleName)) {
@@ -99,6 +103,12 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
     @Override
     public void onPlayerLoggedIn(ServerPlayerEntity player) {
         try {
+            // 冲突锁定且规则字段为 true 时，向加入玩家提示一次（普通玩家也通知：锁定会改变其实际合成行为）
+            if (CraftableCoralBlocksState.isConflictLocked() && CraftableCoralBlocksSettings.craftableCoralBlocks) {
+                player.sendMessage(net.minecraft.text.Text.literal(
+                        com.ice2974.carpeticeaddition.translation.TranslationFormatUtil.translate(
+                                "carpet.rule.craftableCoralBlocks.conflict.locked")));
+            }
             CraftableCoralBlocksRecipeBookHelper.onPlayerJoin(CarpetServer.minecraft_server, player);
         } catch (Throwable throwable) {
             reportFeatureCompatibilityIssue("craftableCoralBlocks", throwable);
@@ -108,6 +118,8 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
     @Override
     public void onReload(MinecraftServer server) {
         try {
+            // 先重新计算冲突锁定状态（更新 effective），再执行 recipe book 同步与菜单刷新
+            CraftableCoralBlocksConflictDetector.recomputeAndNotify(server);
             CraftableCoralBlocksRecipeBookHelper.onReload(server);
         } catch (Throwable throwable) {
             reportFeatureCompatibilityIssue("craftableCoralBlocks", throwable);
@@ -131,6 +143,13 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
     public void onServerLoaded(MinecraftServer server) {
         KillItemConfigManager.initialize(server.getSavePath(WorldSavePath.ROOT));
         MachineStatusConfigManager.initialize(server.getSavePath(WorldSavePath.ROOT));
+        try {
+            // 服务器启动后 recipe 已就绪，检测外部配方冲突并设置运行期锁定状态。
+            // 此时通常无在线玩家，仅写日志；玩家加入时若仍锁定且字段为 true 再提示。
+            CraftableCoralBlocksConflictDetector.recomputeAndNotify(server);
+        } catch (Throwable throwable) {
+            reportFeatureCompatibilityIssue("craftableCoralBlocks", throwable);
+        }
     }
 
     @Override

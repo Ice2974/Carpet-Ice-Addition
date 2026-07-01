@@ -1,6 +1,6 @@
 package com.ice2974.carpeticeaddition.rules;
 
-import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
+import com.ice2974.carpeticeaddition.settings.CraftableCoralBlocksSettings;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -131,7 +131,7 @@ public final class CraftableCoralBlocksRecipeBookHelper {
         }
         try {
             ServerRecipeBook book = player.getRecipeBook();
-            if (CarpetIceAdditionSettings.craftableCoralBlocks) {
+            if (CraftableCoralBlocksSettings.effective()) {
                 player.awardRecipes(coral);
             } else {
                 book.removeRecipes(coral, player);

@@ -4,9 +4,12 @@ import carpet.CarpetExtension;
 import carpet.CarpetServer;
 import carpet.utils.CommandHelper;
 import com.ice2974.carpeticeaddition.rules.BotTabListNameHelper;
+import com.ice2974.carpeticeaddition.rules.CraftableCoralBlocksConflictDetector;
 import com.ice2974.carpeticeaddition.rules.CraftableCoralBlocksRecipeBookHelper;
+import com.ice2974.carpeticeaddition.rules.CraftableCoralBlocksState;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionEndPlatformSettings;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
+import com.ice2974.carpeticeaddition.settings.CraftableCoralBlocksSettings;
 import com.ice2974.carpeticeaddition.translation.CarpetIceAdditionTranslations;
 import com.ice2974.carpeticeaddition.command.KillItemCommand;
 import com.ice2974.carpeticeaddition.command.KillItemConfigManager;
@@ -68,6 +71,7 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
     public void onGameStarted() {
         CarpetServer.settingsManager.parseSettingsClass(CarpetIceAdditionSettings.class);
         CarpetServer.settingsManager.parseSettingsClass(CarpetIceAdditionEndPlatformSettings.class);
+        CarpetServer.settingsManager.parseSettingsClass(CraftableCoralBlocksSettings.class);
         CarpetServer.settingsManager.registerRuleObserver((source, rule, userInput) -> {
             String ruleName = rule.name();
             if ("commandKillItem".equals(ruleName) || "commandMachineStatus".equals(ruleName)) {
@@ -97,6 +101,11 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
     @Override
     public void onPlayerLoggedIn(ServerPlayerEntity player) {
         try {
+            if (CraftableCoralBlocksState.isConflictLocked() && CraftableCoralBlocksSettings.craftableCoralBlocks) {
+                player.sendMessage(net.minecraft.text.Text.literal(
+                        com.ice2974.carpeticeaddition.translation.TranslationFormatUtil.translate(
+                                "carpet.rule.craftableCoralBlocks.conflict.locked")));
+            }
             CraftableCoralBlocksRecipeBookHelper.onPlayerJoin(CarpetServer.minecraft_server, player);
         } catch (Throwable throwable) {
             reportFeatureCompatibilityIssue("craftableCoralBlocks", throwable);
@@ -106,6 +115,7 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
     @Override
     public void onReload(MinecraftServer server) {
         try {
+            CraftableCoralBlocksConflictDetector.recomputeAndNotify(server);
             CraftableCoralBlocksRecipeBookHelper.onReload(server);
         } catch (Throwable throwable) {
             reportFeatureCompatibilityIssue("craftableCoralBlocks", throwable);
@@ -129,6 +139,11 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
     public void onServerLoaded(MinecraftServer server) {
         KillItemConfigManager.initialize(server.getSavePath(WorldSavePath.ROOT));
         MachineStatusConfigManager.initialize(server.getSavePath(WorldSavePath.ROOT));
+        try {
+            CraftableCoralBlocksConflictDetector.recomputeAndNotify(server);
+        } catch (Throwable throwable) {
+            reportFeatureCompatibilityIssue("craftableCoralBlocks", throwable);
+        }
     }
 
     @Override
