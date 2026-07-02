@@ -1,4 +1,19 @@
-> Doc Version: `v2.6.0`
+> Doc Version: `v2.6.1`
+
+## General mechanics
+
+### Crafting recipe conflict lock
+
+Crafting-related rules register built-in recipes from this mod. If another datapack or mod provides a crafting recipe with the same output as one of those built-in recipes, the corresponding rule is automatically locked to `false` at runtime.
+
+When locked:
+- the built-in recipe from this mod stops applying;
+- the external datapack/mod recipe keeps working;
+- `/carpet <ruleName>` shows `false`;
+- `/carpet <ruleName> true` is rejected;
+- all online players receive a notice;
+- `carpet.conf` is not modified;
+- removing the conflicting datapack and running `/reload` releases the lock and restores the previous configured value.
 
 ## safeScaffoldingBreak
 
@@ -46,8 +61,6 @@ Allows 9 coral fans of the same type to be crafted into the corresponding coral 
 - Default: `false`
 - Possible values: `false`, `true`
 - Categories: `ICE`, `FEATURE`
-
-> If another datapack or mod provides a crafting recipe whose output matches one of this rule's built-in coral block recipes, the rule is automatically locked to `false` at runtime (built-in coral recipes stop applying, the external recipe keeps working) and a notice is broadcast to all online players. `carpet.conf` is not modified. Removing the conflicting datapack and running `/reload` releases the lock.
 
 ## recordWorldEventFix
 
