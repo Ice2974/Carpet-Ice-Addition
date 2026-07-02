@@ -101,7 +101,8 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
     @Override
     public void onPlayerLoggedIn(ServerPlayerEntity player) {
         try {
-            if (CraftableCoralBlocksState.isConflictLocked() && CraftableCoralBlocksSettings.craftableCoralBlocks) {
+            // 锁定后字段已被直接压成 false，不能再以字段值作为提示门槛：只要 conflictLocked 即提示加入玩家
+            if (CraftableCoralBlocksState.isConflictLocked()) {
                 player.sendMessage(net.minecraft.text.Text.literal(
                         com.ice2974.carpeticeaddition.translation.TranslationFormatUtil.translate(
                                 "carpet.rule.craftableCoralBlocks.conflict.locked")));
@@ -139,6 +140,14 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
     public void onServerLoaded(MinecraftServer server) {
         KillItemConfigManager.initialize(server.getSavePath(WorldSavePath.ROOT));
         MachineStatusConfigManager.initialize(server.getSavePath(WorldSavePath.ROOT));
+    }
+
+    @Override
+    public void onServerLoadedWorlds(MinecraftServer server) {
+        // 在世界文件完全加载后检测冲突：Carpet onServerLoaded 注入 MinecraftServer.loadLevel 的 HEAD，
+        // 此时 server.getOverworld() 仍为 null，高版本（1.21.3+）检测器构造 SlotDisplayContext 需要非 null
+        // overworld，会在 onServerLoaded 中早返回 false 导致启动漏报。onServerLoadedWorlds 注入 loadLevel
+        // RETURN，overworld 与 RecipeManager 均已就绪。integrated / dedicated server 均触发。
         try {
             CraftableCoralBlocksConflictDetector.recomputeAndNotify(server);
         } catch (Throwable throwable) {

@@ -103,8 +103,8 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
     @Override
     public void onPlayerLoggedIn(ServerPlayerEntity player) {
         try {
-            // 冲突锁定且规则字段为 true 时，向加入玩家提示一次（普通玩家也通知：锁定会改变其实际合成行为）
-            if (CraftableCoralBlocksState.isConflictLocked() && CraftableCoralBlocksSettings.craftableCoralBlocks) {
+            // 锁定后字段已被直接压成 false，不能再以字段值作为提示门槛：只要 conflictLocked 即提示加入玩家
+            if (CraftableCoralBlocksState.isConflictLocked()) {
                 player.sendMessage(net.minecraft.text.Text.literal(
                         com.ice2974.carpeticeaddition.translation.TranslationFormatUtil.translate(
                                 "carpet.rule.craftableCoralBlocks.conflict.locked")));
@@ -143,9 +143,15 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
     public void onServerLoaded(MinecraftServer server) {
         KillItemConfigManager.initialize(server.getSavePath(WorldSavePath.ROOT));
         MachineStatusConfigManager.initialize(server.getSavePath(WorldSavePath.ROOT));
+    }
+
+    @Override
+    public void onServerLoadedWorlds(MinecraftServer server) {
+        // 在世界文件完全加载后检测冲突。1.21.1 检测器虽不依赖 overworld，但统一在此处检测可使
+        // 三平台生命周期一致，且语义更准确（世界加载完成后检测）。onServerLoadedWorlds 注入
+        // MinecraftServer.loadLevel 的 RETURN，overworld 与 RecipeManager 均已就绪，
+        // integrated / dedicated server 均触发。此时通常无在线玩家，仅写日志；玩家加入时再提示。
         try {
-            // 服务器启动后 recipe 已就绪，检测外部配方冲突并设置运行期锁定状态。
-            // 此时通常无在线玩家，仅写日志；玩家加入时若仍锁定且字段为 true 再提示。
             CraftableCoralBlocksConflictDetector.recomputeAndNotify(server);
         } catch (Throwable throwable) {
             reportFeatureCompatibilityIssue("craftableCoralBlocks", throwable);

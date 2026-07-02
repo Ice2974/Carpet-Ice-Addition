@@ -1,5 +1,6 @@
 package com.ice2974.carpeticeaddition.rules;
 
+import com.ice2974.carpeticeaddition.settings.CraftableCoralBlocksSettings;
 import com.ice2974.carpeticeaddition.translation.TranslationFormatUtil;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -100,15 +101,37 @@ public final class CraftableCoralBlocksConflictDetector {
     /**
      * 重新计算冲突锁定状态，并在状态迁移 / reload 仍锁定时广播提示与写日志。
      * 必须在 recipe book 同步与菜单刷新之前调用。
+     *
+     * <p>字段压 false / 恢复 desiredValue 均通过直接静态字段写完成，不经 SettingsManager，
+     * 因此不触发 observer / validator / 配置保存，不修改 {@code carpet.conf}。Carpet
+     * {@code /carpet} 查询走 {@code ParsedRule.value()} 实时反射读字段，故显示与字段一致。
+     * 调用方（{@code onReload}）需在之后显式调用 {@link CraftableCoralBlocksRecipeBookHelper#onReload}
+     * 完成配方书同步——直接字段写不触发 observer，不能依赖 observer 同步。
+     *
+     * <p>异常安全：{@link #detectConflict} 内部已 catch 单条 recipe 异常；若其本身抛出（不应发生），
+     * 由调用方 try/catch 兜底，本方法不修改 conflictLocked / desiredValue / 字段，避免错误恢复或清空。
      */
     public static void recomputeAndNotify(MinecraftServer server) {
         boolean conflict = detectConflict(server);
         boolean wasLocked = CraftableCoralBlocksState.isConflictLocked();
-        CraftableCoralBlocksState.setConflictLocked(conflict);
 
         if (conflict) {
+            if (!wasLocked) {
+                // 新锁定：保存冲突前字段期望值，供解除后恢复
+                CraftableCoralBlocksState.setDesiredValue(CraftableCoralBlocksSettings.craftableCoralBlocks);
+            }
+            // 直接字段写压 false（不触发 observer / 不保存 carpet.conf）
+            CraftableCoralBlocksSettings.craftableCoralBlocks = false;
+            CraftableCoralBlocksState.setConflictLocked(true);
             broadcast(server, "carpet.rule.craftableCoralBlocks.conflict.locked");
         } else if (wasLocked) {
+            // 冲突解除：按 desiredValue 恢复字段，立即清空 desiredValue
+            Boolean desired = CraftableCoralBlocksState.getDesiredValue();
+            if (desired != null) {
+                CraftableCoralBlocksSettings.craftableCoralBlocks = desired;
+            }
+            CraftableCoralBlocksState.setDesiredValue(null);
+            CraftableCoralBlocksState.setConflictLocked(false);
             broadcast(server, "carpet.rule.craftableCoralBlocks.conflict.resolved");
         }
     }
