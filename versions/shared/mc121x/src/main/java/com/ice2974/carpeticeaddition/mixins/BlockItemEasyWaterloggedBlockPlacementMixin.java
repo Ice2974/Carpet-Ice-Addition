@@ -4,12 +4,10 @@ import com.ice2974.carpeticeaddition.CarpetIceAdditionMod;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
 import net.minecraft.block.BlockState;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.fluid.Fluids;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.ItemPlacementContext;
 import net.minecraft.item.Items;
 import net.minecraft.state.property.Properties;
-import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -21,13 +19,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class BlockItemEasyWaterloggedBlockPlacementMixin {
     @Unique
     private static final ThreadLocal<ItemPlacementContext> CARPET_ICE_ADDITION$PLACEMENT_CONTEXT = new ThreadLocal<>();
-    @Unique
-    private static final ThreadLocal<Boolean> CARPET_ICE_ADDITION$SHOULD_SCHEDULE_WATER_TICK = ThreadLocal.withInitial(() -> false);
 
     @Inject(method = "place(Lnet/minecraft/item/ItemPlacementContext;Lnet/minecraft/block/BlockState;)Z", at = @At("HEAD"))
     private void carpetIceAddition$cachePlacementContext(ItemPlacementContext context, BlockState state, CallbackInfoReturnable<Boolean> cir) {
         CARPET_ICE_ADDITION$PLACEMENT_CONTEXT.set(context);
-        CARPET_ICE_ADDITION$SHOULD_SCHEDULE_WATER_TICK.set(false);
     }
 
     @ModifyArg(
@@ -54,11 +49,7 @@ public abstract class BlockItemEasyWaterloggedBlockPlacementMixin {
                 return state;
             }
 
-            BlockState waterloggedState = state.with(Properties.WATERLOGGED, true);
-            if (waterloggedState != state) {
-                CARPET_ICE_ADDITION$SHOULD_SCHEDULE_WATER_TICK.set(true);
-            }
-            return waterloggedState;
+            return state.with(Properties.WATERLOGGED, true);
         } catch (Throwable throwable) {
             CarpetIceAdditionMod.reportFeatureCompatibilityIssue("easyWaterloggedBlockPlacement", throwable);
             return state;
@@ -66,19 +57,7 @@ public abstract class BlockItemEasyWaterloggedBlockPlacementMixin {
     }
 
     @Inject(method = "place(Lnet/minecraft/item/ItemPlacementContext;Lnet/minecraft/block/BlockState;)Z", at = @At("RETURN"))
-    private void carpetIceAddition$scheduleWaterTick(ItemPlacementContext context, BlockState state, CallbackInfoReturnable<Boolean> cir) {
-        try {
-            if (!cir.getReturnValueZ() || !CARPET_ICE_ADDITION$SHOULD_SCHEDULE_WATER_TICK.get()) {
-                return;
-            }
-
-            World world = context.getWorld();
-            world.scheduleFluidTick(context.getBlockPos(), Fluids.WATER, Fluids.WATER.getTickRate(world));
-        } catch (Throwable throwable) {
-            CarpetIceAdditionMod.reportFeatureCompatibilityIssue("easyWaterloggedBlockPlacement", throwable);
-        } finally {
-            CARPET_ICE_ADDITION$PLACEMENT_CONTEXT.remove();
-            CARPET_ICE_ADDITION$SHOULD_SCHEDULE_WATER_TICK.remove();
-        }
+    private void carpetIceAddition$clearPlacementContext(ItemPlacementContext context, BlockState state, CallbackInfoReturnable<Boolean> cir) {
+        CARPET_ICE_ADDITION$PLACEMENT_CONTEXT.remove();
     }
 }
