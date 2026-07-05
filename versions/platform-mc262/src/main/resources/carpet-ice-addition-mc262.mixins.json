@@ -1,0 +1,39 @@
+{
+  "required": true,
+  "package": "com.ice2974.carpeticeaddition.mixins",
+  "compatibilityLevel": "JAVA_25",
+  "mixins": [
+    "CanMineBuddingAmethystMixin",
+    "CanMineFrostedIceMixin",
+    "FrostedIceProperToolFixMixin",
+    "CrafterBlockMixin",
+    "RecipeManagerCraftableCoralBlocksMixin",
+    "JukeboxManagerRecordWorldEventMixin",
+    "KelpNaturalGrowthMixin",
+    "AmethystNaturalGrowthMixin",
+    "LivingEntityNeutralPhantomsMixin",
+    "PhantomAttackPlayerTargetGoalNeutralPhantomsMixin",
+    "PhantomNeutralPhantomsMixin",
+    "PlayerBreakIceLikeMagmaBlocksMixin",
+    "FakePlayerIgnoreThornsDamageMixin",
+    "DisablePlayerAttackingTamedMobsMixin",
+    "ItemFrameMixin",
+    "MobSpawnerLogicMixin",
+    "NyliumDecayMixin",
+    "EndPortalBlockCustomEndPlatformPositionMixin",
+    "BlockItemEasyWaterloggedBlockPlacementMixin",
+    "TrialSpawnerDataMixin",
+    "ServerWorldPhantomSpawnWarningMixin",
+    "ServerWorldRecordWorldEventMixin",
+    "SafeScaffoldingBreakMixin",
+    "PlayerListEntryTabListNameMixin",
+    "ServerGamePacketListenerImplMachineStatusRollbackWarningMixin",
+    "ZombieMobsSpawnWithoutSpearsMixin",
+    "PiglinMobsSpawnWithoutSpearsMixin",
+    "CrafterBlockCraftableCoralBlocksMixin",
+    "CraftingMenuCraftableCoralBlocksMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

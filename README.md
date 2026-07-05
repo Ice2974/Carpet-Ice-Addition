@@ -12,6 +12,7 @@
 | --- | --- | --- |
 | 1.21.x | 维护中 |   |
 | 26.1.x | 维护中 |   |
+| 26.2.x | 维护中 |   |
 
 ## 下载
 - [Github](https://github.com/Ice2974/Carpet-Ice-Addition/releases)

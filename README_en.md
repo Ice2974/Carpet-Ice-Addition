@@ -14,6 +14,7 @@
 | --- | --- | --- |
 | 1.21.x | Maintained |   |
 | 26.1.x | Maintained |   |
+| 26.2.x | Maintained |   |
 
 ## Download
 

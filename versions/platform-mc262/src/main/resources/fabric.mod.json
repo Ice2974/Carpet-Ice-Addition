@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "id": "${id}",
+  "version": "${version}",
+  
+  "name": "${name}",
+  "description": "A Carpet extension mod with practical tweaks and fixes.",
+  "authors": [
+    "Ice2974"
+  ],
+    "contact": {
+    "homepage": "https://github.com/Ice2974/Carpet-Ice-Addition/",
+    "sources": "https://github.com/Ice2974/Carpet-Ice-Addition/",
+    "issues": "https://github.com/Ice2974/Carpet-Ice-Addition/issues"
+  },
+
+  "license": "PolyForm Noncommercial License 1.0.0",
+  "icon": "assets/carpet-ice-addition/icon.png",
+
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.ice2974.carpeticeaddition.CarpetIceAdditionMod"
+    ]
+  },
+  "mixins": [
+    "carpet-ice-addition-mc262.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.19.3",
+    "minecraft": "${minecraft_dependency}",
+    "fabric-api": ">=${fabric_dependency}",
+    "carpet": ">=${carpet_dependency}"
+  }
+}
+
