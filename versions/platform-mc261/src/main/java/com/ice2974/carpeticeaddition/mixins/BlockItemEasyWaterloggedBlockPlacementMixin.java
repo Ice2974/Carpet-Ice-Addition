@@ -34,11 +34,11 @@ public abstract class BlockItemEasyWaterloggedBlockPlacementMixin {
             index = 1
     )
     private BlockState carpetIceAddition$enableWaterlogging(BlockState state) {
-        if (!CarpetIceAdditionSettings.easyWaterloggedBlockPlacement) {
-            return state;
-        }
-
         try {
+            if (!CarpetIceAdditionSettings.easyWaterloggedBlockPlacement) {
+                return state;
+            }
+
             BlockPlaceContext context = CARPET_ICE_ADDITION$PLACEMENT_CONTEXT.get();
             if (context == null) {
                 return state;
@@ -53,6 +53,8 @@ public abstract class BlockItemEasyWaterloggedBlockPlacementMixin {
         } catch (Throwable throwable) {
             CarpetIceAdditionMod.reportFeatureCompatibilityIssue("easyWaterloggedBlockPlacement", throwable);
             return state;
+        } finally {
+            CARPET_ICE_ADDITION$PLACEMENT_CONTEXT.remove();
         }
     }
 
