@@ -72,22 +72,32 @@ public final class ItemFrameInteractionHelper {
         );
     }
 
-    public static void logFixedClearAttempt(UUID entityUuid, boolean fixedState, boolean fixedPaid, boolean refundTriggered) {
+    public static void logFixedClearAttempt(UUID entityUuid, boolean fixedState, boolean creativeMode, boolean refundTriggered) {
         LOGGER.debug(
-                "Clearing fixed item frame: uuid={}, fixedState={}, fixedPaid={}, refundTriggered={}",
+                "Clearing fixed item frame: uuid={}, fixedState={}, creativeMode={}, refundTriggered={}",
                 entityUuid,
                 fixedState,
-                fixedPaid,
+                creativeMode,
                 refundTriggered
         );
     }
 
-    public static void logInvisibleRefundAttempt(UUID entityUuid, boolean invisibleState, boolean invisiblePaid, boolean refundTriggered) {
+    public static void logInvisibleRefundAttempt(UUID entityUuid, boolean invisibleState, boolean creativeMode, boolean refundTriggered) {
         LOGGER.debug(
-                "Breaking item frame: uuid={}, invisibleState={}, invisiblePaid={}, refundTriggered={}",
+                "Breaking item frame: uuid={}, invisibleState={}, creativeMode={}, invisibleRefundTriggered={}",
                 entityUuid,
                 invisibleState,
-                invisiblePaid,
+                creativeMode,
+                refundTriggered
+        );
+    }
+
+    public static void logFixedRefundAttempt(UUID entityUuid, boolean fixedState, boolean creativeMode, boolean refundTriggered) {
+        LOGGER.debug(
+                "Breaking item frame: uuid={}, fixedState={}, creativeMode={}, fixedRefundTriggered={}",
+                entityUuid,
+                fixedState,
+                creativeMode,
                 refundTriggered
         );
     }

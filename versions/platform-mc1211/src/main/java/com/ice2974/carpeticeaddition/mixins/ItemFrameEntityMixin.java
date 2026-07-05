@@ -5,6 +5,7 @@ import com.ice2974.carpeticeaddition.rules.ItemFrameInteractionHelper.FrameCusto
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.ItemEntity;
+import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.entity.decoration.ItemFrameEntity;
 import net.minecraft.entity.player.PlayerEntity;
@@ -26,6 +27,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class ItemFrameEntityMixin {
     @Unique private boolean carpetIceAddition$invisibleFramePaid;
     @Unique private boolean carpetIceAddition$fixedFramePaid;
+    @Unique private boolean carpetIceAddition$invisibleFrameRefunded;
+    @Unique private boolean carpetIceAddition$fixedFrameRefunded;
+    @Unique private DamageSource carpetIceAddition$currentDamageSource;
 
     @Shadow
     private boolean fixed;
@@ -62,6 +66,7 @@ public abstract class ItemFrameEntityMixin {
             case APPLY_INVISIBLE -> {
                 boolean paidBefore = this.carpetIceAddition$invisibleFramePaid;
                 frame.setInvisible(true);
+                this.carpetIceAddition$invisibleFrameRefunded = false;
                 this.carpetIceAddition$invisibleFramePaid = carpetIceAddition$consumeSingleItem(heldStack, player);
                 ItemFrameInteractionHelper.logInvisibleApplied(frame.getUuid(), true, player.isInCreativeMode(), paidBefore, this.carpetIceAddition$invisibleFramePaid);
                 cir.setReturnValue(ActionResult.SUCCESS);
@@ -69,17 +74,20 @@ public abstract class ItemFrameEntityMixin {
             case APPLY_FIXED -> {
                 boolean paidBefore = this.carpetIceAddition$fixedFramePaid;
                 this.fixed = true;
+                this.carpetIceAddition$fixedFrameRefunded = false;
                 this.carpetIceAddition$fixedFramePaid = carpetIceAddition$consumeSingleItem(heldStack, player);
                 ItemFrameInteractionHelper.logFixedApplied(frame.getUuid(), true, player.isInCreativeMode(), paidBefore, this.carpetIceAddition$fixedFramePaid);
                 cir.setReturnValue(ActionResult.SUCCESS);
             }
             case CLEAR_FIXED -> {
-                boolean paidBefore = this.carpetIceAddition$fixedFramePaid;
-                ItemFrameInteractionHelper.logFixedClearAttempt(frame.getUuid(), this.fixed, paidBefore, paidBefore);
-                if (paidBefore) {
+                boolean creativeMode = player.isInCreativeMode();
+                boolean refundTriggered = CarpetIceAdditionSettings.fixedItemFrames && !creativeMode && !this.carpetIceAddition$fixedFrameRefunded;
+                ItemFrameInteractionHelper.logFixedClearAttempt(frame.getUuid(), this.fixed, creativeMode, refundTriggered);
+                if (refundTriggered) {
                     carpetIceAddition$spawnRefundItem((ServerWorld) frame.getEntityWorld(), new ItemStack(Items.GLASS_PANE));
-                    this.carpetIceAddition$fixedFramePaid = false;
                 }
+                this.carpetIceAddition$fixedFrameRefunded = true;
+                this.carpetIceAddition$fixedFramePaid = false;
                 this.fixed = false;
                 cir.setReturnValue(ActionResult.SUCCESS);
             }
@@ -88,15 +96,40 @@ public abstract class ItemFrameEntityMixin {
         }
     }
 
+    @Inject(method = "damage", at = @At("HEAD"))
+    private void carpetIceAddition$captureDamageSource(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
+        this.carpetIceAddition$currentDamageSource = source;
+    }
+
+    @Inject(method = "damage", at = @At("RETURN"))
+    private void carpetIceAddition$clearDamageSource(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
+        this.carpetIceAddition$currentDamageSource = null;
+    }
+
     @Inject(method = "onBreak", at = @At("HEAD"))
-    private void carpetIceAddition$refundPaidInvisibleMaterial(Entity breaker, CallbackInfo ci) {
+    private void carpetIceAddition$refundCustomizationMaterials(Entity breaker, CallbackInfo ci) {
         ItemFrameEntity frame = (ItemFrameEntity) (Object) this;
-        boolean paidBefore = this.carpetIceAddition$invisibleFramePaid;
-        boolean refundTriggered = paidBefore && !frame.getEntityWorld().isClient();
-        ItemFrameInteractionHelper.logInvisibleRefundAttempt(frame.getUuid(), frame.isInvisible(), paidBefore, refundTriggered);
-        if (refundTriggered) {
-            carpetIceAddition$spawnRefundItem((ServerWorld) frame.getEntityWorld(), new ItemStack(Items.PHANTOM_MEMBRANE));
+        boolean creativeDestroyer = carpetIceAddition$isCreativeDestroyer(breaker);
+        ServerWorld world = (ServerWorld) frame.getEntityWorld();
+
+        if (CarpetIceAdditionSettings.invisibleItemFrames && frame.isInvisible() && !this.carpetIceAddition$invisibleFrameRefunded) {
+            boolean refundTriggered = !creativeDestroyer && !frame.getEntityWorld().isClient();
+            ItemFrameInteractionHelper.logInvisibleRefundAttempt(frame.getUuid(), true, creativeDestroyer, refundTriggered);
+            if (refundTriggered) {
+                carpetIceAddition$spawnRefundItem(world, new ItemStack(Items.PHANTOM_MEMBRANE));
+            }
+            this.carpetIceAddition$invisibleFrameRefunded = true;
             this.carpetIceAddition$invisibleFramePaid = false;
+        }
+
+        if (CarpetIceAdditionSettings.fixedItemFrames && this.fixed && !this.carpetIceAddition$fixedFrameRefunded) {
+            boolean refundTriggered = !creativeDestroyer && !frame.getEntityWorld().isClient();
+            ItemFrameInteractionHelper.logFixedRefundAttempt(frame.getUuid(), true, creativeDestroyer, refundTriggered);
+            if (refundTriggered) {
+                carpetIceAddition$spawnRefundItem(world, new ItemStack(Items.GLASS_PANE));
+            }
+            this.carpetIceAddition$fixedFrameRefunded = true;
+            this.carpetIceAddition$fixedFramePaid = false;
         }
     }
 
@@ -118,6 +151,14 @@ public abstract class ItemFrameEntityMixin {
         }
         stack.decrement(1);
         return true;
+    }
+
+    @Unique
+    private boolean carpetIceAddition$isCreativeDestroyer(Entity breaker) {
+        if (this.carpetIceAddition$currentDamageSource != null && this.carpetIceAddition$currentDamageSource.isSourceCreativePlayer()) {
+            return true;
+        }
+        return breaker instanceof PlayerEntity player && player.isInCreativeMode();
     }
 
     @Unique
