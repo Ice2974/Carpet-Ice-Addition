@@ -109,11 +109,15 @@ public abstract class ItemFrameEntityMixin {
     @Inject(method = "onBreak", at = @At("HEAD"))
     private void carpetIceAddition$refundCustomizationMaterials(Entity breaker, CallbackInfo ci) {
         ItemFrameEntity frame = (ItemFrameEntity) (Object) this;
+        if (frame.getEntityWorld().isClient()) {
+            return;
+        }
+
         boolean creativeDestroyer = carpetIceAddition$isCreativeDestroyer(breaker);
         ServerWorld world = (ServerWorld) frame.getEntityWorld();
 
         if (CarpetIceAdditionSettings.invisibleItemFrames && frame.isInvisible() && !this.carpetIceAddition$invisibleFrameRefunded) {
-            boolean refundTriggered = !creativeDestroyer && !frame.getEntityWorld().isClient();
+            boolean refundTriggered = !creativeDestroyer;
             ItemFrameInteractionHelper.logInvisibleRefundAttempt(frame.getUuid(), true, creativeDestroyer, refundTriggered);
             if (refundTriggered) {
                 carpetIceAddition$spawnRefundItem(world, new ItemStack(Items.PHANTOM_MEMBRANE));
@@ -123,7 +127,7 @@ public abstract class ItemFrameEntityMixin {
         }
 
         if (CarpetIceAdditionSettings.fixedItemFrames && this.fixed && !this.carpetIceAddition$fixedFrameRefunded) {
-            boolean refundTriggered = !creativeDestroyer && !frame.getEntityWorld().isClient();
+            boolean refundTriggered = !creativeDestroyer;
             ItemFrameInteractionHelper.logFixedRefundAttempt(frame.getUuid(), true, creativeDestroyer, refundTriggered);
             if (refundTriggered) {
                 carpetIceAddition$spawnRefundItem(world, new ItemStack(Items.GLASS_PANE));
