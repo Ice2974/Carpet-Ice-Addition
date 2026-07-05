@@ -29,7 +29,7 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * craftableCoralBlocks 外部配方冲突检测与外部替代 recipe 查找（26.2 mojmap）。
+ * craftableCoralBlocks 外部配方冲突检测与外部替代 recipe 查找（26.x mojmap）。
  *
  * <p>冲突判定：RecipeManager 中存在 namespace ≠ {@code carpet-ice-addition} 的 crafting 配方，
  * 其输出产物 Item 与本模组自带 10 条 coral recipe 的某个目标产物一致。目标产物集合以
@@ -37,7 +37,7 @@ import java.util.Set;
  *
  * <p>检测范围限定 {@link RecipeType#CRAFTING}：stonecutting / smelting / custom recipe type 等不触发锁定。
  *
- * <p>26.2 无 {@code getAllMatches}，外部替代查找通过遍历 {@link RecipeManager#getRecipes()} 并调用
+ * <p>26.x 无 {@code getAllMatches}，外部替代查找通过遍历 {@link RecipeManager#getRecipes()} 并调用
  * {@link Recipe#matches(RecipeInput, Level)} 实现真实匹配。result 提取走 RecipeDisplay / SlotDisplay（mojmap 命名）。
  */
 public final class CraftableCoralBlocksConflictDetector {

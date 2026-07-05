@@ -6,7 +6,7 @@ import net.minecraft.world.inventory.CraftingMenu;
 import org.spongepowered.asm.mixin.Mixin;
 
 /**
- * 3×3 工作台刷新 mixin（26.2）。
+ * 3×3 工作台刷新 mixin（26.x）。
  *
  * <p>规则切换时强制重算结果槽：直接调用 vanilla public {@link CraftingMenu#slotsChanged}，
  * 让 vanilla 自行走完 {@code slotChangedCraftingGrid} 流程（B2 过滤在此生效，结果槽被清空/填充并由 vanilla 发包同步客户端）。

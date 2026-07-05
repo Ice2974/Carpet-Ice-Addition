@@ -20,7 +20,7 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * 26.1 (mojmap) 珊瑚块配方书同步 Helper。
+ * 26.x (mojmap) 珊瑚块配方书同步 Helper。
  *
  * <p>珊瑚块配方为真实注册的 vanilla shaped recipe（常驻 RecipeManager），规则只作 gate。
  * 本 Helper 负责在规则切换 / 玩家加入 / reload 后，对这 10 条 recipe 做最小 unlock/lock 同步，

@@ -6,7 +6,7 @@ import com.ice2974.carpeticeaddition.rules.CraftableCoralBlocksValidator;
 import static carpet.api.settings.RuleCategory.FEATURE;
 
 /**
- * craftableCoralBlocks 规则的平台侧定义（26.2 mojmap）。
+ * craftableCoralBlocks 规则的平台侧定义（26.x mojmap）。
  *
  * <p>规则字段从 common 的 {@link CarpetIceAdditionSettings} 迁移至此：其 {@link CraftableCoralBlocksValidator}
  * 需引用 MC 类（{@code CommandSourceStack}），无法放入无 MC 依赖的 common 模块。

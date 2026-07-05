@@ -8,7 +8,7 @@ import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * craftableCoralBlocks 规则的自定义 Validator（26.2 mojmap）。
+ * craftableCoralBlocks 规则的自定义 Validator（26.x mojmap）。
  *
  * <p>当处于冲突锁定状态时，拒绝将规则设置为 true，并向命令来源反馈锁定提示；
  * 锁定期用户显式选择 false 时，记录为 {@code desiredValue=false}，供冲突解除后保持 false。
