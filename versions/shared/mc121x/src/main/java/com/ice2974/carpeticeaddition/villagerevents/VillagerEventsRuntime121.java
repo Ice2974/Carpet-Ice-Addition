@@ -52,8 +52,8 @@ public final class VillagerEventsRuntime121 {
 
     public static VillagerEventSnapshot121 snapshot(VillagerEntity villager, Text death) {
         BlockPos pos = villager.getBlockPos();
-        Text identity = VillagerIdentity121.create(villager);
-        return new VillagerEventSnapshot121(SEQUENCE.incrementAndGet(), dimensionId(villager), pos.getX(), pos.getY(), pos.getZ(), identity, death);
+        VillagerIdentity121.Identity identity = VillagerIdentity121.create(villager);
+        return new VillagerEventSnapshot121(SEQUENCE.incrementAndGet(), VillagerDimension121.id(villager), pos.getX(), pos.getY(), pos.getZ(), identity.translated(), identity.fallback(), death);
     }
 
     public static void death(MinecraftServer server, VillagerEventSnapshot121 snapshot) {
@@ -67,7 +67,7 @@ public final class VillagerEventsRuntime121 {
     public static void conversion(MinecraftServer server, String event, VillagerEventSnapshot121 snapshot) {
         if (snapshot == null || !VillagerEventsLogger121.active()) return;
         Session current = current(server);
-        Text identity = TextRenderer121.renderLiteralTree(snapshot.identity(), current.language.state() == State.READY ? current.language.translations() : java.util.Map.of());
+        Text identity = TextRenderer121.renderLiteralTree(current.language.state() == State.READY ? snapshot.identity() : snapshot.fallbackIdentity(), current.language.state() == State.READY ? current.language.translations() : java.util.Map.of());
         if (identity == null) { current.warnOnce("suppressed conversion message with unresolved component"); return; }
         String template = "zombified".equals(event) ? "logger.carpet-ice-addition.villager_events.zombified" : "logger.carpet-ice-addition.villager_events.witch";
         String action = TranslationFormatUtil.translate(template);
@@ -91,17 +91,6 @@ public final class VillagerEventsRuntime121 {
         };
         return Text.literal("[VillagerEvents] ").append(detail).append(" | ").append(dimension).append(" | ")
                 .append(snapshot.x() + ", " + snapshot.y() + ", " + snapshot.z());
-    }
-
-    private static String dimensionId(VillagerEntity villager) {
-        try {
-            Object world;
-            try { world = villager.getClass().getMethod("getWorld").invoke(villager); }
-            catch (ReflectiveOperationException ignored) { world = villager.getClass().getMethod("getEntityWorld").invoke(villager); }
-            Object key = world.getClass().getMethod("getRegistryKey").invoke(world);
-            Object value = key.getClass().getMethod("getValue").invoke(key);
-            return String.valueOf(value);
-        } catch (ReflectiveOperationException ignored) { return "minecraft:overworld"; }
     }
 
     private static final class Session implements AutoCloseable {

@@ -25,4 +25,11 @@ class VanillaLanguageServiceTest {
         VanillaLanguageService.verifySha1("abc".getBytes(StandardCharsets.UTF_8), "a9993e364706816aba3e25717850c26c9cd0d89d");
         assertThrows(IOException.class, () -> VanillaLanguageService.verifySha1("abc".getBytes(StandardCharsets.UTF_8), "0000000000000000000000000000000000000000"));
     }
+    @Test void acceptsOnlyRenderedVanillaPlaceholderSubset() {
+        assertTrue(VanillaFormatString.isSupported("%s %1$s %%"));
+        assertFalse(VanillaFormatString.isSupported("%d"));
+        assertFalse(VanillaFormatString.isSupported("%1$d"));
+        assertFalse(VanillaFormatString.isSupported("%"));
+        assertFalse(VanillaFormatString.isSupported("%1s"));
+    }
 }

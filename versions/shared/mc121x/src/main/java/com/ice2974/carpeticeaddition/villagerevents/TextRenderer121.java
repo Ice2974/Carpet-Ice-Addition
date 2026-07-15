@@ -48,13 +48,16 @@ final class TextRenderer121 {
     }
 
     private static MutableText format(TranslatableTextContent content, String format, Map<String, String> language, Text rootVictim, int depth) {
+        if (!VanillaFormatString.isSupported(format)) return null;
         Object[] args = content.getArgs();
         MutableText result = Text.empty();
         Matcher matcher = FORMAT.matcher(format);
         int index = 0;
         int nextImplicit = 0;
         while (matcher.find()) {
-            result.append(format.substring(index, matcher.start()));
+            String literal = format.substring(index, matcher.start());
+            if (literal.indexOf('%') >= 0) return null;
+            result.append(literal);
             index = matcher.end();
             if ("%".equals(matcher.group(2))) { result.append("%"); continue; }
             int argument = matcher.group(1) == null ? nextImplicit++ : Integer.parseInt(matcher.group(1)) - 1;
@@ -70,7 +73,9 @@ final class TextRenderer121 {
                 return null;
             }
         }
-        result.append(format.substring(index));
+        String trailing = format.substring(index);
+        if (trailing.indexOf('%') >= 0) return null;
+        result.append(trailing);
         return result;
     }
 }

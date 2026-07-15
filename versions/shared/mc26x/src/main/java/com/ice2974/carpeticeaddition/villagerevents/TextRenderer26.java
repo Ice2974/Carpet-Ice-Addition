@@ -38,9 +38,12 @@ final class TextRenderer26 {
         return result;
     }
     private static MutableComponent format(TranslatableContents content, String format, Map<String, String> language, Component victim, int depth) {
+        if (!VanillaFormatString.isSupported(format)) return null;
         MutableComponent result = Component.empty(); Object[] args = content.getArgs(); Matcher matcher = FORMAT.matcher(format); int at = 0; int implicit = 0;
         while (matcher.find()) {
-            result.append(format.substring(at, matcher.start())); at = matcher.end();
+            String literal = format.substring(at, matcher.start());
+            if (literal.indexOf('%') >= 0) return null;
+            result.append(literal); at = matcher.end();
             if ("%".equals(matcher.group(2))) { result.append("%"); continue; }
             int index = matcher.group(1) == null ? implicit++ : Integer.parseInt(matcher.group(1)) - 1;
             if (index < 0 || index >= args.length) return null;
@@ -49,6 +52,8 @@ final class TextRenderer26 {
             else if (value instanceof String || value instanceof Number || value instanceof Boolean) result.append(String.valueOf(value));
             else return null;
         }
-        return result.append(format.substring(at));
+        String trailing = format.substring(at);
+        if (trailing.indexOf('%') >= 0) return null;
+        return result.append(trailing);
     }
 }

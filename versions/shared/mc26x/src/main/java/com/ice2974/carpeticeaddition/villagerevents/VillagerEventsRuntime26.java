@@ -30,8 +30,8 @@ public final class VillagerEventsRuntime26 {
     }
     public static VillagerEventSnapshot26 captureDeath(Villager villager, DamageSource source) { return VillagerEventsLogger26.active() ? snapshot(villager, source.getLocalizedDeathMessage(villager)) : null; }
     public static VillagerEventSnapshot26 snapshot(Villager villager, Component death) {
-        Component identity = VillagerIdentity26.create(villager);
-        return new VillagerEventSnapshot26(SEQUENCE.incrementAndGet(), villager.level().dimension().identifier().toString(), villager.blockPosition().getX(), villager.blockPosition().getY(), villager.blockPosition().getZ(), identity, death);
+        VillagerIdentity26.Identity identity = VillagerIdentity26.create(villager);
+        return new VillagerEventSnapshot26(SEQUENCE.incrementAndGet(), villager.level().dimension().identifier().toString(), villager.blockPosition().getX(), villager.blockPosition().getY(), villager.blockPosition().getZ(), identity.translated(), identity.fallback(), death);
     }
     public static void death(MinecraftServer server, VillagerEventSnapshot26 snapshot) {
         if (snapshot == null || !VillagerEventsLogger26.active()) return;
@@ -48,7 +48,7 @@ public final class VillagerEventsRuntime26 {
     public static void conversion(MinecraftServer server, String event, VillagerEventSnapshot26 snapshot) {
         if (snapshot == null || !VillagerEventsLogger26.active()) return;
         Session current = current(server);
-        Component identity = TextRenderer26.renderLiteralTree(snapshot.identity(), current.language.state() == VanillaLanguageService.State.READY ? current.language.translations() : java.util.Map.of());
+        Component identity = TextRenderer26.renderLiteralTree(current.language.state() == VanillaLanguageService.State.READY ? snapshot.identity() : snapshot.fallbackIdentity(), current.language.state() == VanillaLanguageService.State.READY ? current.language.translations() : java.util.Map.of());
         if (identity == null) { current.warnOnce("suppressed conversion message with unresolved component"); return; }
         String template = "zombified".equals(event) ? "logger.carpet-ice-addition.villager_events.zombified" : "logger.carpet-ice-addition.villager_events.witch";
         String action = TranslationFormatUtil.translate(template);

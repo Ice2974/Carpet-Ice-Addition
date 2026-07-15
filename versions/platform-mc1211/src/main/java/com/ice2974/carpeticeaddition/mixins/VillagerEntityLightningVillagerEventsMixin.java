@@ -5,6 +5,7 @@ import com.ice2974.carpeticeaddition.villagerevents.VillagerEventSnapshot121;
 import com.ice2974.carpeticeaddition.villagerevents.VillagerEventState;
 import com.ice2974.carpeticeaddition.villagerevents.VillagerEventsCompatibility;
 import com.ice2974.carpeticeaddition.villagerevents.VillagerEventsRuntime121;
+import com.ice2974.carpeticeaddition.villagerevents.VillagerEventConversionScope121;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.passive.VillagerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -21,8 +22,9 @@ public abstract class VillagerEntityLightningVillagerEventsMixin {
         VillagerEventState state = (VillagerEventState) self;
         VillagerEventSnapshot121 snapshot = VillagerEventsRuntime121.snapshot(self, null);
         try { state.carpetIceAddition$beginConversion(snapshot); } catch (Throwable error) { VillagerEventsCompatibility.report(error); }
-        world.spawnEntityAndPassengers(witch);
-        try { state.carpetIceAddition$recordConversionSpawn(true); } catch (Throwable error) { VillagerEventsCompatibility.report(error); }
+        VillagerEventConversionScope121.push(state);
+        try { world.spawnEntityAndPassengers(witch); }
+        finally { VillagerEventConversionScope121.pop(state); }
     }
 
     @Redirect(method = "onStruckByLightning", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/passive/VillagerEntity;discard()V"))

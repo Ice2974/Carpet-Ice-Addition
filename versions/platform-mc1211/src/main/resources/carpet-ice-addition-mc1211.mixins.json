@@ -5,6 +5,7 @@
   "mixins": [
     "VillagerEntityVillagerEventsMixin",
     "VillagerEntityLightningVillagerEventsMixin",
+    "ServerWorldAccessVillagerEventsMixin",
     "MobEntityVillagerConversionMixin",
     "ZombieEntityVillagerEventsMixin",
     "CanMineBuddingAmethystMixin",
