@@ -7,10 +7,6 @@ import com.ice2974.carpeticeaddition.villagerevents.VillagerEventsCompatibility;
 import carpet.CarpetServer;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.passive.VillagerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.world.World;
-import org.spongepowered.asm.mixin.Final;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -19,7 +15,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(VillagerEntity.class)
 public abstract class VillagerEntityVillagerEventsMixin implements VillagerEventState {
-    @Shadow @Final private World world;
     @Unique private VillagerEventSnapshot121 carpetIceAddition$deathSnapshot;
     @Unique private VillagerEventSnapshot121 carpetIceAddition$conversionSnapshot;
     @Unique private boolean carpetIceAddition$conversionActive;
@@ -30,7 +25,7 @@ public abstract class VillagerEntityVillagerEventsMixin implements VillagerEvent
     @Inject(method = "onDeath", at = @At("HEAD"))
     private void carpetIceAddition$captureDeath(DamageSource source, CallbackInfo ci) {
         VillagerEntity self = (VillagerEntity) (Object) this;
-        try { if (world instanceof ServerWorld) carpetIceAddition$beginDeath(VillagerEventsRuntime121.captureDeath(self, source)); }
+        try { if (CarpetServer.minecraft_server != null) carpetIceAddition$beginDeath(VillagerEventsRuntime121.captureDeath(self, source)); }
         catch (Throwable error) { carpetIceAddition$clearVillagerEventState(); VillagerEventsCompatibility.report("death_capture", error); }
     }
 
