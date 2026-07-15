@@ -1,12 +1,13 @@
 package com.ice2974.carpeticeaddition.mixins;
 
+import com.ice2974.carpeticeaddition.villagerevents.VillagerDeathSide121;
 import com.ice2974.carpeticeaddition.villagerevents.VillagerEventSnapshot121;
 import com.ice2974.carpeticeaddition.villagerevents.VillagerEventState;
 import com.ice2974.carpeticeaddition.villagerevents.VillagerEventsRuntime121;
 import com.ice2974.carpeticeaddition.villagerevents.VillagerEventsCompatibility;
-import carpet.CarpetServer;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.passive.VillagerEntity;
+import net.minecraft.server.world.ServerWorld;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -25,7 +26,11 @@ public abstract class VillagerEntityVillagerEventsMixin implements VillagerEvent
     @Inject(method = "onDeath", at = @At("HEAD"))
     private void carpetIceAddition$captureDeath(DamageSource source, CallbackInfo ci) {
         VillagerEntity self = (VillagerEntity) (Object) this;
-        try { if (CarpetServer.minecraft_server != null) carpetIceAddition$beginDeath(VillagerEventsRuntime121.captureDeath(self, source)); }
+        try {
+            carpetIceAddition$clearVillagerEventState();
+            if (VillagerDeathSide121.serverWorld(self) == null) return;
+            carpetIceAddition$beginDeath(VillagerEventsRuntime121.captureDeath(self, source));
+        }
         catch (Throwable error) { carpetIceAddition$clearVillagerEventState(); VillagerEventsCompatibility.report("death_capture", error); }
     }
 
@@ -33,8 +38,11 @@ public abstract class VillagerEntityVillagerEventsMixin implements VillagerEvent
     private void carpetIceAddition$reportDeath(DamageSource source, CallbackInfo ci) {
         VillagerEntity self = (VillagerEntity) (Object) this;
         try {
-            if (!carpetIceAddition$convertedDuringDeath && carpetIceAddition$deathSnapshot != null && CarpetServer.minecraft_server != null) {
-                VillagerEventsRuntime121.death(CarpetServer.minecraft_server, carpetIceAddition$deathSnapshot);
+            ServerWorld world = VillagerDeathSide121.serverWorld(self);
+            VillagerEventSnapshot121 snapshot = carpetIceAddition$deathSnapshot;
+            boolean converted = carpetIceAddition$convertedDuringDeath;
+            if (world != null && !converted && snapshot != null) {
+                VillagerEventsRuntime121.death(world.getServer(), snapshot);
             }
         }
         catch (Throwable error) { VillagerEventsCompatibility.report("death_report", error); }

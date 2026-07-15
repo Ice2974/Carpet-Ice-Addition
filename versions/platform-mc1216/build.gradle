@@ -21,6 +21,7 @@ sourceSets {
     main {
         java {
             srcDir rootProject.file('versions/shared/mc121x/src/main/java')
+            srcDir rootProject.file('versions/shared/mc1211-1218/src/main/java')
             srcDir rootProject.file('versions/shared/mc1213-12111/src/main/java')
             srcDir rootProject.file('versions/shared/mc1213-12110/src/main/java')
             srcDir rootProject.file('versions/shared/mc1215-12111/src/main/java')

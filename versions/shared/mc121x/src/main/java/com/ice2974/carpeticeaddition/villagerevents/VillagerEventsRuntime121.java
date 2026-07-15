@@ -60,7 +60,7 @@ public final class VillagerEventsRuntime121 {
         if (snapshot == null || !VillagerEventsLogger121.active()) return;
         Session current = current(server);
         if (current.language.state() == State.LOADING) return;
-        if (current.language.state() == State.FAILED) { current.warnOnce("death output paused because vanilla language loading failed"); return; }
+        if (current.language.state() == State.FAILED) return;
         sendDeath(current, snapshot);
     }
 
@@ -100,6 +100,7 @@ public final class VillagerEventsRuntime121 {
         private final String locale;
         private final VanillaLanguageService language;
         private final AtomicBoolean warned = new AtomicBoolean();
+        private final AtomicBoolean languageFailureWarned = new AtomicBoolean();
         private volatile boolean closed;
 
         private Session(MinecraftServer server) {
@@ -111,11 +112,17 @@ public final class VillagerEventsRuntime121 {
                     .getMetadata().getVersion().getFriendlyString();
             this.language = new VanillaLanguageService(minecraftVersion, locale, root, VillagerEventsRuntime121.class.getClassLoader(), LOGGER);
             this.language.start(ignored -> server.execute(() -> {
-                if (closed || session != this || language.state() != State.READY) return;
+                if (closed || session != this) return;
+                if (language.state() == State.FAILED) warnLanguageFailureOnce();
             }));
         }
 
         private void warnOnce(String message) { if (warned.compareAndSet(false, true)) LOGGER.warn("[VillagerEvents] {}", message); }
+        private void warnLanguageFailureOnce() {
+            if (languageFailureWarned.compareAndSet(false, true)) {
+                LOGGER.warn("[VillagerEvents] Death output is unavailable for this server session because the vanilla {} language resource failed to load. Restore network access or provide a valid cache, then restart the server.", locale);
+            }
+        }
         @Override public void close() { closed = true; language.close(); }
     }
 }
