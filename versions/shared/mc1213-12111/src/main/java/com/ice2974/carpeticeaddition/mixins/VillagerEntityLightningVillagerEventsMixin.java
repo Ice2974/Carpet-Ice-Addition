@@ -20,16 +20,23 @@ public abstract class VillagerEntityLightningVillagerEventsMixin {
     @Redirect(method = "onStruckByLightning", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/passive/VillagerEntity;convertTo(Lnet/minecraft/entity/EntityType;Lnet/minecraft/entity/conversion/EntityConversionContext;Lnet/minecraft/entity/conversion/EntityConversionContext$Finalizer;)Lnet/minecraft/entity/mob/MobEntity;"))
     private MobEntity carpetIceAddition$observeWitch(VillagerEntity villager, EntityType<? extends MobEntity> type,
                                                      EntityConversionContext context, EntityConversionContext.Finalizer<?> finalizer) {
-        VillagerEventState state = (VillagerEventState) villager;
-        VillagerEventSnapshot121 snapshot = VillagerEventsRuntime121.snapshot(villager, null);
-        try { state.carpetIceAddition$beginConversion(snapshot); } catch (Throwable error) { VillagerEventsCompatibility.report(error); }
+        VillagerEventState state = null; VillagerEventSnapshot121 snapshot = null; boolean observing = false;
+        try {
+            state = (VillagerEventState) villager;
+            snapshot = VillagerEventsRuntime121.snapshot(villager, null);
+            state.carpetIceAddition$abortConversion(); state.carpetIceAddition$beginConversion(snapshot); observing = true;
+        } catch (Throwable error) {
+            VillagerEventsCompatibility.report("witch_conversion", error);
+            if (state != null) try { state.carpetIceAddition$abortConversion(); } catch (Throwable cleanup) { VillagerEventsCompatibility.report("witch_conversion", cleanup); }
+        }
         MobEntity result = null; boolean returned = false;
         try { result = villager.convertTo(type, context, (EntityConversionContext.Finalizer) finalizer); returned = true; return result; }
         finally {
-            if (returned) try {
+            if (returned && observing) try {
                 if (state.carpetIceAddition$finishConversion(result instanceof WitchEntity) && CarpetServer.minecraft_server != null) VillagerEventsRuntime121.conversion(CarpetServer.minecraft_server, "witch", snapshot);
-            } catch (Throwable error) { VillagerEventsCompatibility.report(error); }
-            else try { state.carpetIceAddition$finishConversion(false); } catch (Throwable error) { VillagerEventsCompatibility.report(error); }
+            } catch (Throwable error) { VillagerEventsCompatibility.report("witch_conversion", error); }
+            finally { if (observing) try { state.carpetIceAddition$abortConversion(); } catch (Throwable cleanup) { VillagerEventsCompatibility.report("witch_conversion", cleanup); } }
+            else if (observing) try { state.carpetIceAddition$abortConversion(); } catch (Throwable error) { VillagerEventsCompatibility.report("witch_conversion", error); }
         }
     }
 }

@@ -10,5 +10,6 @@ public interface VillagerEventState {
     void carpetIceAddition$recordConversionSpawn(boolean accepted);
     void carpetIceAddition$recordConversionDiscard();
     boolean carpetIceAddition$finishConversion(boolean returnedEntity);
+    void carpetIceAddition$abortConversion();
     void carpetIceAddition$clearVillagerEventState();
 }

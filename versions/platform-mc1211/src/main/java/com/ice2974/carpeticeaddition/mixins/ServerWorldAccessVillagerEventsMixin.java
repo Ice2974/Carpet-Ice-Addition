@@ -14,8 +14,8 @@ public interface ServerWorldAccessVillagerEventsMixin {
     @Redirect(method = "spawnEntityAndPassengers", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/ServerWorldAccess;spawnEntity(Lnet/minecraft/entity/Entity;)Z"))
     private boolean carpetIceAddition$observePassengerSpawn(ServerWorldAccess world, Entity entity) {
         boolean accepted = world.spawnEntity(entity);
-        try { VillagerEventConversionScope121.recordSpawn(accepted); }
-        catch (Throwable error) { VillagerEventsCompatibility.report(error); }
+        try { VillagerEventConversionScope121.recordSpawn(entity, accepted); }
+        catch (Throwable error) { VillagerEventsCompatibility.report("conversion_spawn", error); }
         return accepted;
     }
 }

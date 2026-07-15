@@ -24,10 +24,10 @@ public final class VillagerEventsRuntime121 {
 
     private VillagerEventsRuntime121() { }
 
-    public static void onServerLoaded(MinecraftServer server) { replace(server); }
+    public static void onServerLoaded(MinecraftServer server) { VillagerEventsCompatibility.beginServerSession(); replace(server); }
     public static void onServerClosed(MinecraftServer server) {
         Session current = session;
-        if (current != null && current.server == server) { current.close(); session = null; }
+        if (current != null && current.server == server) { current.close(); session = null; } VillagerEventsCompatibility.endServerSession();
     }
 
     private static Session current(MinecraftServer server) {

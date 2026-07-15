@@ -19,18 +19,20 @@ final class VillagerIdentity26 {
         else {
             var profession = villager.getVillagerData().profession();
             Identifier id = profession.unwrapKey().map(ResourceKey::identifier).orElse(null);
-            String identifier = String.valueOf(id);
+            String identifier = id == null ? null : id.toString();
             if ("minecraft:nitwit".equals(identifier)) identity = TranslationFormatUtil.translate("logger.carpet-ice-addition.villager_events.nitwit");
             else if ("minecraft:none".equals(identifier)) identity = TranslationFormatUtil.translate("logger.carpet-ice-addition.villager_events.unemployed");
-            else return named(villager, professionName(id), Component.literal(identifier));
+            else return named(villager, professionName(id), fallbackName(id));
         }
         Component value = Component.literal(identity);
         return named(villager, value, value.copy());
     }
     private static Component professionName(Identifier id) {
+        if (id == null) { VillagerEventsCompatibility.report("identity", new IllegalStateException("Villager profession has no registry key")); return Component.literal(TranslationFormatUtil.translate("logger.carpet-ice-addition.villager_events.unknown_profession")); }
         if (id != null && "minecraft".equals(id.getNamespace())) return Component.translatable("entity.minecraft.villager." + id.getPath());
-        return Component.literal(String.valueOf(id));
+        return Component.literal(id.toString());
     }
+    private static Component fallbackName(Identifier id) { return id == null ? Component.literal(TranslationFormatUtil.translate("logger.carpet-ice-addition.villager_events.unknown_profession")) : Component.literal(id.toString()); }
     private static Identity named(Villager villager, Component result, Component fallback) {
         if (!villager.hasCustomName()) return new Identity(result, fallback);
         Component name = villager.getCustomName().copy();

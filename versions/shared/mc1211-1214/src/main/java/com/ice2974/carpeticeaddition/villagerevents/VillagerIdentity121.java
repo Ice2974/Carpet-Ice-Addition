@@ -18,15 +18,17 @@ final class VillagerIdentity121 {
                 : profession == VillagerProfession.NITWIT ? Text.literal(TranslationFormatUtil.translate("logger.carpet-ice-addition.villager_events.nitwit"))
                 : profession == VillagerProfession.NONE ? Text.literal(TranslationFormatUtil.translate("logger.carpet-ice-addition.villager_events.unemployed"))
                 : professionName(id);
-        Text fallback = villager.isBaby() || profession == VillagerProfession.NITWIT || profession == VillagerProfession.NONE ? result.copy() : Text.literal(String.valueOf(id));
+        Text fallback = villager.isBaby() || profession == VillagerProfession.NITWIT || profession == VillagerProfession.NONE ? result.copy() : fallbackName(id);
         if (!villager.hasCustomName()) return new Identity(result, fallback);
         boolean chinese = CarpetSettings.language != null && CarpetSettings.language.toLowerCase(java.util.Locale.ROOT).startsWith("zh");
         return new Identity(named(villager, result, chinese), named(villager, fallback, chinese));
     }
     private static Text professionName(Identifier id) {
+        if (id == null) { VillagerEventsCompatibility.report("identity", new IllegalStateException("Villager profession has no registry id")); return Text.literal(TranslationFormatUtil.translate("logger.carpet-ice-addition.villager_events.unknown_profession")); }
         if (id != null && "minecraft".equals(id.getNamespace())) return Text.translatable("entity.minecraft.villager." + id.getPath());
-        return Text.literal(String.valueOf(id));
+        return Text.literal(id.toString());
     }
+    private static Text fallbackName(Identifier id) { return id == null ? Text.literal(TranslationFormatUtil.translate("logger.carpet-ice-addition.villager_events.unknown_profession")) : Text.literal(id.toString()); }
     private static Text named(VillagerEntity villager, Text value, boolean chinese) {
         return chinese ? Text.literal("“").append(villager.getCustomName().copy()).append("”（").append(value).append("）") : Text.literal("\"").append(villager.getCustomName().copy()).append("\" (").append(value).append(")");
     }

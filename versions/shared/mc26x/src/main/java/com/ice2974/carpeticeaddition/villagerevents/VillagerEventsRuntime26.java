@@ -20,8 +20,8 @@ public final class VillagerEventsRuntime26 {
     private static final AtomicLong SEQUENCE = new AtomicLong();
     private static volatile Session session;
     private VillagerEventsRuntime26() { }
-    public static void onServerLoaded(MinecraftServer server) { replace(server); }
-    public static void onServerClosed(MinecraftServer server) { Session current = session; if (current != null && current.server == server) { current.close(); session = null; } }
+    public static void onServerLoaded(MinecraftServer server) { VillagerEventsCompatibility.beginServerSession(); replace(server); }
+    public static void onServerClosed(MinecraftServer server) { Session current = session; if (current != null && current.server == server) { current.close(); session = null; } VillagerEventsCompatibility.endServerSession(); }
     private static synchronized void replace(MinecraftServer server) { if (session != null) session.close(); session = new Session(server); }
     private static Session current(MinecraftServer server) {
         Session value = session; String locale = VanillaLanguageService.normalizeLocale(CarpetSettings.language);

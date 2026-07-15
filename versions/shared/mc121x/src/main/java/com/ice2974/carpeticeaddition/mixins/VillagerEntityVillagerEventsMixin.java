@@ -31,7 +31,7 @@ public abstract class VillagerEntityVillagerEventsMixin implements VillagerEvent
     private void carpetIceAddition$captureDeath(DamageSource source, CallbackInfo ci) {
         VillagerEntity self = (VillagerEntity) (Object) this;
         try { if (world instanceof ServerWorld) carpetIceAddition$beginDeath(VillagerEventsRuntime121.captureDeath(self, source)); }
-        catch (Throwable error) { carpetIceAddition$clearVillagerEventState(); VillagerEventsCompatibility.report(error); }
+        catch (Throwable error) { carpetIceAddition$clearVillagerEventState(); VillagerEventsCompatibility.report("death_capture", error); }
     }
 
     @Inject(method = "onDeath", at = @At("TAIL"))
@@ -42,7 +42,7 @@ public abstract class VillagerEntityVillagerEventsMixin implements VillagerEvent
                 VillagerEventsRuntime121.death(CarpetServer.minecraft_server, carpetIceAddition$deathSnapshot);
             }
         }
-        catch (Throwable error) { VillagerEventsCompatibility.report(error); }
+        catch (Throwable error) { VillagerEventsCompatibility.report("death_report", error); }
         finally { carpetIceAddition$clearVillagerEventState(); }
     }
 
@@ -69,8 +69,16 @@ public abstract class VillagerEntityVillagerEventsMixin implements VillagerEvent
         boolean success = carpetIceAddition$conversionActive && returnedEntity && carpetIceAddition$conversionSpawned && carpetIceAddition$conversionDiscarded;
         carpetIceAddition$conversionActive = false;
         carpetIceAddition$conversionSnapshot = null;
+        carpetIceAddition$conversionSpawned = false;
+        carpetIceAddition$conversionDiscarded = false;
         if (success) carpetIceAddition$convertedDuringDeath = true;
         return success;
+    }
+    @Override public void carpetIceAddition$abortConversion() {
+        carpetIceAddition$conversionSnapshot = null;
+        carpetIceAddition$conversionActive = false;
+        carpetIceAddition$conversionSpawned = false;
+        carpetIceAddition$conversionDiscarded = false;
     }
     @Override public void carpetIceAddition$clearVillagerEventState() {
         carpetIceAddition$deathSnapshot = null;
