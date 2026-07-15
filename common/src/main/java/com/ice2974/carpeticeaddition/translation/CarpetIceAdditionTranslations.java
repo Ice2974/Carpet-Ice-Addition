@@ -172,7 +172,16 @@ public final class CarpetIceAdditionTranslations {
                     Map.entry("command.carpet-ice-addition.machine_status.info.status", "\u72b6\u6001\uff1a%s"),
                     Map.entry("command.carpet-ice-addition.machine_status.info.hover", "\u67e5\u770b\u673a\u5668\u8be6\u60c5"),
                     Map.entry("command.carpet-ice-addition.machine_status.current_state.dimension_not_found", "\u7ef4\u5ea6\u4e0d\u5b58\u5728"),
-                    Map.entry("command.carpet-ice-addition.machine_status.current_state.chunk_not_loaded", "\u533a\u5757\u672a\u52a0\u8f7d")
+                    Map.entry("command.carpet-ice-addition.machine_status.current_state.chunk_not_loaded", "\u533a\u5757\u672a\u52a0\u8f7d"),
+                    Map.entry("logger.carpet-ice-addition.villager_events.baby", "\u5e7c\u5e74\u6751\u6c11"),
+                    Map.entry("logger.carpet-ice-addition.villager_events.nitwit", "\u50bb\u5b50\u6751\u6c11"),
+                    Map.entry("logger.carpet-ice-addition.villager_events.unemployed", "\u65e0\u4e1a\u6751\u6c11"),
+                    Map.entry("logger.carpet-ice-addition.villager_events.named", "\u201c%s\u201d\uff08%s\uff09"),
+                    Map.entry("logger.carpet-ice-addition.villager_events.zombified", "%s\u88ab\u611f\u67d3\u4e3a\u50f5\u5c38\u6751\u6c11"),
+                    Map.entry("logger.carpet-ice-addition.villager_events.witch", "%s\u56e0\u96f7\u51fb\u8f6c\u5316\u4e3a\u5973\u5deb"),
+                    Map.entry("logger.carpet-ice-addition.villager_events.dimension.overworld", "\u4e3b\u4e16\u754c"),
+                    Map.entry("logger.carpet-ice-addition.villager_events.dimension.nether", "\u4e0b\u754c"),
+                    Map.entry("logger.carpet-ice-addition.villager_events.dimension.end", "\u672b\u5730")
             );
         }
         return Map.ofEntries(
@@ -312,20 +321,16 @@ public final class CarpetIceAdditionTranslations {
                 Map.entry("command.carpet-ice-addition.machine_status.info.status", "Status: %s"),
                 Map.entry("command.carpet-ice-addition.machine_status.info.hover", "View machine details"),
                 Map.entry("command.carpet-ice-addition.machine_status.current_state.dimension_not_found", "Dimension not found"),
-                Map.entry("command.carpet-ice-addition.machine_status.current_state.chunk_not_loaded", "Chunk not loaded")
+                Map.entry("command.carpet-ice-addition.machine_status.current_state.chunk_not_loaded", "Chunk not loaded"),
+                Map.entry("logger.carpet-ice-addition.villager_events.baby", "Baby Villager"),
+                Map.entry("logger.carpet-ice-addition.villager_events.nitwit", "Nitwit"),
+                Map.entry("logger.carpet-ice-addition.villager_events.unemployed", "Unemployed Villager"),
+                Map.entry("logger.carpet-ice-addition.villager_events.named", "\"%s\" (%s)"),
+                Map.entry("logger.carpet-ice-addition.villager_events.zombified", "%s was infected and converted into a zombie villager"),
+                Map.entry("logger.carpet-ice-addition.villager_events.witch", "%s was converted into a witch by lightning"),
+                Map.entry("logger.carpet-ice-addition.villager_events.dimension.overworld", "Overworld"),
+                Map.entry("logger.carpet-ice-addition.villager_events.dimension.nether", "Nether"),
+                Map.entry("logger.carpet-ice-addition.villager_events.dimension.end", "End")
         );
-    }
-
-    /** Logger strings are served through the existing server-side translation utility. */
-    public static String villagerEvents(String key, String lang) {
-        boolean zh = lang != null && lang.toLowerCase().startsWith("zh");
-        return switch (key) {
-            case "logger.carpet-ice-addition.villager_events.zombified" -> zh ? "%s被感染为僵尸村民" : "%s was infected and converted into a zombie villager";
-            case "logger.carpet-ice-addition.villager_events.witch" -> zh ? "%s因雷击转化为女巫" : "%s was converted into a witch by lightning";
-            case "logger.carpet-ice-addition.villager_events.dimension.overworld" -> zh ? "主世界" : "Overworld";
-            case "logger.carpet-ice-addition.villager_events.dimension.nether" -> zh ? "下界" : "Nether";
-            case "logger.carpet-ice-addition.villager_events.dimension.end" -> zh ? "末地" : "End";
-            default -> null;
-        };
     }
 }

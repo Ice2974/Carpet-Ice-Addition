@@ -3,6 +3,7 @@ package com.ice2974.carpeticeaddition.mixins;
 import com.ice2974.carpeticeaddition.villagerevents.VillagerEventSnapshot121;
 import com.ice2974.carpeticeaddition.villagerevents.VillagerEventState;
 import com.ice2974.carpeticeaddition.villagerevents.VillagerEventsRuntime121;
+import com.ice2974.carpeticeaddition.villagerevents.VillagerEventsCompatibility;
 import carpet.CarpetServer;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.passive.VillagerEntity;
@@ -29,7 +30,8 @@ public abstract class VillagerEntityVillagerEventsMixin implements VillagerEvent
     @Inject(method = "onDeath", at = @At("HEAD"))
     private void carpetIceAddition$captureDeath(DamageSource source, CallbackInfo ci) {
         VillagerEntity self = (VillagerEntity) (Object) this;
-        if (world instanceof ServerWorld) carpetIceAddition$beginDeath(VillagerEventsRuntime121.captureDeath(self, source));
+        try { if (world instanceof ServerWorld) carpetIceAddition$beginDeath(VillagerEventsRuntime121.captureDeath(self, source)); }
+        catch (Throwable error) { carpetIceAddition$clearVillagerEventState(); VillagerEventsCompatibility.report(error); }
     }
 
     @Inject(method = "onDeath", at = @At("TAIL"))
@@ -39,7 +41,9 @@ public abstract class VillagerEntityVillagerEventsMixin implements VillagerEvent
             if (!carpetIceAddition$convertedDuringDeath && carpetIceAddition$deathSnapshot != null && CarpetServer.minecraft_server != null) {
                 VillagerEventsRuntime121.death(CarpetServer.minecraft_server, carpetIceAddition$deathSnapshot);
             }
-        } finally { carpetIceAddition$clearVillagerEventState(); }
+        }
+        catch (Throwable error) { VillagerEventsCompatibility.report(error); }
+        finally { carpetIceAddition$clearVillagerEventState(); }
     }
 
     @Override public void carpetIceAddition$beginDeath(VillagerEventSnapshot121 snapshot) {
@@ -57,11 +61,14 @@ public abstract class VillagerEntityVillagerEventsMixin implements VillagerEvent
         carpetIceAddition$conversionSpawned = false;
         carpetIceAddition$conversionDiscarded = false;
     }
+    @Override public VillagerEventSnapshot121 carpetIceAddition$conversionSnapshot() { return carpetIceAddition$conversionSnapshot; }
+    @Override public boolean carpetIceAddition$conversionActive() { return carpetIceAddition$conversionActive; }
     @Override public void carpetIceAddition$recordConversionSpawn(boolean accepted) { if (carpetIceAddition$conversionActive && accepted) carpetIceAddition$conversionSpawned = true; }
     @Override public void carpetIceAddition$recordConversionDiscard() { if (carpetIceAddition$conversionActive) carpetIceAddition$conversionDiscarded = true; }
     @Override public boolean carpetIceAddition$finishConversion(boolean returnedEntity) {
         boolean success = carpetIceAddition$conversionActive && returnedEntity && carpetIceAddition$conversionSpawned && carpetIceAddition$conversionDiscarded;
         carpetIceAddition$conversionActive = false;
+        carpetIceAddition$conversionSnapshot = null;
         if (success) carpetIceAddition$convertedDuringDeath = true;
         return success;
     }

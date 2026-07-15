@@ -13,8 +13,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
-import java.util.ArrayDeque;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -54,24 +52,28 @@ public final class VillagerEventsRuntime121 {
 
     public static VillagerEventSnapshot121 snapshot(VillagerEntity villager, Text death) {
         BlockPos pos = villager.getBlockPos();
-        Text identity = villager.hasCustomName() ? Text.literal("“").append(villager.getCustomName().copy()).append("”（村民）") : Text.literal("村民");
-        return new VillagerEventSnapshot121(SEQUENCE.incrementAndGet(), "unknown", pos.getX(), pos.getY(), pos.getZ(), identity, death);
+        Text identity = VillagerIdentity121.create(villager);
+        return new VillagerEventSnapshot121(SEQUENCE.incrementAndGet(), dimensionId(villager), pos.getX(), pos.getY(), pos.getZ(), identity, death);
     }
 
     public static void death(MinecraftServer server, VillagerEventSnapshot121 snapshot) {
         if (snapshot == null || !VillagerEventsLogger121.active()) return;
         Session current = current(server);
-        if (current.language.state() == State.LOADING) { current.enqueue(snapshot); return; }
+        if (current.language.state() == State.LOADING) return;
         if (current.language.state() == State.FAILED) { current.warnOnce("death output paused because vanilla language loading failed"); return; }
         sendDeath(current, snapshot);
     }
 
     public static void conversion(MinecraftServer server, String event, VillagerEventSnapshot121 snapshot) {
         if (snapshot == null || !VillagerEventsLogger121.active()) return;
-        String action = "zombified".equals(event)
-                ? TranslationFormatUtil.translate("logger.carpet-ice-addition.villager_events.zombified", snapshot.identity().getString())
-                : TranslationFormatUtil.translate("logger.carpet-ice-addition.villager_events.witch", snapshot.identity().getString());
-        VillagerEventsLogger121.send(event, message(Text.literal(action), snapshot));
+        Session current = current(server);
+        Text identity = TextRenderer121.renderLiteralTree(snapshot.identity(), current.language.state() == State.READY ? current.language.translations() : java.util.Map.of());
+        if (identity == null) { current.warnOnce("suppressed conversion message with unresolved component"); return; }
+        String template = "zombified".equals(event) ? "logger.carpet-ice-addition.villager_events.zombified" : "logger.carpet-ice-addition.villager_events.witch";
+        String action = TranslationFormatUtil.translate(template);
+        int marker = action.indexOf("%s");
+        Text detail = marker < 0 ? Text.literal(action) : Text.literal(action.substring(0, marker)).append(identity).append(action.substring(marker + 2));
+        VillagerEventsLogger121.send(event, message(detail, snapshot));
     }
 
     private static void sendDeath(Session current, VillagerEventSnapshot121 snapshot) {
@@ -82,20 +84,30 @@ public final class VillagerEventsRuntime121 {
 
     private static Text message(Text detail, VillagerEventSnapshot121 snapshot) {
         String dimension = switch (snapshot.dimensionId()) {
-            case "overworld" -> TranslationFormatUtil.translate("logger.carpet-ice-addition.villager_events.dimension.overworld");
-            case "the_nether" -> TranslationFormatUtil.translate("logger.carpet-ice-addition.villager_events.dimension.nether");
-            case "the_end" -> TranslationFormatUtil.translate("logger.carpet-ice-addition.villager_events.dimension.end");
-            default -> snapshot.dimensionId().replace('_', ' ');
+            case "minecraft:overworld" -> TranslationFormatUtil.translate("logger.carpet-ice-addition.villager_events.dimension.overworld");
+            case "minecraft:the_nether" -> TranslationFormatUtil.translate("logger.carpet-ice-addition.villager_events.dimension.nether");
+            case "minecraft:the_end" -> TranslationFormatUtil.translate("logger.carpet-ice-addition.villager_events.dimension.end");
+            default -> snapshot.dimensionId();
         };
         return Text.literal("[VillagerEvents] ").append(detail).append(" | ").append(dimension).append(" | ")
                 .append(snapshot.x() + ", " + snapshot.y() + ", " + snapshot.z());
+    }
+
+    private static String dimensionId(VillagerEntity villager) {
+        try {
+            Object world;
+            try { world = villager.getClass().getMethod("getWorld").invoke(villager); }
+            catch (ReflectiveOperationException ignored) { world = villager.getClass().getMethod("getEntityWorld").invoke(villager); }
+            Object key = world.getClass().getMethod("getRegistryKey").invoke(world);
+            Object value = key.getClass().getMethod("getValue").invoke(key);
+            return String.valueOf(value);
+        } catch (ReflectiveOperationException ignored) { return "minecraft:overworld"; }
     }
 
     private static final class Session implements AutoCloseable {
         private final MinecraftServer server;
         private final String locale;
         private final VanillaLanguageService language;
-        private final ArrayDeque<VillagerEventSnapshot121> pending = new ArrayDeque<>();
         private final AtomicBoolean warned = new AtomicBoolean();
         private volatile boolean closed;
 
@@ -109,17 +121,10 @@ public final class VillagerEventsRuntime121 {
             this.language = new VanillaLanguageService(minecraftVersion, locale, root, VillagerEventsRuntime121.class.getClassLoader(), LOGGER);
             this.language.start(ignored -> server.execute(() -> {
                 if (closed || session != this || language.state() != State.READY) return;
-                while (!pending.isEmpty()) sendDeath(this, pending.removeFirst());
             }));
         }
 
-        private void enqueue(VillagerEventSnapshot121 snapshot) {
-            // Conservative bounded policy until a future configuration surface is introduced.
-            if (pending.size() >= 128) { warnOnce("death queue is full; newest death message was skipped"); return; }
-            pending.addLast(snapshot);
-        }
-
         private void warnOnce(String message) { if (warned.compareAndSet(false, true)) LOGGER.warn("[VillagerEvents] {}", message); }
-        @Override public void close() { closed = true; pending.clear(); language.close(); }
+        @Override public void close() { closed = true; language.close(); }
     }
 }

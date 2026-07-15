@@ -4,6 +4,7 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "VillagerEntityVillagerEventsMixin",
+    "VillagerEntityLightningVillagerEventsMixin",
     "MobEntityVillagerConversionMixin",
     "ZombieEntityVillagerEventsMixin",
     "CanMineBuddingAmethystMixin",

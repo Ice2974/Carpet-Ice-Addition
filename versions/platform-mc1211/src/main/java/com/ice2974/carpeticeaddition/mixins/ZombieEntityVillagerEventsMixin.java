@@ -4,6 +4,7 @@ import carpet.CarpetServer;
 import com.ice2974.carpeticeaddition.villagerevents.VillagerEventSnapshot121;
 import com.ice2974.carpeticeaddition.villagerevents.VillagerEventState;
 import com.ice2974.carpeticeaddition.villagerevents.VillagerEventsRuntime121;
+import com.ice2974.carpeticeaddition.villagerevents.VillagerEventsCompatibility;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.entity.mob.ZombieVillagerEntity;
@@ -19,9 +20,13 @@ public abstract class ZombieEntityVillagerEventsMixin {
         VillagerEventState state = (VillagerEventState) villager;
         VillagerEventSnapshot121 snapshot = state.carpetIceAddition$deathSnapshot();
         if (snapshot == null) snapshot = VillagerEventsRuntime121.snapshot(villager, null);
-        state.carpetIceAddition$beginConversion(snapshot);
-        MobEntity result = villager.convertTo(type, keepEquipment);
-        if (state.carpetIceAddition$finishConversion(result instanceof ZombieVillagerEntity) && CarpetServer.minecraft_server != null) VillagerEventsRuntime121.conversion(CarpetServer.minecraft_server, "zombified", snapshot);
-        return result;
+        try { state.carpetIceAddition$beginConversion(snapshot); } catch (Throwable error) { VillagerEventsCompatibility.report(error); }
+        MobEntity result = null; boolean returned = false;
+        try { result = villager.convertTo(type, keepEquipment); returned = true; return result; }
+        finally {
+            if (returned) try { if (state.carpetIceAddition$finishConversion(result instanceof ZombieVillagerEntity) && CarpetServer.minecraft_server != null) VillagerEventsRuntime121.conversion(CarpetServer.minecraft_server, "zombified", snapshot); }
+            catch (Throwable error) { VillagerEventsCompatibility.report(error); }
+            else try { state.carpetIceAddition$finishConversion(false); } catch (Throwable error) { VillagerEventsCompatibility.report(error); }
+        }
     }
 }

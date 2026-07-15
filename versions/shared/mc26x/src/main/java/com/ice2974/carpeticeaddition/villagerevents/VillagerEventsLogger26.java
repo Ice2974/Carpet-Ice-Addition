@@ -9,7 +9,6 @@ public final class VillagerEventsLogger26 {
     private static Logger logger;
     private VillagerEventsLogger26() { }
     public static void register() {
-        if (logger != null) return;
         try {
             logger = new Logger(VillagerEventsLogger26.class.getField("__villagerEvents"), "villagerEvents", "all", new String[]{"all", "death", "zombified", "witch"}, true);
             LoggerRegistry.registerLogger("villagerEvents", logger);

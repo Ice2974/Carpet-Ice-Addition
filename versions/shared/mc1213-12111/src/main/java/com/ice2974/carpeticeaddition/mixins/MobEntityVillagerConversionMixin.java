@@ -18,7 +18,7 @@ public abstract class MobEntityVillagerConversionMixin {
     private boolean carpetIceAddition$observeVillagerSpawn(ServerWorld world, Entity target) {
         boolean accepted = world.spawnEntity(target);
         Object self = this;
-        if (self instanceof VillagerEntity && self instanceof VillagerEventState state && (target instanceof ZombieVillagerEntity || target instanceof WitchEntity)) {
+        if (self instanceof VillagerEntity && self instanceof VillagerEventState state && state.carpetIceAddition$conversionActive() && (target instanceof ZombieVillagerEntity || target instanceof WitchEntity)) {
             state.carpetIceAddition$recordConversionSpawn(accepted);
         }
         return accepted;
@@ -27,7 +27,7 @@ public abstract class MobEntityVillagerConversionMixin {
     @Redirect(method = "convertTo", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/mob/MobEntity;discard()V"))
     private void carpetIceAddition$observeVillagerDiscard(MobEntity source) {
         Object self = this;
-        if (self instanceof VillagerEntity && self instanceof VillagerEventState state) state.carpetIceAddition$recordConversionDiscard();
         source.discard();
+        if (self instanceof VillagerEntity && self instanceof VillagerEventState state && state.carpetIceAddition$conversionActive()) state.carpetIceAddition$recordConversionDiscard();
     }
 }

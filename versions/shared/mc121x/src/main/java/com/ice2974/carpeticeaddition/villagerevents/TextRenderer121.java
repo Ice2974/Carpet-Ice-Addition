@@ -20,6 +20,7 @@ final class TextRenderer121 {
         if (!(source.getContent() instanceof TranslatableTextContent root) || root.getArgs().length == 0 || !(root.getArgs()[0] instanceof Text)) return null;
         return render(source, language, identity, true, 0);
     }
+    static Text renderLiteralTree(Text source, Map<String, String> language) { return render(source, language, null, false, 0); }
 
     private static Text render(Text input, Map<String, String> language, Text rootVictim, boolean root, int depth) {
         if (depth > 64) return null;

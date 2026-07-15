@@ -17,13 +17,13 @@ public abstract class MobVillagerConversionMixin {
     private boolean carpetIceAddition$observeSpawn(ServerLevel level, Entity target) {
         boolean accepted = level.addFreshEntity(target);
         Object self = this;
-        if (self instanceof Villager && self instanceof VillagerEventState26 state && (target instanceof ZombieVillager || target instanceof Witch)) state.carpetIceAddition$recordConversionSpawn(accepted);
+        if (self instanceof Villager && self instanceof VillagerEventState26 state && state.carpetIceAddition$conversionActive() && (target instanceof ZombieVillager || target instanceof Witch)) state.carpetIceAddition$recordConversionSpawn(accepted);
         return accepted;
     }
     @Redirect(method = "convertTo", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Mob;discard()V"))
     private void carpetIceAddition$observeDiscard(Mob source) {
         Object self = this;
-        if (self instanceof Villager && self instanceof VillagerEventState26 state) state.carpetIceAddition$recordConversionDiscard();
         source.discard();
+        if (self instanceof Villager && self instanceof VillagerEventState26 state && state.carpetIceAddition$conversionActive()) state.carpetIceAddition$recordConversionDiscard();
     }
 }

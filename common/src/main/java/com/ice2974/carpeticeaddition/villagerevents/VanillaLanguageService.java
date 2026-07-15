@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ByteArrayOutputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -44,6 +45,7 @@ public final class VanillaLanguageService implements AutoCloseable {
     private final String minecraftVersion;
     private final String locale;
     private final Path cacheFile;
+    private final Path cacheSha1File;
     private final ClassLoader minecraftClassLoader;
     private final Logger logger;
     private final ExecutorService executor;
@@ -57,6 +59,7 @@ public final class VanillaLanguageService implements AutoCloseable {
         this.minecraftVersion = requireVersion(minecraftVersion);
         this.locale = normalizeLocale(carpetLanguage);
         this.cacheFile = cacheRoot.resolve(this.minecraftVersion).resolve(this.locale + ".json");
+        this.cacheSha1File = cacheRoot.resolve(this.minecraftVersion).resolve(this.locale + ".sha1");
         this.minecraftClassLoader = Objects.requireNonNull(minecraftClassLoader, "minecraftClassLoader");
         this.logger = Objects.requireNonNull(logger, "logger");
         this.executor = Executors.newSingleThreadExecutor(runnable -> {
@@ -85,7 +88,7 @@ public final class VanillaLanguageService implements AutoCloseable {
         try {
             Map<String, String> loaded = loadCache();
             if (loaded == null && "en_us".equals(locale)) loaded = loadClasspathEnglish();
-            if (loaded == null && "zh_cn".equals(locale)) loaded = downloadLanguage();
+            if (loaded == null) loaded = downloadLanguage();
             if (loaded == null || loaded.isEmpty()) throw new IOException("No usable vanilla language resource");
             translations = Collections.unmodifiableMap(loaded);
             state = State.READY;
@@ -96,11 +99,20 @@ public final class VanillaLanguageService implements AutoCloseable {
         if (!closed.get()) completion.accept(this);
     }
 
-    private Map<String, String> loadCache() throws IOException {
+    private Map<String, String> loadCache() {
         if (!Files.isRegularFile(cacheFile)) return null;
-        byte[] bytes = Files.readAllBytes(cacheFile);
-        if (bytes.length == 0 || bytes.length > MAX_LANGUAGE_BYTES) return null;
-        return parseLanguage(bytes);
+        try {
+            byte[] bytes;
+            try (InputStream input = Files.newInputStream(cacheFile)) { bytes = readLimited(input, MAX_LANGUAGE_BYTES); }
+            if (!Files.isRegularFile(cacheSha1File)) throw new IOException("Missing cache checksum");
+            String checksum = Files.readString(cacheSha1File, StandardCharsets.US_ASCII).trim();
+            verifySha1(bytes, checksum);
+            return parseLanguage(bytes);
+        } catch (Exception invalid) {
+            quarantineCache();
+            if (!closed.get()) logger.warn("[VillagerEvents] Ignoring invalid vanilla language cache {}: {}", cacheFile, invalid.toString());
+            return null;
+        }
     }
 
     private Map<String, String> loadClasspathEnglish() throws IOException {
@@ -116,7 +128,9 @@ public final class VanillaLanguageService implements AutoCloseable {
         for (JsonElement entry : manifest.getAsJsonArray("versions")) {
             JsonObject candidate = entry.getAsJsonObject();
             if (minecraftVersion.equals(candidate.get("id").getAsString())) {
-                version = jsonObject(get(officialUri(candidate.get("url").getAsString()), MAX_METADATA_BYTES));
+                byte[] versionBytes = get(officialUri(candidate.get("url").getAsString()), MAX_METADATA_BYTES);
+                if (candidate.has("sha1")) verifySha1(versionBytes, candidate.get("sha1").getAsString());
+                version = jsonObject(versionBytes);
                 break;
             }
         }
@@ -135,7 +149,8 @@ public final class VanillaLanguageService implements AutoCloseable {
         if (language.length != size) throw new IOException("Language object size mismatch");
         verifySha1(language, hash);
         Map<String, String> parsed = parseLanguage(language);
-        writeCache(language);
+        try { writeCache(language, hash); }
+        catch (IOException cacheFailure) { if (!closed.get()) logger.warn("[VillagerEvents] Loaded vanilla {} language but could not cache it: {}", locale, cacheFailure.toString()); }
         return parsed;
     }
 
@@ -166,10 +181,18 @@ public final class VanillaLanguageService implements AutoCloseable {
         return uri;
     }
 
-    private static byte[] readLimited(InputStream input, int limit) throws IOException {
-        byte[] bytes = input.readAllBytes();
-        if (bytes.length == 0 || bytes.length > limit) throw new IOException("Downloaded object exceeds limit");
-        return bytes;
+    static byte[] readLimited(InputStream input, int limit) throws IOException {
+        if (limit <= 0) throw new IOException("Invalid read limit");
+        ByteArrayOutputStream output = new ByteArrayOutputStream(Math.min(limit, 8192));
+        byte[] buffer = new byte[8192];
+        int total = 0;
+        for (int read; (read = input.read(buffer)) != -1;) {
+            if (read > limit - total) throw new IOException("Downloaded object exceeds limit");
+            output.write(buffer, 0, read);
+            total += read;
+        }
+        if (total == 0) throw new IOException("Downloaded object is empty");
+        return output.toByteArray();
     }
 
     private static JsonObject jsonObject(byte[] bytes) throws IOException {
@@ -177,7 +200,7 @@ public final class VanillaLanguageService implements AutoCloseable {
         catch (RuntimeException exception) { throw new IOException("Invalid JSON", exception); }
     }
 
-    private static Map<String, String> parseLanguage(byte[] bytes) throws IOException {
+    static Map<String, String> parseLanguage(byte[] bytes) throws IOException {
         JsonObject object = jsonObject(bytes);
         Map<String, String> result = new LinkedHashMap<>();
         for (Map.Entry<String, JsonElement> entry : object.entrySet()) {
@@ -187,17 +210,22 @@ public final class VanillaLanguageService implements AutoCloseable {
         return result;
     }
 
-    private void writeCache(byte[] bytes) throws IOException {
+    private void writeCache(byte[] bytes, String hash) throws IOException {
         Files.createDirectories(cacheFile.getParent());
         Path temporary = Files.createTempFile(cacheFile.getParent(), locale + ".", ".part");
+        Path checksumTemporary = Files.createTempFile(cacheFile.getParent(), locale + ".", ".sha1.part");
         try {
             Files.write(temporary, bytes);
+            Files.writeString(checksumTemporary, hash, StandardCharsets.US_ASCII);
             try { Files.move(temporary, cacheFile, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING); }
             catch (AtomicMoveNotSupportedException ignored) { Files.move(temporary, cacheFile, StandardCopyOption.REPLACE_EXISTING); }
-        } finally { Files.deleteIfExists(temporary); }
+            try { Files.move(checksumTemporary, cacheSha1File, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING); }
+            catch (AtomicMoveNotSupportedException ignored) { Files.move(checksumTemporary, cacheSha1File, StandardCopyOption.REPLACE_EXISTING); }
+        } finally { Files.deleteIfExists(temporary); Files.deleteIfExists(checksumTemporary); }
     }
 
-    private static void verifySha1(byte[] bytes, String expected) throws Exception {
+    static void verifySha1(byte[] bytes, String expected) throws Exception {
+        if (expected == null || !expected.matches("[0-9a-f]{40}")) throw new IOException("Invalid SHA-1 metadata");
         StringBuilder builder = new StringBuilder();
         for (byte value : MessageDigest.getInstance("SHA-1").digest(bytes)) builder.append(String.format("%02x", value));
         if (!builder.toString().equals(expected)) throw new IOException("SHA-1 mismatch");
@@ -206,6 +234,13 @@ public final class VanillaLanguageService implements AutoCloseable {
     private static String requireVersion(String value) {
         if (value == null || !value.matches("(?:1\\.21(?:\\.\\d+)?|26\\.[12](?:\\.\\d+)?)")) throw new IllegalArgumentException("Unsupported Minecraft version: " + value);
         return value;
+    }
+
+    private void quarantineCache() {
+        try {
+            Files.deleteIfExists(cacheFile);
+            Files.deleteIfExists(cacheSha1File);
+        } catch (IOException ignored) { }
     }
 
     @Override public void close() {

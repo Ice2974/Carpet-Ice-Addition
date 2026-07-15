@@ -12,7 +12,6 @@ public final class VillagerEventsLogger121 {
     private VillagerEventsLogger121() { }
 
     public static void register() {
-        if (logger != null) return;
         try {
             logger = new Logger(VillagerEventsLogger121.class.getField("__villagerEvents"), "villagerEvents", "all", OPTIONS, true);
             LoggerRegistry.registerLogger("villagerEvents", logger);
