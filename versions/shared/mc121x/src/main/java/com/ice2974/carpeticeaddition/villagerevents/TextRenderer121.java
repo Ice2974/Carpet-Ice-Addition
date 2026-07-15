@@ -37,7 +37,7 @@ final class TextRenderer121 {
             return null;
         }
         // Hover events are intentionally stripped: SHOW_ITEM/SHOW_ENTITY can trigger client-local text.
-        Style style = input.getStyle().withHoverEvent(null);
+        Style style = input.getStyle().withHoverEvent(null).withClickEvent(null);
         output.setStyle(style);
         for (Text sibling : input.getSiblings()) {
             Text rendered = render(sibling, language, null, false, depth + 1);

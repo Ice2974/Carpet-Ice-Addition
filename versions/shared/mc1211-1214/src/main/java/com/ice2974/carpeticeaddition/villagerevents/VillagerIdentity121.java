@@ -21,7 +21,7 @@ final class VillagerIdentity121 {
         Text fallback = villager.isBaby() || profession == VillagerProfession.NITWIT || profession == VillagerProfession.NONE ? result.copy() : fallbackName(id);
         if (!villager.hasCustomName()) return new Identity(result, fallback);
         boolean chinese = CarpetSettings.language != null && CarpetSettings.language.toLowerCase(java.util.Locale.ROOT).startsWith("zh");
-        return new Identity(named(villager, result, chinese), named(villager, fallback, chinese));
+        return new Identity(named(villager.getCustomName().copy(), result, chinese), fallbackNamed(villager, fallback, chinese));
     }
     private static Text professionName(Identifier id) {
         if (id == null) { VillagerEventsCompatibility.report("identity", new IllegalStateException("Villager profession has no registry id")); return Text.literal(TranslationFormatUtil.translate("logger.carpet-ice-addition.villager_events.unknown_profession")); }
@@ -29,7 +29,11 @@ final class VillagerIdentity121 {
         return Text.literal(id.toString());
     }
     private static Text fallbackName(Identifier id) { return id == null ? Text.literal(TranslationFormatUtil.translate("logger.carpet-ice-addition.villager_events.unknown_profession")) : Text.literal(id.toString()); }
-    private static Text named(VillagerEntity villager, Text value, boolean chinese) {
-        return chinese ? Text.literal("“").append(villager.getCustomName().copy()).append("”（").append(value).append("）") : Text.literal("\"").append(villager.getCustomName().copy()).append("\" (").append(value).append(")");
+    private static Text fallbackNamed(VillagerEntity villager, Text value, boolean chinese) {
+        Text name = TextRenderer121.renderLiteralTree(villager.getCustomName(), java.util.Map.of());
+        return name == null ? value : named(name, value, chinese);
+    }
+    private static Text named(Text name, Text value, boolean chinese) {
+        return chinese ? Text.literal("“").append(name).append("”（").append(value).append("）") : Text.literal("\"").append(name).append("\" (").append(value).append(")");
     }
 }

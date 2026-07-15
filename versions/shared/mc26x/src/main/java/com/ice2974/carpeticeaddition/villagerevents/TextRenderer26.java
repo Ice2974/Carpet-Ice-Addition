@@ -29,7 +29,7 @@ final class TextRenderer26 {
             result = format(translatable, format, language, root ? victim : null, depth + 1);
             if (result == null) return null;
         } else return null;
-        result.setStyle(input.getStyle().withHoverEvent(null));
+        result.setStyle(input.getStyle().withHoverEvent(null).withClickEvent(null));
         for (Component sibling : input.getSiblings()) {
             Component rendered = render(sibling, language, null, false, depth + 1);
             if (rendered == null) return null;

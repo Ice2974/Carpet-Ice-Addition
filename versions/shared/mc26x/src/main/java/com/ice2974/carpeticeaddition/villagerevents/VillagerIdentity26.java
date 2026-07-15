@@ -37,10 +37,13 @@ final class VillagerIdentity26 {
         if (!villager.hasCustomName()) return new Identity(result, fallback);
         Component name = villager.getCustomName().copy();
         boolean chinese = CarpetSettings.language != null && CarpetSettings.language.toLowerCase(java.util.Locale.ROOT).startsWith("zh");
-        Component translated = chinese ? Component.literal("“").append(name).append("”（").append(result).append("）")
-                : Component.literal("\"").append(name).append("\" (").append(result).append(")");
-        Component fallbackNamed = chinese ? Component.literal("“").append(villager.getCustomName().copy()).append("”（").append(fallback).append("）")
-                : Component.literal("\"").append(villager.getCustomName().copy()).append("\" (").append(fallback).append(")");
+        Component translated = named(name, result, chinese);
+        Component safeName = TextRenderer26.renderLiteralTree(villager.getCustomName(), java.util.Map.of());
+        Component fallbackNamed = safeName == null ? fallback : named(safeName, fallback, chinese);
         return new Identity(translated, fallbackNamed);
+    }
+    private static Component named(Component name, Component value, boolean chinese) {
+        return chinese ? Component.literal("“").append(name).append("”（").append(value).append("）")
+                : Component.literal("\"").append(name).append("\" (").append(value).append(")");
     }
 }

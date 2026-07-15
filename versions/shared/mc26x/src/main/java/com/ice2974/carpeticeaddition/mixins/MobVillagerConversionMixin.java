@@ -17,14 +17,18 @@ public abstract class MobVillagerConversionMixin {
     @Redirect(method = "convertTo", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerLevel;addFreshEntity(Lnet/minecraft/world/entity/Entity;)Z"))
     private boolean carpetIceAddition$observeSpawn(ServerLevel level, Entity target) {
         boolean accepted = level.addFreshEntity(target);
-        Object self = this;
-        if (self instanceof Villager && self instanceof VillagerEventState26 state && state.carpetIceAddition$conversionActive() && (target instanceof ZombieVillager || target instanceof Witch)) try { state.carpetIceAddition$recordConversionSpawn(accepted); } catch (Throwable error) { VillagerEventsCompatibility.report("conversion_spawn", error); }
+        try {
+            Object self = this;
+            if (self instanceof Villager && self instanceof VillagerEventState26 state && state.carpetIceAddition$conversionActive() && (target instanceof ZombieVillager || target instanceof Witch)) state.carpetIceAddition$recordConversionSpawn(accepted);
+        } catch (Throwable error) { VillagerEventsCompatibility.report("conversion_spawn", error); }
         return accepted;
     }
     @Redirect(method = "convertTo", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Mob;discard()V"))
     private void carpetIceAddition$observeDiscard(Mob source) {
-        Object self = this;
         source.discard();
-        if (self instanceof Villager && self instanceof VillagerEventState26 state && state.carpetIceAddition$conversionActive()) try { state.carpetIceAddition$recordConversionDiscard(); } catch (Throwable error) { VillagerEventsCompatibility.report("conversion_discard", error); }
+        try {
+            Object self = this;
+            if (self instanceof Villager && self instanceof VillagerEventState26 state && state.carpetIceAddition$conversionActive()) state.carpetIceAddition$recordConversionDiscard();
+        } catch (Throwable error) { VillagerEventsCompatibility.report("conversion_discard", error); }
     }
 }

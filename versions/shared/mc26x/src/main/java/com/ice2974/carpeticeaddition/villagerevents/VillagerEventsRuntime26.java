@@ -42,13 +42,15 @@ public final class VillagerEventsRuntime26 {
     }
     private static void sendDeath(Session session, VillagerEventSnapshot26 snapshot) {
         Component rendered = TextRenderer26.renderDeath(snapshot.deathMessage(), snapshot.identity(), session.language.translations());
+        if (rendered == null) rendered = TextRenderer26.renderDeath(snapshot.deathMessage(), snapshot.fallbackIdentity(), session.language.translations());
         if (rendered == null) { session.warnOnce("suppressed death message with unresolved vanilla component"); return; }
         VillagerEventsLogger26.send("death", message(rendered, snapshot));
     }
     public static void conversion(MinecraftServer server, String event, VillagerEventSnapshot26 snapshot) {
         if (snapshot == null || !VillagerEventsLogger26.active()) return;
         Session current = current(server);
-        Component identity = TextRenderer26.renderLiteralTree(current.language.state() == VanillaLanguageService.State.READY ? snapshot.identity() : snapshot.fallbackIdentity(), current.language.state() == VanillaLanguageService.State.READY ? current.language.translations() : java.util.Map.of());
+        Component identity = current.language.state() == VanillaLanguageService.State.READY ? TextRenderer26.renderLiteralTree(snapshot.identity(), current.language.translations()) : null;
+        if (identity == null) identity = TextRenderer26.renderLiteralTree(snapshot.fallbackIdentity(), java.util.Map.of());
         if (identity == null) { current.warnOnce("suppressed conversion message with unresolved component"); return; }
         String template = "zombified".equals(event) ? "logger.carpet-ice-addition.villager_events.zombified" : "logger.carpet-ice-addition.villager_events.witch";
         String action = TranslationFormatUtil.translate(template);

@@ -11,6 +11,7 @@ import net.minecraft.entity.LightningEntity;
 import net.minecraft.entity.passive.VillagerEntity;
 import net.minecraft.server.world.ServerWorld;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.gen.Invoker;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -19,6 +20,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 /** 1.21.1 creates a Witch manually instead of using MobEntity.convertTo. */
 @Mixin(VillagerEntity.class)
 public abstract class VillagerEntityLightningVillagerEventsMixin {
+    @Invoker("releaseAllTickets")
+    abstract void carpetIceAddition$invokeReleaseAllTickets();
     @Inject(method = "onStruckByLightning", at = @At("HEAD"))
     private void carpetIceAddition$resetLightningState(ServerWorld world, LightningEntity lightning, CallbackInfo ci) {
         try { ((VillagerEventState) (Object) this).carpetIceAddition$abortConversion(); }
@@ -71,5 +74,15 @@ public abstract class VillagerEntityLightningVillagerEventsMixin {
             if (success && CarpetServer.minecraft_server != null) VillagerEventsRuntime121.conversion(CarpetServer.minecraft_server, "witch", snapshot);
         } catch (Throwable error) { VillagerEventsCompatibility.report("witch_conversion", error); }
         finally { if (state != null) try { state.carpetIceAddition$abortConversion(); } catch (Throwable cleanup) { VillagerEventsCompatibility.report("witch_conversion", cleanup); } }
+    }
+
+    @Redirect(method = "onStruckByLightning", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/passive/VillagerEntity;releaseAllTickets()V"))
+    private void carpetIceAddition$observeReleaseTickets(VillagerEntity villager) {
+        try { carpetIceAddition$invokeReleaseAllTickets(); }
+        catch (Throwable original) {
+            try { ((VillagerEventState) villager).carpetIceAddition$abortConversion(); }
+            catch (Throwable cleanup) { VillagerEventsCompatibility.report("witch_conversion", cleanup); }
+            throw original;
+        }
     }
 }

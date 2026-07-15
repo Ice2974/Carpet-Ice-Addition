@@ -67,7 +67,8 @@ public final class VillagerEventsRuntime121 {
     public static void conversion(MinecraftServer server, String event, VillagerEventSnapshot121 snapshot) {
         if (snapshot == null || !VillagerEventsLogger121.active()) return;
         Session current = current(server);
-        Text identity = TextRenderer121.renderLiteralTree(current.language.state() == State.READY ? snapshot.identity() : snapshot.fallbackIdentity(), current.language.state() == State.READY ? current.language.translations() : java.util.Map.of());
+        Text identity = current.language.state() == State.READY ? TextRenderer121.renderLiteralTree(snapshot.identity(), current.language.translations()) : null;
+        if (identity == null) identity = TextRenderer121.renderLiteralTree(snapshot.fallbackIdentity(), java.util.Map.of());
         if (identity == null) { current.warnOnce("suppressed conversion message with unresolved component"); return; }
         String template = "zombified".equals(event) ? "logger.carpet-ice-addition.villager_events.zombified" : "logger.carpet-ice-addition.villager_events.witch";
         String action = TranslationFormatUtil.translate(template);
@@ -78,6 +79,7 @@ public final class VillagerEventsRuntime121 {
 
     private static void sendDeath(Session current, VillagerEventSnapshot121 snapshot) {
         Text rendered = TextRenderer121.renderDeath(snapshot.deathMessage(), snapshot.identity(), current.language.translations());
+        if (rendered == null) rendered = TextRenderer121.renderDeath(snapshot.deathMessage(), snapshot.fallbackIdentity(), current.language.translations());
         if (rendered == null) { current.warnOnce("suppressed death message with unresolved vanilla component"); return; }
         VillagerEventsLogger121.send("death", message(rendered, snapshot));
     }
