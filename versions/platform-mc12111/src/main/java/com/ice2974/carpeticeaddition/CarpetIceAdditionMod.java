@@ -12,6 +12,8 @@ import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionHighVersionSettin
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
 import com.ice2974.carpeticeaddition.settings.CraftableCoralBlocksSettings;
 import com.ice2974.carpeticeaddition.translation.CarpetIceAdditionTranslations;
+import com.ice2974.carpeticeaddition.villagerevents.VillagerEventsLogger121;
+import com.ice2974.carpeticeaddition.villagerevents.VillagerEventsRuntime121;
 import com.ice2974.carpeticeaddition.command.KillItemCommand;
 import com.ice2974.carpeticeaddition.command.KillItemConfigManager;
 import com.ice2974.carpeticeaddition.command.MachineStatusCommand;
@@ -100,6 +102,8 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
         });
     }
 
+    @Override public void registerLoggers() { VillagerEventsLogger121.register(); }
+
     @Override
     public void onPlayerLoggedIn(ServerPlayerEntity player) {
         try {
@@ -142,6 +146,7 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
     public void onServerLoaded(MinecraftServer server) {
         KillItemConfigManager.initialize(server.getSavePath(WorldSavePath.ROOT));
         MachineStatusConfigManager.initialize(server.getSavePath(WorldSavePath.ROOT));
+        VillagerEventsRuntime121.onServerLoaded(server);
     }
 
     @Override
@@ -159,6 +164,7 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
 
     @Override
     public void onServerClosed(MinecraftServer server) {
+        VillagerEventsRuntime121.onServerClosed(server);
         KillItemConfigManager.shutdown();
         MachineStatusConfigManager.shutdown();
         try {

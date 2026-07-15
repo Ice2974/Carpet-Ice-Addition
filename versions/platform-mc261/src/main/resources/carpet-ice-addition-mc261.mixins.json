@@ -3,6 +3,10 @@
   "package": "com.ice2974.carpeticeaddition.mixins",
   "compatibilityLevel": "JAVA_25",
   "mixins": [
+    "VillagerVillagerEventsMixin",
+    "MobVillagerConversionMixin",
+    "ZombieVillagerEventsMixin",
+    "VillagerLightningVillagerEventsMixin",
     "CanMineBuddingAmethystMixin",
     "CanMineFrostedIceMixin",
     "FrostedIceProperToolFixMixin",

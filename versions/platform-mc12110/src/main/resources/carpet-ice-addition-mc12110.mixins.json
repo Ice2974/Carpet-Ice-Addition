@@ -30,7 +30,11 @@
     "ServerWorldRecordWorldEventMixin",
     "TrialSpawnerDataMixin",
     "CrafterBlockCraftableCoralBlocksMixin",
-    "CraftingScreenHandlerCraftableCoralBlocksMixin"
+    "CraftingScreenHandlerCraftableCoralBlocksMixin",
+    "VillagerEntityVillagerEventsMixin",
+    "ZombieEntityVillagerEventsMixin",
+    "VillagerEntityLightningVillagerEventsMixin",
+    "MobEntityVillagerConversionMixin"
   ],
   "injectors": {
     "defaultRequire": 1

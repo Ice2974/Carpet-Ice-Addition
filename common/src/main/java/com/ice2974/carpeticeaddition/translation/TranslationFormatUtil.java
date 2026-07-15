@@ -1,5 +1,6 @@
 package com.ice2974.carpeticeaddition.translation;
 
+import carpet.CarpetSettings;
 import carpet.utils.Translations;
 
 import java.util.IllegalFormatException;
@@ -11,6 +12,12 @@ public final class TranslationFormatUtil {
 
     public static String translate(String key, Object... args) {
         String template = Translations.tr(key);
+        if (key.equals(template)) {
+            String loggerTemplate = CarpetIceAdditionTranslations.villagerEvents(key, CarpetSettings.language);
+            if (loggerTemplate != null) {
+                template = loggerTemplate;
+            }
+        }
         if (args.length == 0) {
             return template;
         }

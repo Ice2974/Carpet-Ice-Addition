@@ -315,4 +315,17 @@ public final class CarpetIceAdditionTranslations {
                 Map.entry("command.carpet-ice-addition.machine_status.current_state.chunk_not_loaded", "Chunk not loaded")
         );
     }
+
+    /** Logger strings are served through the existing server-side translation utility. */
+    public static String villagerEvents(String key, String lang) {
+        boolean zh = lang != null && lang.toLowerCase().startsWith("zh");
+        return switch (key) {
+            case "logger.carpet-ice-addition.villager_events.zombified" -> zh ? "%s被感染为僵尸村民" : "%s was infected and converted into a zombie villager";
+            case "logger.carpet-ice-addition.villager_events.witch" -> zh ? "%s因雷击转化为女巫" : "%s was converted into a witch by lightning";
+            case "logger.carpet-ice-addition.villager_events.dimension.overworld" -> zh ? "主世界" : "Overworld";
+            case "logger.carpet-ice-addition.villager_events.dimension.nether" -> zh ? "下界" : "Nether";
+            case "logger.carpet-ice-addition.villager_events.dimension.end" -> zh ? "末地" : "End";
+            default -> null;
+        };
+    }
 }
