@@ -1,4 +1,4 @@
-> Doc Version: `v2.6.2`
+> Doc Version: `v2.7.0`
 
 ## Command List
 
