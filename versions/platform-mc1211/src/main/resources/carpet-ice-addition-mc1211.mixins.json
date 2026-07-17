@@ -15,6 +15,7 @@
     "RecipeManagerCraftableCoralBlocksMixin",
     "JukeboxManagerRecordWorldEventMixin",
     "KelpNaturalGrowthMixin",
+    "DisableIllegalChatCharacterCheckMixin",
     "AmethystNaturalGrowthMixin",
     "LivingEntityNeutralPhantomsMixin",
     "PhantomEntityNeutralPhantomsMixin",

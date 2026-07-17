@@ -12,10 +12,11 @@ Unless otherwise stated, the current implementations have been adapted or rewrit
 
 ## Carpet-TCTC-Addition
 
-- Related rules `botTabListNamePrefix`, `botTabListNameSuffix`
+- Related rules `botTabListNamePrefix`, `botTabListNameSuffix`, `disableIllegalChatCharacterCheck`
 - Original project Carpet-TCTC-Addition
 - License LGPL-3.0
 - Notes The feature behavior was inspired by the original project and has been rewritten for Carpet Ice Addition.
+- Notes The behavior and shared-character-check interception approach of `disableIllegalChatCharacterCheck` were referenced from the original project. Its implementation was written independently for Carpet Ice Addition's architecture and supported versions.
 
 ## DoormatCarpetExtension
 

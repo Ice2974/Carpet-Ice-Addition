@@ -4,6 +4,7 @@ import carpet.api.settings.Rule;
 import carpet.api.settings.Validators;
 
 import static carpet.api.settings.RuleCategory.BUGFIX;
+import static carpet.api.settings.RuleCategory.CLIENT;
 import static carpet.api.settings.RuleCategory.COMMAND;
 import static carpet.api.settings.RuleCategory.FEATURE;
 import static carpet.api.settings.RuleCategory.SURVIVAL;
@@ -62,6 +63,9 @@ public final class CarpetIceAdditionSettings {
 
     @Rule(categories = {ICE, FEATURE})
     public static boolean easyWaterloggedBlockPlacement = false;
+
+    @Rule(categories = {CLIENT})
+    public static boolean disableIllegalChatCharacterCheck = false;
 
     @Rule(categories = {ICE, SURVIVAL})
     public static boolean disablePlayerAttackingTamedMobs = false;
