@@ -271,10 +271,10 @@
 - 可选值: `false`, `true`
 - 分类: `ICE`, `BUGFIX`, `CLIENT`
 
-## 禁用聊天非法字符检查 (disableIllegalChatCharacterCheck)
+## 禁用非法字符检查 (disableIllegalTextCharacterCheck)
 
 跳过原版的聊天字符合法性检查，允许使用原版通常会拦截的字符，例如分节符。\
-（规则行为和公共字符检查拦截思路参考 Carpet-TCTC-Addition 的同名规则；本项目针对当前架构与支持版本独立编写实现。）
+（规则行为和公共字符检查拦截思路参考 Carpet-TCTC-Addition 的类似规则；本项目针对当前架构与支持版本独立编写实现。）
 
 - 类型: `boolean`
 - 默认值: `false`

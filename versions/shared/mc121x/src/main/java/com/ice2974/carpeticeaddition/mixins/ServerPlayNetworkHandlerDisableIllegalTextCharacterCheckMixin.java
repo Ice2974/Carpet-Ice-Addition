@@ -10,7 +10,7 @@ import org.spongepowered.asm.mixin.injection.Slice;
 import java.util.function.Function;
 
 @Mixin(ServerPlayNetworkHandler.class)
-public abstract class ServerPlayNetworkHandlerDisableIllegalChatCharacterCheckMixin {
+public abstract class ServerPlayNetworkHandlerDisableIllegalTextCharacterCheckMixin {
 
     @ModifyArg(
             method = "onUpdateSign(Lnet/minecraft/network/packet/c2s/play/UpdateSignC2SPacket;)V",
@@ -36,7 +36,7 @@ public abstract class ServerPlayNetworkHandlerDisableIllegalChatCharacterCheckMi
     private Function<String, String> carpetIceAddition$preserveSignFormatting(
             Function<String, String> formatter
     ) {
-        if (CarpetIceAdditionSettings.disableIllegalChatCharacterCheck) {
+        if (CarpetIceAdditionSettings.disableIllegalTextCharacterCheck) {
             return Function.identity();
         }
         return formatter;

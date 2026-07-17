@@ -8,7 +8,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
 @Mixin(TextFieldHelper.class)
-public abstract class DisableIllegalChatCharacterCheckClipboardMixin {
+public abstract class DisableIllegalTextCharacterCheckClipboardMixin {
 
     @WrapOperation(
             method = "getClipboardContents(Lnet/minecraft/client/Minecraft;)Ljava/lang/String;",
@@ -21,7 +21,7 @@ public abstract class DisableIllegalChatCharacterCheckClipboardMixin {
             String clipboard,
             Operation<String> original
     ) {
-        if (CarpetIceAdditionSettings.disableIllegalChatCharacterCheck) {
+        if (CarpetIceAdditionSettings.disableIllegalTextCharacterCheck) {
             return clipboard;
         }
         return original.call(clipboard);

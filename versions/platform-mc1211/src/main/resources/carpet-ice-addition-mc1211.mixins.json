@@ -15,8 +15,8 @@
     "RecipeManagerCraftableCoralBlocksMixin",
     "JukeboxManagerRecordWorldEventMixin",
     "KelpNaturalGrowthMixin",
-    "DisableIllegalChatCharacterCheckMixin",
-    "ServerPlayNetworkHandlerDisableIllegalChatCharacterCheckMixin",
+    "DisableIllegalTextCharacterCheckMixin",
+    "ServerPlayNetworkHandlerDisableIllegalTextCharacterCheckMixin",
     "AmethystNaturalGrowthMixin",
     "LivingEntityNeutralPhantomsMixin",
     "PhantomEntityNeutralPhantomsMixin",
@@ -41,8 +41,8 @@
     "CarpetServerOnServerClosedNullFixMixin"
   ],
   "client": [
-    "DisableIllegalChatCharacterCheckClipboardMixin",
-    "BookEditScreenDisableIllegalChatCharacterCheckMixin"
+    "DisableIllegalTextCharacterCheckClipboardMixin",
+    "BookEditScreenDisableIllegalTextCharacterCheckMixin"
   ],
   "injectors": {
     "defaultRequire": 1

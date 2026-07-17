@@ -10,7 +10,7 @@ import org.spongepowered.asm.mixin.injection.Slice;
 import java.util.function.Function;
 
 @Mixin(ServerGamePacketListenerImpl.class)
-public abstract class ServerGamePacketListenerImplDisableIllegalChatCharacterCheckMixin {
+public abstract class ServerGamePacketListenerImplDisableIllegalTextCharacterCheckMixin {
 
     @ModifyArg(
             method = "handleSignUpdate(Lnet/minecraft/network/protocol/game/ServerboundSignUpdatePacket;)V",
@@ -36,7 +36,7 @@ public abstract class ServerGamePacketListenerImplDisableIllegalChatCharacterChe
     private Function<String, String> carpetIceAddition$preserveSignFormatting(
             Function<String, String> formatter
     ) {
-        if (CarpetIceAdditionSettings.disableIllegalChatCharacterCheck) {
+        if (CarpetIceAdditionSettings.disableIllegalTextCharacterCheck) {
             return Function.identity();
         }
         return formatter;

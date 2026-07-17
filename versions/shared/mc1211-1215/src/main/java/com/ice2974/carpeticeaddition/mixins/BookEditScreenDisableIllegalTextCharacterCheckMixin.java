@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(BookEditScreen.class)
-public abstract class BookEditScreenDisableIllegalChatCharacterCheckMixin {
+public abstract class BookEditScreenDisableIllegalTextCharacterCheckMixin {
 
     @Shadow @Final private SelectionManager bookTitleSelectionManager;
     @Shadow private boolean dirty;
@@ -28,7 +28,7 @@ public abstract class BookEditScreenDisableIllegalChatCharacterCheckMixin {
             int modifiers,
             CallbackInfoReturnable<Boolean> cir
     ) {
-        if (!CarpetIceAdditionSettings.disableIllegalChatCharacterCheck || !Screen.isPaste(keyCode)) {
+        if (!CarpetIceAdditionSettings.disableIllegalTextCharacterCheck || !Screen.isPaste(keyCode)) {
             return;
         }
 

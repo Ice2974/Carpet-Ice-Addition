@@ -271,10 +271,10 @@ Fixes a Carpet crash that can happen when leaving a singleplayer world after pre
 - Possible values: `false`, `true`
 - Categories: `ICE`, `BUGFIX`, `CLIENT`
 
-## disableIllegalChatCharacterCheck
+## disableIllegalTextCharacterCheck
 
 Skips the vanilla chat character validation, allowing characters that are normally rejected, such as the section sign.\
-(The rule behavior and shared-character-check interception approach reference the rule of the same name in Carpet-TCTC-Addition; the implementation for this project's architecture and supported versions was written independently.)
+(The rule behavior and shared-character-check interception approach reference a similar rule in Carpet-TCTC-Addition; the implementation for this project's architecture and supported versions was written independently.)
 
 - Type: `boolean`
 - Default: `false`

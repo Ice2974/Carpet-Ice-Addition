@@ -8,14 +8,14 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(StringHelper.class)
-public abstract class DisableIllegalChatCharacterCheckMixin {
+public abstract class DisableIllegalTextCharacterCheckMixin {
 
-    @Inject(method = "isValidChar(I)Z", at = @At("HEAD"), cancellable = true)
-    private static void carpetIceAddition$disableIllegalChatCharacterCheck(
-            int codePoint,
+    @Inject(method = "isValidChar(C)Z", at = @At("HEAD"), cancellable = true)
+    private static void carpetIceAddition$disableIllegalTextCharacterCheck(
+            char character,
             CallbackInfoReturnable<Boolean> cir
     ) {
-        if (CarpetIceAdditionSettings.disableIllegalChatCharacterCheck) {
+        if (CarpetIceAdditionSettings.disableIllegalTextCharacterCheck) {
             cir.setReturnValue(true);
         }
     }

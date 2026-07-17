@@ -65,7 +65,7 @@ public final class CarpetIceAdditionSettings {
     public static boolean easyWaterloggedBlockPlacement = false;
 
     @Rule(categories = {ICE, CLIENT})
-    public static boolean disableIllegalChatCharacterCheck = false;
+    public static boolean disableIllegalTextCharacterCheck = false;
 
     @Rule(categories = {ICE, SURVIVAL})
     public static boolean disablePlayerAttackingTamedMobs = false;
