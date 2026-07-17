@@ -37,6 +37,9 @@
     "VillagerEntityLightningVillagerEventsMixin",
     "MobEntityVillagerConversionMixin"
   ],
+  "client": [
+    "DisableIllegalChatCharacterCheckClipboardMixin"
+  ],
   "injectors": {
     "defaultRequire": 1
   }

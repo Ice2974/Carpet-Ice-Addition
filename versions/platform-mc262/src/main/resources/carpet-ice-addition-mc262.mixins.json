@@ -38,6 +38,9 @@
     "CrafterBlockCraftableCoralBlocksMixin",
     "CraftingMenuCraftableCoralBlocksMixin"
   ],
+  "client": [
+    "DisableIllegalChatCharacterCheckClipboardMixin"
+  ],
   "injectors": {
     "defaultRequire": 1
   }
