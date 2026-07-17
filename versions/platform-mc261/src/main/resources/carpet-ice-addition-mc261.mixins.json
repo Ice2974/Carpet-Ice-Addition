@@ -15,6 +15,7 @@
     "JukeboxManagerRecordWorldEventMixin",
     "KelpNaturalGrowthMixin",
     "DisableIllegalChatCharacterCheckMixin",
+    "ServerGamePacketListenerImplDisableIllegalChatCharacterCheckMixin",
     "AmethystNaturalGrowthMixin",
     "LivingEntityNeutralPhantomsMixin",
     "PhantomAttackPlayerTargetGoalNeutralPhantomsMixin",

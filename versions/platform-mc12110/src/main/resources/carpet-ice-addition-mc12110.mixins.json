@@ -11,6 +11,7 @@
     "JukeboxManagerRecordWorldEventMixin",
     "KelpNaturalGrowthMixin",
     "DisableIllegalChatCharacterCheckMixin",
+    "ServerPlayNetworkHandlerDisableIllegalChatCharacterCheckMixin",
     "AmethystNaturalGrowthMixin",
     "LivingEntityNeutralPhantomsMixin",
     "PhantomEntityNeutralPhantomsMixin",

@@ -20,18 +20,4 @@ public abstract class DisableIllegalChatCharacterCheckMixin {
         }
     }
 
-    @Inject(
-            method = "filterText(Ljava/lang/String;Z)Ljava/lang/String;",
-            at = @At("HEAD"),
-            cancellable = true
-    )
-    private static void carpetIceAddition$disableIllegalChatCharacterFiltering(
-            String text,
-            boolean allowLinebreak,
-            CallbackInfoReturnable<String> cir
-    ) {
-        if (CarpetIceAdditionSettings.disableIllegalChatCharacterCheck) {
-            cir.setReturnValue(text);
-        }
-    }
 }
