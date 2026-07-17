@@ -1,4 +1,4 @@
-> Doc Version: `v2.7.0`
+> Doc Version: `v2.8.0`
 
 ## General mechanics
 
