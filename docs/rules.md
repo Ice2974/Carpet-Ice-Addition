@@ -284,4 +284,4 @@
 - 类型: `boolean`
 - 默认值: `false`
 - 参考值: `true`, `false`
-- 分类: `CLIENT`
+- 分类: `ICE`, `CLIENT`

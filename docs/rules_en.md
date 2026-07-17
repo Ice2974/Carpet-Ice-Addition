@@ -284,4 +284,4 @@ When only the client has this mod and connects to a vanilla server, sending `/ca
 - Type: `boolean`
 - Default: `false`
 - Reference values: `true`, `false`
-- Categories: `CLIENT`
+- Categories: `ICE`, `CLIENT`
