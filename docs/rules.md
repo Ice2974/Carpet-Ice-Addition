@@ -148,7 +148,7 @@
 
 ## 假人Tab栏名称前缀 (botTabListNamePrefix)
 
-为 Tab 栏中的假人添加前缀，使用 `&` 来表示文字颜色。
+为 Tab 栏中的假人添加前缀，可使用 `&` 代替分节符。\
 （功能设计参考了 Carpet-TCTC-Addition 的同类规则，当前实现已按本模组需求重写。）
 
 - 类型: `String`
@@ -158,7 +158,7 @@
 
 ## 假人Tab栏名称后缀 (botTabListNameSuffix)
 
-为 Tab 栏中的假人添加后缀，使用 `&` 来表示文字颜色。\
+为 Tab 栏中的假人添加后缀，可使用 `&` 代替分节符。\
 （功能设计参考了 Carpet-TCTC-Addition 的同类规则，当前实现已按本模组需求重写。）
 
 - 类型: `String`

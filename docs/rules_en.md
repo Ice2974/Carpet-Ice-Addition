@@ -148,7 +148,7 @@ Crimson nylium and warped nylium will not decay into netherrack when covered by 
 
 ## botTabListNamePrefix
 
-Add a prefix to bots in the Tab list, using `&` to represent text colors.\
+Add a prefix to bots in the Tab list, using `&` to represent section symbols.\
 (The feature design references a similar rule from Carpet-TCTC-Addition, and the current implementation has been rewritten for this mod's needs.)
 
 - Type: `String`
@@ -158,7 +158,7 @@ Add a prefix to bots in the Tab list, using `&` to represent text colors.\
 
 ## botTabListNameSuffix
 
-Add a suffix to bots in the Tab list, using `&` to represent text colors.\
+Add a suffix to bots in the Tab list, using `&` to represent section symbols.\
 (The feature design references a similar rule from Carpet-TCTC-Addition, and the current implementation has been rewritten for this mod's needs.)
 
 - Type: `String`
