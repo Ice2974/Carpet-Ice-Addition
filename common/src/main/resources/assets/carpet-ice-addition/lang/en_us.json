@@ -22,7 +22,7 @@
   "carpet.rule.customEndPlatformPosition.desc": "Allows customizing the center position of the End obsidian platform generated when entities enter the End, while keeping the arrival position in sync.",
   "carpet.rule.mobsSpawnWithoutSpears.desc": "Prevents naturally spawned zombies, zombie villagers, husks, zombified piglins, and piglins from holding spears.",
   "carpet.rule.carpetSingleplayerExitCrashFix.desc": "Fixes a Carpet crash that can happen when leaving a singleplayer world after previously joining a Carpet server.",
-  "carpet.rule.disableIllegalTextCharacterCheck.desc": "Skips vanilla text character validation, allows normally rejected characters such as section signs, and lets the server preserve raw literal sign text containing section signs during sign updates.",
+  "carpet.rule.disableIllegalTextCharacterCheck.desc": "Skips vanilla text character validation, allowing characters that are normally rejected, such as section signs.",
   "carpet.rule.disablePlayerAttackingTamedMobs.desc": "Players cannot damage their own tamed mobs while PVP is enabled, and cannot damage any player-owned tamed mobs while PVP is disabled.",
   "carpet.rule.phantomSpawnWarning.desc": "Warns players at the start of the night when they reach the vanilla insomnia time threshold for phantom spawning.",
   "carpet.rule.neutralPhantoms.desc": "Makes phantoms neutral toward players: they will not attack players first, but will fight back when attacked.",
