@@ -273,10 +273,26 @@ Fixes a Carpet crash that can happen when leaving a singleplayer world after pre
 
 ## disableIllegalTextCharacterCheck
 
-Skips the vanilla text character validation, allowing characters that are normally rejected, such as the section sign.\
+Skips vanilla text character validation, allowing characters that are normally rejected, such as section signs. Pasted text still has CR characters removed, but vanilla formatting cleanup no longer removes section-sign sequences; the legacy book-title screen in 1.21.1–1.21.5 also gains Ctrl+V support.
+
+This rule affects vanilla interfaces and processing paths that call the shared text-character check, including chat, commands, signs, books, and anvils. Interface-specific length, format, syntax, and business predicates remain active, as do server-side text filtering, packet limits, and chat-signature validation. Third-party custom text boxes that do not call the shared method are outside the guaranteed scope.
+
+When only the client has this mod and connects to a vanilla server, sending `/carpet disableIllegalTextCharacterCheck true` can switch the rule temporarily for the current client process. The command is still sent to the server, so a vanilla server will normally report an unknown command, and the server may still filter or reject the resulting text. No reliable local switch is guaranteed when connected to a Carpet server that does not have this extension.
+
+Whether sign formatting codes survive from editing to persistent storage depends on the installation setup and the rule value synchronized by the server:
+
+| Installation | Sign behavior |
+| --- | --- |
+| Singleplayer | The client and integrated server share the current rule value; when it is `true`, input is relaxed and the server can retain the raw text it receives. |
+| Client only | When the client rule is `true`, local input is relaxed; a server without this mod still removes sign formatting codes as in vanilla. |
+| Server only | When the server rule is `true`, it can preserve raw sign text containing section signs that a client actually submits; a vanilla client normally cannot enter these characters through the regular text-input UI. |
+| Client and server | The server-synchronized value updates the same client rule. When the synchronized value is `true`, the complete path from client editing and packet submission to server persistence can retain the text. |
+
+The server stores the raw literal string containing section signs in `SignText`; the client interprets supported formatting sequences while rendering it. This does not mean that the server creates a structured color `Style`. Text filtering, packet limits, interface-specific length and line-width limits, waxing, permission and editor checks, front/back selection, and the other vanilla checks for books and chat remain active.
+
 (The rule behavior and shared text-character-check interception approach reference a similar rule in Carpet-TCTC-Addition; the implementation for this project's architecture and supported versions was written independently.)
 
 - Type: `boolean`
 - Default: `false`
-- Reference values: `true`, `false`
+- Possible values: `true`, `false`
 - Categories: `ICE`, `CLIENT`

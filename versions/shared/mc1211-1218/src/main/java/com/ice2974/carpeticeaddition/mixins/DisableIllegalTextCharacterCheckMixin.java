@@ -15,7 +15,8 @@ public abstract class DisableIllegalTextCharacterCheckMixin {
             char character,
             CallbackInfoReturnable<Boolean> cir
     ) {
-        if (CarpetIceAdditionSettings.disableIllegalTextCharacterCheck) {
+        // Keep vanilla CR rejection so every clipboard path retains its CR cleanup.
+        if (CarpetIceAdditionSettings.disableIllegalTextCharacterCheck && character != '\r') {
             cir.setReturnValue(true);
         }
     }
