@@ -236,7 +236,7 @@ Makes phantoms neutral toward players: they will not attack players first, but w
 
 ## easyWaterloggedBlockPlacement
 
-Allows players holding a water bucket in the offhand to directly place waterloggable blocks in a waterlogged state, except in the Nether and other ultrawarm dimensions.
+Allows players holding a water bucket in the offhand to directly place waterloggable blocks in a waterlogged state, except in dimensions where water evaporates.
 
 - Type: `boolean`
 - Default: `false`

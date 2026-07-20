@@ -45,7 +45,7 @@ public abstract class BlockItemEasyWaterloggedBlockPlacementMc12111Mixin {
                 return state;
             }
 
-            if (context.getWorld().getEnvironmentAttributes().getAttributeValue(EnvironmentAttributes.WATER_EVAPORATES_GAMEPLAY)) {
+            if (context.getWorld().getEnvironmentAttributes().getAttributeValue(EnvironmentAttributes.WATER_EVAPORATES_GAMEPLAY, context.getBlockPos())) {
                 return state;
             }
 

@@ -45,8 +45,7 @@ public abstract class BlockItemEasyWaterloggedBlockPlacementMixin {
                 return state;
             }
 
-            var waterEvaporates = context.getLevel().dimensionType().attributes().get(EnvironmentAttributes.WATER_EVAPORATES);
-            if (waterEvaporates != null && waterEvaporates.argument() == Boolean.TRUE) {
+            if (context.getLevel().environmentAttributes().getValue(EnvironmentAttributes.WATER_EVAPORATES, context.getClickedPos())) {
                 return state;
             }
 
