@@ -8,6 +8,7 @@ import net.minecraft.item.BlockItem;
 import net.minecraft.item.ItemPlacementContext;
 import net.minecraft.item.Items;
 import net.minecraft.state.property.Properties;
+import net.minecraft.world.attribute.EnvironmentAttributes;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -16,7 +17,7 @@ import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(BlockItem.class)
-public abstract class BlockItemEasyWaterloggedBlockPlacementMixin {
+public abstract class BlockItemEasyWaterloggedBlockPlacementMc12111Mixin {
     @Unique
     private static final ThreadLocal<ItemPlacementContext> CARPET_ICE_ADDITION$PLACEMENT_CONTEXT = new ThreadLocal<>();
 
@@ -44,7 +45,7 @@ public abstract class BlockItemEasyWaterloggedBlockPlacementMixin {
                 return state;
             }
 
-            if (context.getWorld().getDimension().ultrawarm()) {
+            if (context.getWorld().getEnvironmentAttributes().getAttributeValue(EnvironmentAttributes.WATER_EVAPORATES_GAMEPLAY)) {
                 return state;
             }
 

@@ -3,6 +3,7 @@ package com.ice2974.carpeticeaddition.mixins;
 import com.ice2974.carpeticeaddition.CarpetIceAdditionMod;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.attribute.EnvironmentAttributes;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.context.BlockPlaceContext;
@@ -41,6 +42,11 @@ public abstract class BlockItemEasyWaterloggedBlockPlacementMixin {
 
             BlockPlaceContext context = CARPET_ICE_ADDITION$PLACEMENT_CONTEXT.get();
             if (context == null) {
+                return state;
+            }
+
+            var waterEvaporates = context.getLevel().dimensionType().attributes().get(EnvironmentAttributes.WATER_EVAPORATES);
+            if (waterEvaporates != null && waterEvaporates.argument() == Boolean.TRUE) {
                 return state;
             }
 

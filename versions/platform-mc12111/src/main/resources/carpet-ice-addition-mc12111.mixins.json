@@ -27,7 +27,7 @@
     "MobSpawnerLogicMixin",
     "NyliumDecayMixin",
     "EndPortalBlockCustomEndPlatformPositionMixin",
-    "BlockItemEasyWaterloggedBlockPlacementMixin",
+    "BlockItemEasyWaterloggedBlockPlacementMc12111Mixin",
     "TrialSpawnerDataMixin",
     "ServerWorldPhantomSpawnWarningMixin",
     "ServerWorldRecordWorldEventMixin",
