@@ -1,5 +1,3 @@
-> Doc Version: `v2.9.0`
-
 # Logger List
 
 ## villagerEvents
@@ -7,7 +5,7 @@
 Logs actual villager deaths, successful zombie-villager conversions, and successful lightning-to-witch conversions. The default option is `all`.
 
 | Option | Events |
-| --- | --- |
+| - | - |
 | `all` | Death, zombification, and witch conversion. |
 | `death` | Actual deaths only. |
 | `zombified` | Actual zombie-villager conversions only. |

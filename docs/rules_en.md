@@ -1,5 +1,3 @@
-> Doc Version: `v2.9.0`
-
 ## General mechanics
 
 ### Crafting recipe conflict lock
@@ -7,6 +5,7 @@
 Crafting-related rules register built-in recipes from this mod. If another datapack or mod provides a crafting recipe with the same output as one of those built-in recipes, the corresponding rule is automatically locked to `false` at runtime.
 
 When locked:
+
 - the built-in recipe from this mod stops applying;
 - the external datapack/mod recipe keeps working;
 - `/carpet <ruleName>` shows `false`;

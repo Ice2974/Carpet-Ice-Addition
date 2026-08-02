@@ -1,9 +1,7 @@
-> Doc Version: `v2.9.0`
-
 ## Command List
 
 | Command | Related Rule | Description |
-|---|---|---|
+| - | - | - |
 | `/killitem` | `commandKillItem` | Clears item entities and manages the cleanup blacklist and named-item cleanup setting. |
 | `/machineStatus` | `commandMachineStatus` | Checks the current status of technical machines. The baseline block state when each machine is shut down must be saved manually. |
 
@@ -18,7 +16,7 @@
 ### Command Syntax
 
 | Command | Description |
-|---|---|
+| - | - |
 | `/killitem range <radius>` | Clears item entities within the specified radius around the player executing the command in the current dimension |
 | `/killitem dimension <dimension>` | Clears item entities in the specified dimension |
 | `/killitem all` | Clears item entities in all loaded dimensions |
@@ -33,7 +31,7 @@
 ### Parameters
 
 | Parameter | Description | Example |
-|---|---|---|
+| - | - | - |
 | `<radius>` | Cleanup radius, only used by `/killitem range` | `64` |
 | `<dimension>` | Dimension registry ID | `minecraft:overworld`, `minecraft:the_nether`, `minecraft:the_end` |
 | `<resultId>` | Cleanup detail cache ID, provided automatically by the clickable cleanup result buttons | `a1b2c3...` |
@@ -56,7 +54,7 @@ Cleanup detail caches expire after about 10 minutes, after which the cleanup com
 ### Command Syntax
 
 | Command | Description |
-|---|---|
+| - | - |
 | `/machineStatus add <dimension> <pos> <name>` | Adds a machine record and saves the current block state at the target position as the shutdown state |
 | `/machineStatus remove <name>` | Removes the specified machine record |
 | `/machineStatus rename <name> <newName>` | Renames the specified machine record |
@@ -72,7 +70,7 @@ Cleanup detail caches expire after about 10 minutes, after which the cleanup com
 ### Parameters
 
 | Parameter | Description | Example |
-|---|---|---|
+| - | - | - |
 | `<dimension>` | Dimension registry ID | `minecraft:overworld`, `minecraft:the_nether`, `minecraft:the_end` |
 | `<pos>` | Target block position | `100 64 -20` |
 | `<name>` | Unique machine name. Names without spaces can be entered directly, including Chinese names; if the name contains spaces or other content that should be preserved exactly, wrap it in double quotes | `ironFarm`, `刷铁机`, `"Piglin Trading Hall"`, `"Nether Portal Switch"` |
@@ -80,7 +78,7 @@ Cleanup detail caches expire after about 10 minutes, after which the cleanup com
 ### Status Meanings
 
 | Status | Description |
-|---|---|
+| - | - |
 | `Invalid` | The dimension is missing, the saved block state cannot be parsed, the block type changed, or the current block can no longer be compared safely |
 | `Running` | The target chunk is loaded, the current block state can be read, the block type is unchanged, and the current state differs from the saved shutdown state |
 | `Stopped` | The target chunk is loaded and the current block state exactly matches the saved shutdown state |

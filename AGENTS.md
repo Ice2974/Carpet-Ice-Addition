@@ -31,7 +31,7 @@
 以下为项目长期固定命名，除非任务明确要求重命名，否则不要修改：
 
 | 标识类型 | 固定值 |
-|---|---|
+| - | - |
 | Display Name / 项目名称 | `Carpet Ice Addition` |
 | Mod ID | `carpet-ice-addition` |
 | Java Package | `com.ice2974.carpeticeaddition` |
@@ -45,6 +45,7 @@
 | GitHub 仓库 | `Ice2974/Carpet-Ice-Addition` |
 
 约束：
+
 - `gradle.properties` 中的 `mod_id`、`mod_name`、`maven_group`、`archives_base_name` 是上述标识的单一来源，修改时必须同步所有 `fabric.mod.json`、Java 常量、语言文件和 mixin 配置。
 - 各平台 `CarpetIceAdditionMod.java` 中的 `MOD_ID` 和 `MOD_NAME` 常量必须与 `gradle.properties` 保持一致。
 - `compatibilityLevel`（`JAVA_21` / `JAVA_25`）随平台版本变化，不视为固定标识，不要为统一而强行对齐。
@@ -69,7 +70,7 @@
 新增或调整功能时，按类型同步检查：
 
 | 类型 | 至少检查 | 必须同步文档 |
-|---|---|---|
+| - | - | - |
 | 规则 | 规则定义类、翻译提供类、中英文语言文件、相关 Mixin / Helper / 配置类、受影响平台入口类、mixin json、sourceSets | `docs/rules.md`、`docs/rules_en.md` |
 | 命令 | 命令注册入口、命令实现类、权限判断、命令树刷新逻辑、反馈/错误文本、配置持久化逻辑 | `docs/commands.md`、`docs/commands_en.md` |
 | 记录器 | `registerLoggers()` 接入点、logger 注册/显示/辅助类、事件触发点、Mixin、HUD 更新入口、内部名、默认 option、可选 options、订阅状态快速判断 | `docs/loggers.md`、`docs/loggers_en.md` |
@@ -108,22 +109,24 @@
 - 运行时配置应按作用范围选择存放位置：只对当前存档生效、内容依赖世界状态或坐标的配置，放在当前世界 / 存档目录下；全局性、通用性、与具体存档无关的配置，放在全局 `config/` 目录下。
 - 配置读取失败时记录日志并回退默认值；写入失败时记录日志，并向命令执行者返回明确错误。
 - 文档只维护当前状态，不追加无关历史流水账；新增或调整内容的格式应与旧内容一致。
-- 修改 Mod 版本号时，必须同步更新 `gradle.properties` 和 `docs/` 目录下所有标注版本号的文档，并用全文搜索确认旧版本号残留。
+- 修改 Mod 版本号时，需要更新 `gradle.properties`
 - 旧版本号若属于历史记录、示例、兼容范围或 release notes，且不能确定是否应替换，不要擅自改写，写入“待人工确认项”。
 
 ## 构建与验证
 
-* 默认使用仓库内 Gradle Wrapper 执行编译、构建和验证；Windows 下优先使用 `.\gradlew.bat`。
-* Java 版本由 Gradle Java Toolchain 自动选择，不要在任务中手动切换 `JAVA_HOME`，也不要把本机 JDK 绝对路径写入仓库级 `gradle.properties`、`build.gradle` 或其他提交文件。
-* 本机已通过用户级 Gradle 配置提供本地 JDK。构建前如需确认 Java Toolchain 状态，可运行：
+- 默认使用仓库内 Gradle Wrapper 执行编译、构建和验证；Windows 下优先使用 `.\gradlew.bat`。
+- Java 版本由 Gradle Java Toolchain 自动选择，不要在任务中手动切换 `JAVA_HOME`，也不要把本机 JDK 绝对路径写入仓库级 `gradle.properties`、`build.gradle` 或其他提交文件。
+- 本机已通过用户级 Gradle 配置提供本地 JDK。构建前如需确认 Java Toolchain 状态，可运行：
+
 ```powershell
 .\gradlew.bat -q javaToolchains
 ```
-* 只修改 Markdown 文档时，至少运行 `git diff --check`。
-* 修改源码、资源、构建脚本、Mixin、平台入口或 sourceSets 时，先运行 `git diff --check`，再运行受影响模块的 `compileJava`。
-* 涉及 `common/`、`versions/shared/` 或跨平台公共逻辑时，优先验证所有当前支持平台的编译。
-* 如果因环境限制无法运行验证命令，需要在回复中明确说明未验证内容、原因和风险。
-* 不要把未运行的游戏内测试、多人测试或启动测试写成已通过。
+
+- 只修改 Markdown 文档时，至少运行 `git diff --check`。
+- 修改源码、资源、构建脚本、Mixin、平台入口或 sourceSets 时，先运行 `git diff --check`，再运行受影响模块的 `compileJava`。
+- 涉及 `common/`、`versions/shared/` 或跨平台公共逻辑时，优先验证所有当前支持平台的编译。
+- 如果因环境限制无法运行验证命令，需要在回复中明确说明未验证内容、原因和风险。
+- 不要把未运行的游戏内测试、多人测试或启动测试写成已通过。
 
 ## 日志与测试边界
 
