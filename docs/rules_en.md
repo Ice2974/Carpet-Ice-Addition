@@ -15,7 +15,9 @@ When locked:
 - `carpet.conf` is not modified;
 - removing the conflicting datapack and running `/reload` releases the lock and restores the previous configured value.
 
-## safeScaffoldingBreak
+## Rules
+
+### safeScaffoldingBreak
 
 Require holding scaffolding or an empty main hand to break scaffolding.
 
@@ -24,7 +26,7 @@ Require holding scaffolding or an empty main hand to break scaffolding.
 - Possible values: `false`, `true`
 - Categories: `ICE`, `SURVIVAL`
 
-## invisibleItemFrames
+### invisibleItemFrames
 
 Allows players to right-click item frames or glow item frames that already contain an item with a phantom membrane to make them invisible.\
 (The feature design references carpet-redcraft-addons' betterItemFrames rule, while the current implementation has been independently rewritten for this mod's target versions and layering.)
@@ -44,7 +46,7 @@ Allows players to right-click item frames or glow item frames that already conta
 - Possible values: `false`, `true`
 - Categories: `ICE`, `FEATURE`
 
-## crafterStopsWhenOutputBlocked
+### crafterStopsWhenOutputBlocked
 
 Prevents a crafter from crafting when the container it faces cannot fully accept the main recipe result. Recipe remainders keep their vanilla behavior.
 
@@ -53,7 +55,7 @@ Prevents a crafter from crafting when the container it faces cannot fully accept
 - Possible values: `false`, `true`
 - Categories: `ICE`, `FEATURE`
 
-## craftableCoralBlocks
+### craftableCoralBlocks
 
 Allows 9 coral fans of the same type to be crafted into the corresponding coral block, including dead coral variants.
 
@@ -62,7 +64,7 @@ Allows 9 coral fans of the same type to be crafted into the corresponding coral 
 - Possible values: `false`, `true`
 - Categories: `ICE`, `FEATURE`
 
-## recordWorldEventFix
+### recordWorldEventFix
 
 Fixes the issue where a music disc can keep playing after being quickly inserted into and removed from a jukebox, which may also cause overlapping disc audio. See MC-112245.\
 (This rule was initially ported from Carpet-Fixes and has since been adapted for this mod's needs.)
@@ -72,7 +74,7 @@ Fixes the issue where a music disc can keep playing after being quickly inserted
 - Possible values: `false`, `true`
 - Categories: `ICE`, `BUGFIX`
 
-## spawnersIgnoreInvisiblePlayers
+### spawnersIgnoreInvisiblePlayers
 
 Normal spawners, trial spawners, and ominous trial spawners ignore invisible players when checking nearby players.
 
@@ -81,7 +83,7 @@ Normal spawners, trial spawners, and ominous trial spawners ignore invisible pla
 - Possible values: `false`, `true`
 - Categories: `ICE`, `FEATURE`
 
-## disableKelpNaturalGrowth
+### disableKelpNaturalGrowth
 
 Disables kelp natural growth from random ticks.
 
@@ -90,7 +92,7 @@ Disables kelp natural growth from random ticks.
 - Possible values: `false`, `true`
 - Categories: `ICE`, `FEATURE`
 
-## disableAmethystGrowth
+### disableAmethystGrowth
 
 Budding amethyst blocks will no longer generate amethyst buds or advance the growth of amethyst buds during random ticks.
 
@@ -99,7 +101,7 @@ Budding amethyst blocks will no longer generate amethyst buds or advance the gro
 - Possible values: `false`, `true`
 - Categories: `ICE`, `FEATURE`
 
-## silkTouchBuddingAmethyst
+### silkTouchBuddingAmethyst
 
 Budding amethyst can be collected by using a suitable tool with the Silk Touch enchantment.
 
@@ -108,7 +110,7 @@ Budding amethyst can be collected by using a suitable tool with the Silk Touch e
 - Possible values: `false`, `true`
 - Categories: `ICE`, `FEATURE`
 
-## silkTouchFrostedIce
+### silkTouchFrostedIce
 
 Frosted ice drops 1 regular ice when broken by a player using any tool with the Silk Touch enchantment.
 
@@ -117,7 +119,7 @@ Frosted ice drops 1 regular ice when broken by a player using any tool with the 
 - Possible values: `false`, `true`
 - Categories: `ICE`, `FEATURE`
 
-## frostedIceProperToolFix
+### frostedIceProperToolFix
 
 Makes pickaxes the proper tools for breaking frosted ice, so that pickaxe mining speed is applied as if it were ice.
 
@@ -128,7 +130,7 @@ Note: For real players to get the full mining-speed experience (break progress m
 - Possible values: `false`, `true`
 - Categories: `ICE`, `FEATURE`
 
-## iceLikeMagmaBlocks
+### iceLikeMagmaBlocks
 
 Allows magma blocks broken by players with tools without Silk Touch to generate a lava source using ice-like support checks when the block below is a valid solid block or liquid block.
 
@@ -137,7 +139,7 @@ Allows magma blocks broken by players with tools without Silk Touch to generate 
 - Possible values: `false`, `true`
 - Categories: `ICE`, `FEATURE`
 
-## disableNyliumDecay
+### disableNyliumDecay
 
 Crimson nylium and warped nylium will not decay into netherrack when covered by a block above.
 
@@ -146,7 +148,7 @@ Crimson nylium and warped nylium will not decay into netherrack when covered by 
 - Possible values: `false`, `true`
 - Categories: `ICE`, `FEATURE`
 
-## botTabListNamePrefix
+### botTabListNamePrefix
 
 Add a prefix to bots in the Tab list, using `&` to represent section symbols.\
 (The feature design references a similar rule from Carpet-TCTC-Addition, and the current implementation has been rewritten for this mod's needs.)
@@ -156,7 +158,7 @@ Add a prefix to bots in the Tab list, using `&` to represent section symbols.\
 - Suggested values: `#none`, `[Bot]`
 - Categories: `ICE`
 
-## botTabListNameSuffix
+### botTabListNameSuffix
 
 Add a suffix to bots in the Tab list, using `&` to represent section symbols.\
 (The feature design references a similar rule from Carpet-TCTC-Addition, and the current implementation has been rewritten for this mod's needs.)
@@ -166,7 +168,7 @@ Add a suffix to bots in the Tab list, using `&` to represent section symbols.\
 - Suggested values: `#none`, `[Fake]`
 - Categories: `ICE`
 
-## commandKillItem
+### commandKillItem
 
 Registers the /killitem command for clearing item entities by radius or globally, with blacklist and named-item protection settings.
 
@@ -175,7 +177,7 @@ Registers the /killitem command for clearing item entities by radius or globally
 - Possible values: `false`, `true`, `ops`, `0`, `1`, `2`, `3`, `4`
 - Categories: `ICE`, `COMMAND`
 
-## commandMachineStatus
+### commandMachineStatus
 
 Registers the /machineStatus command to save the target block state when a technical machine is shut down, and to check which machines are not currently in their saved shutdown state.
 
@@ -184,7 +186,7 @@ Registers the /machineStatus command to save the target block state when a techn
 - Possible values: `false`, `true`, `ops`, `0`, `1`, `2`, `3`, `4`
 - Categories: `ICE`, `COMMAND`, `SURVIVAL`
 
-## machineStatusRollbackWarning
+### machineStatusRollbackWarning
 
 Checks saved machine states when a player enters a supported rollback command, and warns that player if any machines are not in their saved shutdown state. This rule does not block or modify rollback commands.
 
@@ -196,7 +198,7 @@ Supported MCDR plugins by default: Quick Backup Multi (`!!qb`), Prime Backup (`!
 - Possible values: `false`, `true`
 - Categories: `ICE`, `SURVIVAL`
 
-## fakePlayerIgnoreThornsDamage
+### fakePlayerIgnoreThornsDamage
 
 Bots will not take reflected damage caused by Thorns when attacking entities or players equipped with Thorns.
 
@@ -205,7 +207,7 @@ Bots will not take reflected damage caused by Thorns when attacking entities or 
 - Possible values: `false`, `true`
 - Categories: `ICE`, `FEATURE`
 
-## disablePlayerAttackingTamedMobs
+### disablePlayerAttackingTamedMobs
 
 Players cannot damage their own tamed mobs while server PVP is enabled, and cannot damage any player-owned tamed mobs while server PVP is disabled.\
 Affected mobs include cats, wolves, parrots, nautiluses, zombie nautiluses, horses, donkeys, mules, zombie horses, skeleton horses, llamas, and trader llamas.\
@@ -216,7 +218,7 @@ Affected mobs include cats, wolves, parrots, nautiluses, zombie nautiluses, hors
 - Possible values: `false`, `true`
 - Categories: `ICE`, `SURVIVAL`
 
-## phantomSpawnWarning
+### phantomSpawnWarning
 
 Warns players at the start of the night when they reach the vanilla insomnia time threshold for phantom spawning.
 
@@ -225,7 +227,7 @@ Warns players at the start of the night when they reach the vanilla insomnia tim
 - Possible values: `false`, `true`
 - Categories: `ICE`, `SURVIVAL`
 
-## neutralPhantoms
+### neutralPhantoms
 
 Makes phantoms neutral toward players: they will not attack players first, but will fight back when attacked.
 
@@ -234,7 +236,7 @@ Makes phantoms neutral toward players: they will not attack players first, but w
 - Possible values: `false`, `true`
 - Categories: `ICE`, `FEATURE`
 
-## easyWaterloggedBlockPlacement
+### easyWaterloggedBlockPlacement
 
 Allows players holding a water bucket in the offhand to directly place waterloggable blocks in a waterlogged state, except in dimensions where water evaporates.
 
@@ -243,7 +245,7 @@ Allows players holding a water bucket in the offhand to directly place waterlogg
 - Possible values: `false`, `true`
 - Categories: `ICE`, `FEATURE`
 
-## customEndPlatformPosition
+### customEndPlatformPosition
 
 Allows customizing the center position of the End obsidian platform generated when entities enter the End, while keeping the arrival position in sync.
 
@@ -253,7 +255,7 @@ Allows customizing the center position of the End obsidian platform generated wh
 - Accepted format: `vanilla` or `x,y,z`
 - Categories: `ICE`, `FEATURE`
 
-## mobsSpawnWithoutSpears `MC>=1.21.11`
+### mobsSpawnWithoutSpears `MC>=1.21.11`
 
 Prevents naturally spawned zombies, zombie villagers, husks, zombified piglins, and piglins from holding spears.
 
@@ -262,7 +264,7 @@ Prevents naturally spawned zombies, zombie villagers, husks, zombified piglins, 
 - Possible values: `false`, `true`
 - Categories: `ICE`, `FEATURE`
 
-## carpetSingleplayerExitCrashFix `MC<=1.21.1`
+### carpetSingleplayerExitCrashFix `MC<=1.21.1`
 
 Fixes a Carpet crash that can happen when leaving a singleplayer world after previously joining a Carpet server.
 
@@ -271,7 +273,7 @@ Fixes a Carpet crash that can happen when leaving a singleplayer world after pre
 - Possible values: `false`, `true`
 - Categories: `ICE`, `BUGFIX`, `CLIENT`
 
-## disableIllegalTextCharacterCheck
+### disableIllegalTextCharacterCheck
 
 Skips vanilla text character validation, allowing characters that are normally rejected, such as section signs.\
 (The rule behavior and shared text-character-check interception approach reference a similar rule in Carpet-TCTC-Addition; the implementation for this project's architecture and supported versions was written independently.)
