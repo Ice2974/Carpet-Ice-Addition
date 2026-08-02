@@ -21,12 +21,11 @@ sourceSets {
     main {
         java {
             srcDir rootProject.file('versions/shared/mc121x/src/main/java')
+            srcDir rootProject.file('versions/shared/mc1211-12110/src/main/java')
+            srcDir rootProject.file('versions/shared/mc121x-killitem/src/main/java')
             srcDir rootProject.file('versions/shared/mc1211-1218/src/main/java')
             srcDir rootProject.file('versions/shared/mc1211-1215/src/main/java')
-            srcDir rootProject.file('versions/shared/mc1211-1214/src/main/java/com/ice2974/carpeticeaddition/command')
-            srcDir rootProject.file('versions/shared/mc1211-1214/src/main/java/com/ice2974/carpeticeaddition/villagerevents')
-            exclude 'com/ice2974/carpeticeaddition/command/MachineStatusCommand.java'
-            exclude 'com/ice2974/carpeticeaddition/command/MachineStatusRollbackWarningHandler.java'
+            srcDir rootProject.file('versions/shared/mc1211-1214/src/main/java')
         }
         resources {
             srcDir project(':common').file('src/main/resources')

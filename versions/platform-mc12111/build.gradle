@@ -21,12 +21,10 @@ sourceSets {
     main {
         java {
             srcDir rootProject.file('versions/shared/mc121x/src/main/java')
+            srcDir rootProject.file('versions/shared/mc121x-killitem/src/main/java')
             srcDir rootProject.file('versions/shared/mc1219-12111/src/main/java')
             srcDir rootProject.file('versions/shared/mc1213-12111/src/main/java')
             srcDir rootProject.file('versions/shared/mc1215-12111/src/main/java')
-            exclude { fileTreeElement ->
-                fileTreeElement.file.absolutePath == rootProject.file('versions/shared/mc121x/src/main/java/com/ice2974/carpeticeaddition/mixins/BlockItemEasyWaterloggedBlockPlacementMixin.java').absolutePath
-            }
         }
         resources {
             srcDir project(':common').file('src/main/resources')
