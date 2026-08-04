@@ -293,6 +293,7 @@ Customizes the water flow delay in game ticks. Setting it to `freeze` freezes sc
 - Categories: `ICE`, `FEATURE`
 
 The unit is game ticks; only positive integers or `freeze` are accepted. `freeze` freezes water's scheduled fluid ticks (no flow), but does not affect water bucket placement, water evaporation in the Nether, cauldrons, dripstone filling, entity-fluid interactions, or fluid animations. When the numeric value changes, it only affects newly created or re-scheduled fluid ticks; it does not scan the world or force-reschedule existing ticks. Setting the value too low may impact server performance.
+`freeze` suspends fluid flow using periodic keep-alive scheduled ticks rather than the precise remaining-time pause of vanilla `/tick freeze`. After un-freezing, the fluid resumes when the next keep-alive tick fires, which may add up to about 5 game ticks (water), 30 game ticks (non-ultrawarm lava), or 10 game ticks (ultrawarm / FAST_LAVA lava) of extra wait.
 
 
 ### lavaFluidTickDelay
@@ -306,3 +307,4 @@ Customizes the lava flow delay in game ticks. In ultrawarm dimensions, the delay
 - Categories: `ICE`, `FEATURE`
 
 The unit is game ticks; only positive integers or `freeze` are accepted. In ultrawarm dimensions (such as the vanilla Nether), the lava delay is the configured value divided by 3 with a minimum of 1. `freeze` freezes lava's scheduled fluid ticks (no flow), but does not affect lava random ticks (random fire ignition). When the numeric value changes, it only affects newly created or re-scheduled fluid ticks; it does not scan the world or force-reschedule existing ticks. Setting the value too low may impact server performance.
+`freeze` suspends fluid flow using periodic keep-alive scheduled ticks rather than the precise remaining-time pause of vanilla `/tick freeze`. After un-freezing, the fluid resumes when the next keep-alive tick fires, which may add up to about 5 game ticks (water), 30 game ticks (non-ultrawarm lava), or 10 game ticks (ultrawarm / FAST_LAVA lava) of extra wait.

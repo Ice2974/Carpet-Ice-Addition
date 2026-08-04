@@ -8,6 +8,7 @@ import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.level.material.LavaFluid;
 import net.minecraft.world.level.LevelReader;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
@@ -35,15 +36,19 @@ public abstract class LavaFluidTickDelayMixin {
         if (CarpetIceAdditionFluidSettings.lavaFrozen) {
             return;
         }
-        boolean fastLava = isFastLava(level);
+        boolean fastLava = carpetIceAddition$isFastLava(level);
         cir.setReturnValue(FluidTickDelayUtil.getLavaDelay(CarpetIceAdditionFluidSettings.lavaDelay, fastLava));
     }
 
     /**
-     * Replicates vanilla's {@code LavaFluid.isFastLava} logic using the 26.x
+     * Replicates vanilla's fast-lava logic using the 26.x
      * {@link EnvironmentAttributes#FAST_LAVA} environment attribute.
+     *
+     * <p>Uses {@link Unique} to avoid shadowing vanilla's own private
+     * {@code LavaFluid.isFastLava(LevelReader)} method.
      */
-    private static boolean isFastLava(LevelReader level) {
+    @Unique
+    private static boolean carpetIceAddition$isFastLava(LevelReader level) {
         Boolean value = level.environmentAttributes().getDimensionValue(EnvironmentAttributes.FAST_LAVA);
         return value != null && value;
     }

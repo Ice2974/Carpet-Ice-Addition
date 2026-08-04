@@ -56,22 +56,12 @@ public final class CarpetIceAdditionFluidSettings {
      * change, and as a fallback in {@code onServerLoadedWorlds}.
      */
     public static void refreshCachedValues() {
-        String water = waterFluidTickDelay;
-        waterFrozen = FluidTickDelayUtil.isFrozen(water);
-        if (waterFrozen) {
-            waterDelay = FluidTickDelayUtil.DEFAULT_WATER_DELAY;
-        } else {
-            Integer parsed = FluidTickDelayUtil.parsePositiveDelayOrNull(water);
-            waterDelay = parsed != null ? parsed : FluidTickDelayUtil.DEFAULT_WATER_DELAY;
-        }
+        FluidTickDelayUtil.CachedDelayState water = FluidTickDelayUtil.computeWaterState(waterFluidTickDelay);
+        waterFrozen = water.frozen();
+        waterDelay = water.delay();
 
-        String lava = lavaFluidTickDelay;
-        lavaFrozen = FluidTickDelayUtil.isFrozen(lava);
-        if (lavaFrozen) {
-            lavaDelay = FluidTickDelayUtil.DEFAULT_LAVA_DELAY;
-        } else {
-            Integer parsed = FluidTickDelayUtil.parsePositiveDelayOrNull(lava);
-            lavaDelay = parsed != null ? parsed : FluidTickDelayUtil.DEFAULT_LAVA_DELAY;
-        }
+        FluidTickDelayUtil.CachedDelayState lava = FluidTickDelayUtil.computeLavaState(lavaFluidTickDelay);
+        lavaFrozen = lava.frozen();
+        lavaDelay = lava.delay();
     }
 }

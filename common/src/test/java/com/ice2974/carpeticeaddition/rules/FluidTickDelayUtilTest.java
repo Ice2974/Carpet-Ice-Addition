@@ -125,4 +125,97 @@ class FluidTickDelayUtilTest {
         assertEquals(10, FluidTickDelayUtil.getLavaDelay(30, true));
         assertEquals(20, FluidTickDelayUtil.getLavaDelay(60, true));
     }
+
+    // ---- computeWaterState (cache logic) ----
+
+    @Test
+    void waterDefaultStateIsNotFrozen() {
+        FluidTickDelayUtil.CachedDelayState state = FluidTickDelayUtil.computeWaterState("5");
+        assertFalse(state.frozen());
+        assertEquals(5, state.delay());
+    }
+
+    @Test
+    void waterSwitchToFreeze() {
+        FluidTickDelayUtil.CachedDelayState state = FluidTickDelayUtil.computeWaterState("freeze");
+        assertTrue(state.frozen());
+        assertEquals(FluidTickDelayUtil.DEFAULT_WATER_DELAY, state.delay());
+    }
+
+    @Test
+    void waterSwitchFromFreezeToNumber() {
+        FluidTickDelayUtil.CachedDelayState state = FluidTickDelayUtil.computeWaterState("10");
+        assertFalse(state.frozen());
+        assertEquals(10, state.delay());
+    }
+
+    // ---- computeLavaState (cache logic) ----
+
+    @Test
+    void lavaDefaultStateIsNotFrozen() {
+        FluidTickDelayUtil.CachedDelayState state = FluidTickDelayUtil.computeLavaState("30");
+        assertFalse(state.frozen());
+        assertEquals(30, state.delay());
+    }
+
+    @Test
+    void lavaSwitchToFreeze() {
+        FluidTickDelayUtil.CachedDelayState state = FluidTickDelayUtil.computeLavaState("freeze");
+        assertTrue(state.frozen());
+        assertEquals(FluidTickDelayUtil.DEFAULT_LAVA_DELAY, state.delay());
+    }
+
+    @Test
+    void lavaSwitchFromFreezeToNumber() {
+        FluidTickDelayUtil.CachedDelayState state = FluidTickDelayUtil.computeLavaState("6");
+        assertFalse(state.frozen());
+        assertEquals(6, state.delay());
+    }
+
+    // ---- independence ----
+
+    @Test
+    void waterAndLavaStatesAreIndependent() {
+        FluidTickDelayUtil.CachedDelayState water = FluidTickDelayUtil.computeWaterState("1");
+        FluidTickDelayUtil.CachedDelayState lava = FluidTickDelayUtil.computeLavaState("freeze");
+        assertFalse(water.frozen());
+        assertEquals(1, water.delay());
+        assertTrue(lava.frozen());
+        assertEquals(FluidTickDelayUtil.DEFAULT_LAVA_DELAY, lava.delay());
+    }
+
+    // ---- invalid values do not produce valid state ----
+
+    @Test
+    void invalidWaterValueFallsBackToDefault() {
+        FluidTickDelayUtil.CachedDelayState state = FluidTickDelayUtil.computeWaterState("0");
+        assertFalse(state.frozen());
+        assertEquals(FluidTickDelayUtil.DEFAULT_WATER_DELAY, state.delay());
+    }
+
+    @Test
+    void invalidLavaValueFallsBackToDefault() {
+        FluidTickDelayUtil.CachedDelayState state = FluidTickDelayUtil.computeLavaState("abc");
+        assertFalse(state.frozen());
+        assertEquals(FluidTickDelayUtil.DEFAULT_LAVA_DELAY, state.delay());
+    }
+
+    @Test
+    void nullWaterValueFallsBackToDefault() {
+        FluidTickDelayUtil.CachedDelayState state = FluidTickDelayUtil.computeWaterState(null);
+        assertFalse(state.frozen());
+        assertEquals(FluidTickDelayUtil.DEFAULT_WATER_DELAY, state.delay());
+    }
+
+    // ---- CachedDelayState equality ----
+
+    @Test
+    void cachedStateEqualsWorks() {
+        assertEquals(
+                new FluidTickDelayUtil.CachedDelayState(false, 5),
+                new FluidTickDelayUtil.CachedDelayState(false, 5));
+        assertNotEquals(
+                new FluidTickDelayUtil.CachedDelayState(true, 5),
+                new FluidTickDelayUtil.CachedDelayState(false, 5));
+    }
 }

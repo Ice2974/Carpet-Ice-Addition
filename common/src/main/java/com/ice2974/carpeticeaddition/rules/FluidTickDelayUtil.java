@@ -1,5 +1,7 @@
 package com.ice2974.carpeticeaddition.rules;
 
+import java.util.Objects;
+
 /**
  * Pure-Java parsing and calculation helpers for the {@code waterFluidTickDelay}
  * and {@code lavaFluidTickDelay} Carpet rules.
@@ -19,6 +21,49 @@ public final class FluidTickDelayUtil {
     public static final int DEFAULT_LAVA_DELAY = 30;
 
     private FluidTickDelayUtil() {
+    }
+
+    /**
+     * Immutable result of computing the cached state for one rule value.
+     *
+     * <p>When {@code frozen} is {@code true}, {@code delay} holds the vanilla
+     * default (used as the keep-alive period). Otherwise it holds the configured
+     * positive-integer delay, or the default if the value was somehow invalid.
+     */
+    public static final class CachedDelayState {
+        private final boolean frozen;
+        private final int delay;
+
+        public CachedDelayState(boolean frozen, int delay) {
+            this.frozen = frozen;
+            this.delay = delay;
+        }
+
+        public boolean frozen() {
+            return frozen;
+        }
+
+        public int delay() {
+            return delay;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof CachedDelayState)) return false;
+            CachedDelayState that = (CachedDelayState) o;
+            return frozen == that.frozen && delay == that.delay;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(frozen, delay);
+        }
+
+        @Override
+        public String toString() {
+            return "CachedDelayState{frozen=" + frozen + ", delay=" + delay + "}";
+        }
     }
 
     /**
@@ -63,6 +108,42 @@ public final class FluidTickDelayUtil {
             return true;
         }
         return parsePositiveDelayOrNull(value) != null;
+    }
+
+    /**
+     * Computes the cached state for a water rule value.
+     *
+     * <p>When frozen, the delay is the vanilla default ({@link #DEFAULT_WATER_DELAY}).
+     * When the value is invalid, the default is returned as a safe fallback.
+     *
+     * @param value     the current rule string
+     * @return an immutable {@link CachedDelayState} that can be directly used to
+     *         update the volatile cache fields
+     */
+    public static CachedDelayState computeWaterState(String value) {
+        if (isFrozen(value)) {
+            return new CachedDelayState(true, DEFAULT_WATER_DELAY);
+        }
+        Integer parsed = parsePositiveDelayOrNull(value);
+        return new CachedDelayState(false, parsed != null ? parsed : DEFAULT_WATER_DELAY);
+    }
+
+    /**
+     * Computes the cached state for a lava rule value.
+     *
+     * <p>When frozen, the delay is the vanilla default ({@link #DEFAULT_LAVA_DELAY}).
+     * When the value is invalid, the default is returned as a safe fallback.
+     *
+     * @param value     the current rule string
+     * @return an immutable {@link CachedDelayState} that can be directly used to
+     *         update the volatile cache fields
+     */
+    public static CachedDelayState computeLavaState(String value) {
+        if (isFrozen(value)) {
+            return new CachedDelayState(true, DEFAULT_LAVA_DELAY);
+        }
+        Integer parsed = parsePositiveDelayOrNull(value);
+        return new CachedDelayState(false, parsed != null ? parsed : DEFAULT_LAVA_DELAY);
     }
 
     /**
