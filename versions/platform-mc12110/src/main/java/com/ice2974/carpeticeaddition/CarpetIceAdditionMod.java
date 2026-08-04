@@ -10,6 +10,7 @@ import com.ice2974.carpeticeaddition.rules.CraftableCoralBlocksState;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionEndPlatformSettings;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
 import com.ice2974.carpeticeaddition.settings.CraftableCoralBlocksSettings;
+import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionFluidSettings;
 import com.ice2974.carpeticeaddition.translation.CarpetIceAdditionTranslations;
 import com.ice2974.carpeticeaddition.villagerevents.VillagerEventsLogger121;
 import com.ice2974.carpeticeaddition.villagerevents.VillagerEventsRuntime121;
@@ -74,6 +75,7 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
         CarpetServer.settingsManager.parseSettingsClass(CarpetIceAdditionSettings.class);
         CarpetServer.settingsManager.parseSettingsClass(CarpetIceAdditionEndPlatformSettings.class);
         CarpetServer.settingsManager.parseSettingsClass(CraftableCoralBlocksSettings.class);
+        CarpetServer.settingsManager.parseSettingsClass(CarpetIceAdditionFluidSettings.class);
         CarpetServer.settingsManager.registerRuleObserver((source, rule, userInput) -> {
             String ruleName = rule.name();
             if ("commandKillItem".equals(ruleName) || "commandMachineStatus".equals(ruleName)) {
@@ -88,6 +90,10 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
                 CraftableCoralBlocksRecipeBookHelper.onRuleChanged(server);
                 return;
             }
+            if ("waterFluidTickDelay".equals(ruleName) || "lavaFluidTickDelay".equals(ruleName)) {
+                CarpetIceAdditionFluidSettings.refreshCachedValues();
+                return;
+            }
             if (!"botTabListNamePrefix".equals(ruleName) && !"botTabListNameSuffix".equals(ruleName)) {
                 return;
             }
@@ -98,6 +104,8 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
                 reportFeatureCompatibilityIssue("botTabListName", throwable);
             }
         });
+
+        CarpetIceAdditionFluidSettings.refreshCachedValues();
     }
 
     @Override
@@ -161,6 +169,8 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
         } catch (Throwable throwable) {
             reportFeatureCompatibilityIssue("craftableCoralBlocks", throwable);
         }
+
+        CarpetIceAdditionFluidSettings.refreshCachedValues();
     }
 
     @Override

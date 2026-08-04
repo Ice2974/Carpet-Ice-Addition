@@ -38,7 +38,10 @@
     "TrialSpawnerDataMixin",
     "CrafterBlockCraftableCoralBlocksMixin",
     "CraftingScreenHandlerCraftableCoralBlocksMixin",
-    "CarpetServerOnServerClosedNullFixMixin"
+    "CarpetServerOnServerClosedNullFixMixin",
+    "WaterFluidTickRateMixin",
+    "LavaFluidTickRateMixin",
+    "FlowableFluidFreezeMixin"
   ],
   "client": [
     "DisableIllegalTextCharacterCheckClipboardMixin",

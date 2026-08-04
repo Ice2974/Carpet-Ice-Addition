@@ -36,7 +36,10 @@
     "VillagerEntityVillagerEventsMixin",
     "ZombieEntityVillagerEventsMixin",
     "VillagerEntityLightningVillagerEventsMixin",
-    "MobEntityVillagerConversionMixin"
+    "MobEntityVillagerConversionMixin",
+    "WaterFluidTickRateMixin",
+    "LavaFluidTickRateMixin",
+    "FlowableFluidFreezeMixin"
   ],
   "client": [
     "DisableIllegalTextCharacterCheckClipboardMixin"

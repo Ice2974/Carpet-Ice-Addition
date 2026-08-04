@@ -136,5 +136,7 @@
   "command.carpet-ice-addition.machine_status.info.status": "Status: %s",
   "command.carpet-ice-addition.machine_status.info.hover": "View machine details",
   "command.carpet-ice-addition.machine_status.current_state.dimension_not_found": "Dimension not found",
-  "command.carpet-ice-addition.machine_status.current_state.chunk_not_loaded": "Chunk not loaded"
+  "command.carpet-ice-addition.machine_status.current_state.chunk_not_loaded": "Chunk not loaded",
+  "carpet.rule.waterFluidTickDelay.desc": "Customizes the water flow delay in game ticks. Setting it to \"freeze\" freezes scheduled ticks related to water flow.",
+  "carpet.rule.lavaFluidTickDelay.desc": "Customizes the lava flow delay in game ticks. In ultrawarm dimensions, the delay is divided by three with a minimum value of 1. Setting it to \"freeze\" freezes lava flow without affecting random fire ignition."
 }

@@ -164,5 +164,9 @@
   "command.carpet-ice-addition.machine_status.info.status": "\u72b6\u6001\uff1a%s",
   "command.carpet-ice-addition.machine_status.info.hover": "\u67e5\u770b\u673a\u5668\u8be6\u60c5",
   "command.carpet-ice-addition.machine_status.current_state.dimension_not_found": "\u7ef4\u5ea6\u4e0d\u5b58\u5728",
-  "command.carpet-ice-addition.machine_status.current_state.chunk_not_loaded": "\u533a\u5757\u672a\u52a0\u8f7d"
+  "command.carpet-ice-addition.machine_status.current_state.chunk_not_loaded": "\u533a\u5757\u672a\u52a0\u8f7d",
+  "carpet.rule.waterFluidTickDelay.name": "\u6c34\u6d41\u4f53\u523b\u5ef6\u8fdf",
+  "carpet.rule.waterFluidTickDelay.desc": "\u81ea\u5b9a\u4e49\u6c34\u7684\u6d41\u52a8\u5ef6\u8fdf\uff0c\u5355\u4f4d\u4e3a\u6e38\u620f\u523b\u3002\u8bbe\u7f6e\u4e3a \u201cfreeze\u201d \u65f6\u51bb\u7ed3\u6c34\u7684\u6d41\u52a8\u76f8\u5173\u8ba1\u5212\u6d41\u4f53\u523b\u3002",
+  "carpet.rule.lavaFluidTickDelay.name": "\u5ca9\u6d46\u6d41\u4f53\u523b\u5ef6\u8fdf",
+  "carpet.rule.lavaFluidTickDelay.desc": "\u81ea\u5b9a\u4e49\u5ca9\u6d46\u7684\u6d41\u52a8\u5ef6\u8fdf\uff0c\u5355\u4f4d\u4e3a\u6e38\u620f\u523b\u3002ultrawarm \u7ef4\u5ea6\u4e2d\u7684\u5ef6\u8fdf\u4e3a\u8bbe\u7f6e\u503c\u7684\u4e09\u5206\u4e4b\u4e00\u4e14\u6700\u4f4e\u4e3a 1\uff1b\u8bbe\u7f6e\u4e3a \u201cfreeze\u201d \u65f6\u51bb\u7ed3\u5ca9\u6d46\u6d41\u52a8\uff0c\u4f46\u4e0d\u5f71\u54cd\u968f\u673a\u70b9\u706b\u3002"
 }

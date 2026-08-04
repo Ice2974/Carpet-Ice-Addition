@@ -281,3 +281,28 @@ Skips vanilla text character validation, allowing characters that are normally r
 - Default: `false`
 - Possible values: `true`, `false`
 - Categories: `ICE`, `CLIENT`
+
+### waterFluidTickDelay
+
+Customizes the water flow delay in game ticks. Setting it to `freeze` freezes scheduled ticks related to water flow.
+
+- Type: `String`
+- Default: `5`
+- Suggested values: `freeze`, `1`, `5`, `10`
+- Accepted values: `freeze` or any positive integer
+- Categories: `ICE`, `FEATURE`
+
+The unit is game ticks; only positive integers or `freeze` are accepted. `freeze` freezes water's scheduled fluid ticks (no flow), but does not affect water bucket placement, water evaporation in the Nether, cauldrons, dripstone filling, entity-fluid interactions, or fluid animations. When the numeric value changes, it only affects newly created or re-scheduled fluid ticks; it does not scan the world or force-reschedule existing ticks. Setting the value too low may impact server performance.
+
+
+### lavaFluidTickDelay
+
+Customizes the lava flow delay in game ticks. In ultrawarm dimensions, the delay is divided by three with a minimum value of 1. Setting it to `freeze` freezes lava flow without affecting random fire ignition.
+
+- Type: `String`
+- Default: `30`
+- Suggested values: `freeze`, `6`, `30`, `60`
+- Accepted values: `freeze` or any positive integer
+- Categories: `ICE`, `FEATURE`
+
+The unit is game ticks; only positive integers or `freeze` are accepted. In ultrawarm dimensions (such as the vanilla Nether), the lava delay is the configured value divided by 3 with a minimum of 1. `freeze` freezes lava's scheduled fluid ticks (no flow), but does not affect lava random ticks (random fire ignition). When the numeric value changes, it only affects newly created or re-scheduled fluid ticks; it does not scan the world or force-reschedule existing ticks. Setting the value too low may impact server performance.

@@ -37,7 +37,10 @@
     "ZombieMobsSpawnWithoutSpearsMixin",
     "PiglinMobsSpawnWithoutSpearsMixin",
     "CrafterBlockCraftableCoralBlocksMixin",
-    "CraftingMenuCraftableCoralBlocksMixin"
+    "CraftingMenuCraftableCoralBlocksMixin",
+    "WaterFluidTickDelayMixin",
+    "LavaFluidTickDelayMixin",
+    "FlowingFluidFreezeMixin"
   ],
   "client": [
     "DisableIllegalTextCharacterCheckClipboardMixin"

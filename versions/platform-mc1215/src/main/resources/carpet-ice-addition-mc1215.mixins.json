@@ -36,7 +36,10 @@
     "ServerWorldRecordWorldEventMixin",
     "TrialSpawnerDataMixin",
     "CrafterBlockCraftableCoralBlocksMixin",
-    "CraftingScreenHandlerCraftableCoralBlocksMixin"
+    "CraftingScreenHandlerCraftableCoralBlocksMixin",
+    "WaterFluidTickRateMixin",
+    "LavaFluidTickRateMixin",
+    "FlowableFluidFreezeMixin"
   ],
   "client": [
     "DisableIllegalTextCharacterCheckClipboardMixin",
