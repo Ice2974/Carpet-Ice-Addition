@@ -59,8 +59,7 @@
 - 若多个 shared 档位存在同名类，每个平台必须只引入一份所需的同 FQCN Java 源码；不得依赖不同 source root 下的相对路径差异配合全局 exclude 来选择实现。
 - Java source root 必须停在标准的 src/main/java；禁止把 com/... package 目录直接注册为 source root。
 - 不要为了减少目录数量强行合并 shared 档位；只要签名或注入点断裂，就保留在平台模块或拆分新 shared 档位。
-- `versions/shared/mc1211-12110` 是通用含水放置实现的 shared root，仅由 mc1.21.1 至 mc1.21.10 平台显式引入；mc1.21.11 使用平台专用实现。
-- `versions/shared/mc121x-killitem` 是功能专用 shared root，由平台显式选择；它适用于 mc1.21.1、1.21.3、1.21.4、1.21.5、1.21.9、1.21.10、1.21.11，mc1.21.6 和 mc1.21.8 不得引入。新增 Minecraft 版本时，必须检查该版本使用通用实现还是版本专用实现。
+- 新增 Minecraft 版本时，必须检查该版本使用通用实现还是版本专用实现。
 - 跨小版本差异优先通过平台模块、版本专属 Mixin 或平台适配类处理，不优先使用运行期字符串版本号判断来偷渡兼容。
 - 依赖版本不匹配时，优先依赖 `fabric.mod.json` 的 `depends` 在启动阶段 fail-fast，不做运行期静默降级。
 - 平台模块的 mixins 配置默认保持 `required=true`，除非任务明确要求调整。
