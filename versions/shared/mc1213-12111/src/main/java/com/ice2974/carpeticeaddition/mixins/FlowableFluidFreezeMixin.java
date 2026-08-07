@@ -6,8 +6,8 @@ import net.minecraft.fluid.FlowableFluid;
 import net.minecraft.fluid.Fluid;
 import net.minecraft.fluid.FluidState;
 import net.minecraft.fluid.Fluids;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -26,14 +26,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * the stale {@code this}), so that if the block has been replaced the stale
  * schedule dies out instead of creating ghost ticks.
  *
- * <p>1.21.3-1.21.11 variant: {@code onScheduledTick(World, BlockPos, BlockState, FluidState)}.
+ * <p>1.21.3-1.21.11 variant: {@code onScheduledTick(ServerWorld, BlockPos, BlockState, FluidState)}.
  */
 @Mixin(FlowableFluid.class)
 public abstract class FlowableFluidFreezeMixin {
 
     @Inject(method = "onScheduledTick", at = @At("HEAD"), cancellable = true)
     private void carpetIceAddition$freezeFluidTick(
-            World world, BlockPos pos, BlockState blockState, FluidState state, CallbackInfo ci) {
+            ServerWorld world, BlockPos pos, BlockState blockState, FluidState state, CallbackInfo ci) {
         Fluid self = (Fluid) (Object) this;
 
         boolean isWater = self == Fluids.WATER || self == Fluids.FLOWING_WATER;
