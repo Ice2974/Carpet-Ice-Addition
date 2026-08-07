@@ -8,9 +8,10 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Validator for {@code waterFluidTickDelay} and {@code lavaFluidTickDelay}.
  *
- * <p>Accepts the literal {@code freeze} or any positive integer; rejects zero,
- * negatives, decimals, non-numeric strings, empty strings and out-of-range
- * values. Delegates the actual parsing to the common
+ * <p>Accepts the literal {@code freeze} or an integer from 1 through
+ * {@link FluidTickDelayUtil#MAX_FLUID_TICK_DELAY}; rejects zero, negatives,
+ * decimals, non-numeric strings, empty strings and out-of-range values.
+ * Delegates the actual parsing to the common
  * {@link FluidTickDelayUtil} so the logic is unit-tested there.
  *
  * <p>This validator is side-effect free: it only validates the input. Cache

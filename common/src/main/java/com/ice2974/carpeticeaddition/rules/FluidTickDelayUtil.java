@@ -20,6 +20,9 @@ public final class FluidTickDelayUtil {
     /** Default delay for lava in non-ultrawarm dimensions, matching vanilla. */
     public static final int DEFAULT_LAVA_DELAY = 30;
 
+    /** Maximum base delay accepted by both fluid tick delay rules. */
+    public static final int MAX_FLUID_TICK_DELAY = 72_000;
+
     private FluidTickDelayUtil() {
     }
 
@@ -76,9 +79,10 @@ public final class FluidTickDelayUtil {
     /**
      * Parses a rule value into a positive integer delay.
      *
-     * @return the parsed delay, or {@code null} if the value is not a valid
-     *         positive integer (zero, negative, decimal, non-numeric, empty,
-     *         or outside {@code int} range are all rejected).
+     * @return the parsed delay, or {@code null} if the value is not an integer
+     *         from 1 through {@link #MAX_FLUID_TICK_DELAY} (zero, negative,
+     *         decimal, non-numeric, empty, and out-of-range values are all
+     *         rejected).
      */
     public static Integer parsePositiveDelayOrNull(String value) {
         if (value == null) {
@@ -87,7 +91,7 @@ public final class FluidTickDelayUtil {
         try {
             // Use long to catch out-of-range inputs before narrowing.
             long parsed = Long.parseLong(value);
-            if (parsed <= 0 || parsed > Integer.MAX_VALUE) {
+            if (parsed <= 0 || parsed > MAX_FLUID_TICK_DELAY) {
                 return null;
             }
             return (int) parsed;
@@ -98,7 +102,7 @@ public final class FluidTickDelayUtil {
 
     /**
      * @return {@code true} if the value is a valid rule value ({@code freeze}
-     *         or a positive integer).
+     *         or an integer from 1 through {@link #MAX_FLUID_TICK_DELAY}).
      */
     public static boolean isValidRuleValue(String value) {
         if (value == null || value.isEmpty()) {
