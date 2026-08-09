@@ -28,6 +28,7 @@
     "NyliumDecayMixin",
     "EndPortalBlockCustomEndPlatformPositionMixin",
     "BlockItemEasyWaterloggedBlockPlacementMixin",
+    "ItemUtilsPortableInfiniteWaterMixin",
     "TrialSpawnerDataMixin",
     "ServerWorldPhantomSpawnWarningMixin",
     "ServerWorldRecordWorldEventMixin",

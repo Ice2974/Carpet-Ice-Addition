@@ -64,6 +64,9 @@ public final class CarpetIceAdditionSettings {
     @Rule(categories = {ICE, FEATURE})
     public static boolean easyWaterloggedBlockPlacement = false;
 
+    @Rule(categories = {ICE, FEATURE})
+    public static boolean portableInfiniteWater = false;
+
     @Rule(categories = {ICE, CLIENT})
     public static boolean disableIllegalTextCharacterCheck = false;
 

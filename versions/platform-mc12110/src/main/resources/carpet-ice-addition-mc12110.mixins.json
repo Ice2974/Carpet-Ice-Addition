@@ -24,6 +24,7 @@
     "NyliumDecayMixin",
     "EndPortalBlockCustomEndPlatformPositionMixin",
     "BlockItemEasyWaterloggedBlockPlacementMixin",
+    "ItemUsagePortableInfiniteWaterMixin",
     "SafeScaffoldingBreakMixin",
     "PlayerListEntryTabListNameMixin",
     "ServerCommonNetworkHandlerAccessor",

@@ -244,6 +244,15 @@
 - 可选值: `false`, `true`
 - 分类: `ICE`, `FEATURE`
 
+### 便携无限水 (portableInfiniteWater)
+
+当玩家主手和副手均持有原版水桶时，使用水桶不会消耗其中的水。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`
+
 ### 自定义末地平台位置 (customEndPlatformPosition)
 
 允许自定义实体通过末地传送门进入末地时生成的末地黑曜石平台中心位置，并同步调整进入末地后的落点。

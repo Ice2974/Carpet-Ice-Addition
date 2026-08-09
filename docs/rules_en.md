@@ -244,6 +244,15 @@ Allows players holding a water bucket in the offhand to directly place waterlogg
 - Possible values: `false`, `true`
 - Categories: `ICE`, `FEATURE`
 
+### portableInfiniteWater
+
+Prevents water from being consumed when using a vanilla water bucket while holding one in both hands.
+
+- Type: `boolean`
+- Default: `false`
+- Possible values: `false`, `true`
+- Categories: `ICE`, `FEATURE`
+
 ### customEndPlatformPosition
 
 Allows customizing the center position of the End obsidian platform generated when entities enter the End, while keeping the arrival position in sync.
