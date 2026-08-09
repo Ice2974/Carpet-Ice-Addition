@@ -23,15 +23,11 @@ public final class VillagerEventConversionScope121 {
         if (stack.isEmpty()) return;
         Frame frame = stack.peek();
         if (entity != frame.expectedRootWitch) return;
-        frame.expectedEntityObserved = true;
-        frame.expectedEntityAccepted = accepted;
         if (accepted) frame.sourceState.carpetIceAddition$recordConversionSpawn(true);
     }
     private static final class Frame {
         private final VillagerEventState sourceState;
         private final Entity expectedRootWitch;
-        private boolean expectedEntityObserved;
-        private boolean expectedEntityAccepted;
         private Frame(VillagerEventState sourceState, Entity expectedRootWitch) { this.sourceState = sourceState; this.expectedRootWitch = expectedRootWitch; }
     }
 }

@@ -537,12 +537,10 @@ public final class KillItemCommand {
 
     // 不可变：解析完成后所有字段不再变化，可安全发布给其它线程。
     private static final class EventBindings<A> {
-        final Class<?> eventClass;
         final Method styleSetter;
         final Function<A, Object> eventFactory;
 
-        EventBindings(Class<?> eventClass, Method styleSetter, Function<A, Object> eventFactory) {
-            this.eventClass = eventClass;
+        EventBindings(Method styleSetter, Function<A, Object> eventFactory) {
             this.styleSetter = styleSetter;
             this.eventFactory = eventFactory;
         }
@@ -576,7 +574,6 @@ public final class KillItemCommand {
 
     // 一次性解析 ClickEvent 全部反射元数据：event class、action class、action 常量、
     // event 构造器、Style setter。解析期复用既有反射原语，解析结果全部缓存进 EventBindings。
-    @SuppressWarnings("unchecked")
     private static EventBindings<String> resolveClickBindings() throws ReflectiveOperationException {
         Class<?> clickEventClass = findStyleEventType("RUN_COMMAND");
         Class<?> actionClass = requireActionClass(clickEventClass, "RUN_COMMAND");
@@ -598,11 +595,10 @@ public final class KillItemCommand {
                 throw new RuntimeException(e);
             }
         };
-        return new EventBindings<>(clickEventClass, styleSetter, factory);
+        return new EventBindings<>(styleSetter, factory);
     }
 
     // 一次性解析 HoverEvent 全部反射元数据，结构与 resolveClickBindings 对称。
-    @SuppressWarnings("unchecked")
     private static EventBindings<Text> resolveHoverBindings() throws ReflectiveOperationException {
         Class<?> hoverEventClass = findStyleEventType("SHOW_TEXT");
         Class<?> actionClass = requireActionClass(hoverEventClass, "SHOW_TEXT");
@@ -624,7 +620,7 @@ public final class KillItemCommand {
                 throw new RuntimeException(e);
             }
         };
-        return new EventBindings<>(hoverEventClass, styleSetter, factory);
+        return new EventBindings<>(styleSetter, factory);
     }
 
     // 接口形态（1.21.5+）：在嵌套实现类中找到形如 (paramType) 的构造器，
@@ -982,12 +978,10 @@ public final class KillItemCommand {
     }
 
     private static final class CachedSummaryEntry {
-        private final String itemId;
         private final String displayName;
         private final long itemCount;
 
         private CachedSummaryEntry(SummaryEntry entry) {
-            this.itemId = entry.itemId;
             this.displayName = entry.displayName;
             this.itemCount = entry.itemCount;
         }

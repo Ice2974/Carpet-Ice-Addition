@@ -2,7 +2,6 @@ package com.ice2974.carpeticeaddition.mixins;
 
 import com.ice2974.carpeticeaddition.rules.CraftableCoralBlocksConflictDetector;
 import com.ice2974.carpeticeaddition.rules.CraftableCoralBlocksRecipes;
-import com.ice2974.carpeticeaddition.rules.CraftableCoralBlocksState;
 import com.ice2974.carpeticeaddition.settings.CraftableCoralBlocksSettings;
 import net.minecraft.recipe.Recipe;
 import net.minecraft.recipe.RecipeEntry;

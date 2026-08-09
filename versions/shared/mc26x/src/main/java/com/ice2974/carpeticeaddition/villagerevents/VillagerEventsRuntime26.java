@@ -5,7 +5,6 @@ import com.ice2974.carpeticeaddition.translation.TranslationFormatUtil;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.npc.villager.Villager;
 import org.slf4j.Logger;

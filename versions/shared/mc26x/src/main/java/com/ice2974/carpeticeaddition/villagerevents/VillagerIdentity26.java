@@ -6,7 +6,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.npc.villager.Villager;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.Identifier;
-import net.minecraft.world.entity.npc.villager.VillagerProfession;
 
 /** Produces only literal identity components, so logger output never asks a client to translate it. */
 final class VillagerIdentity26 {

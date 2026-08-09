@@ -129,17 +129,6 @@ public final class PhantomSpawnWarningHelper {
         return null;
     }
 
-    private static Object invokeNoArg(Object target, String... methodNames) {
-        for (String methodName : methodNames) {
-            try {
-                Method method = target.getClass().getMethod(methodName);
-                return method.invoke(target);
-            } catch (Throwable ignored) {
-            }
-        }
-        return null;
-    }
-
     private static Boolean invokeBooleanNoArgNullable(Object target, String... methodNames) {
         Class<?> clazz = target instanceof Class<?> ? (Class<?>) target : target.getClass();
         boolean attempted = false;
@@ -165,20 +154,6 @@ public final class PhantomSpawnWarningHelper {
             }
         }
         return attempted ? Boolean.FALSE : null;
-    }
-
-    private static Double invokeDoubleNoArg(Object target, String... methodNames) {
-        for (String methodName : methodNames) {
-            try {
-                Method method = target.getClass().getMethod(methodName);
-                Object value = method.invoke(target);
-                if (value instanceof Number) {
-                    return ((Number) value).doubleValue();
-                }
-            } catch (Throwable ignored) {
-            }
-        }
-        return null;
     }
 
     private static boolean staticLongGreaterThanZero(Class<?> clazz, String... fieldNames) {

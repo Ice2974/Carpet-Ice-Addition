@@ -2,7 +2,6 @@ package com.ice2974.carpeticeaddition.rules;
 
 import carpet.api.settings.CarpetRule;
 import carpet.api.settings.Validator;
-import com.ice2974.carpeticeaddition.settings.CraftableCoralBlocksSettings;
 import com.ice2974.carpeticeaddition.translation.TranslationFormatUtil;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;

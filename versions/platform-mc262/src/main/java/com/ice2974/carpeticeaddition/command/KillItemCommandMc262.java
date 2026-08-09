@@ -636,12 +636,10 @@ public final class KillItemCommandMc262 {
     }
 
     private static final class CachedSummaryEntry {
-        private final String itemId;
         private final String displayName;
         private final long itemCount;
 
         private CachedSummaryEntry(SummaryEntry entry) {
-            this.itemId = entry.itemId;
             this.displayName = entry.displayName;
             this.itemCount = entry.itemCount;
         }
