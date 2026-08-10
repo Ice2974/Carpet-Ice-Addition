@@ -8,7 +8,6 @@ import net.minecraft.server.command.ServerCommandSource;
 
 import static carpet.api.settings.RuleCategory.FEATURE;
 
-@SuppressWarnings("unused")
 public final class CarpetIceAdditionEndPlatformSettings {
     private CarpetIceAdditionEndPlatformSettings() {
     }

@@ -4,7 +4,6 @@ import carpet.api.settings.Rule;
 
 import static carpet.api.settings.RuleCategory.FEATURE;
 
-@SuppressWarnings("unused")
 public final class CarpetIceAdditionHighVersionSettings {
     private CarpetIceAdditionHighVersionSettings() {
     }

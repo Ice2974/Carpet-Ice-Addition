@@ -19,7 +19,6 @@ import static carpet.api.settings.RuleCategory.FEATURE;
  * as a fallback in {@code onServerLoadedWorlds}). They are read from Mixin hot
  * paths ({@code getTickRate} / {@code onScheduledTick}).
  */
-@SuppressWarnings("unused")
 public final class CarpetIceAdditionFluidSettings {
     public static final String ICE = CarpetIceAdditionSettings.ICE;
 

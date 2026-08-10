@@ -10,7 +10,6 @@ import static carpet.api.settings.RuleCategory.CLIENT;
  * 该类只由对应的平台入口 {@code CarpetIceAdditionMod.onGameStarted()} 选择性 parse，
  * 因此未 parse 的平台不会在游戏内注册或显示这些规则。
  */
-@SuppressWarnings("unused")
 public final class CarpetIceAdditionLowVersionSettings {
     private CarpetIceAdditionLowVersionSettings() {
     }

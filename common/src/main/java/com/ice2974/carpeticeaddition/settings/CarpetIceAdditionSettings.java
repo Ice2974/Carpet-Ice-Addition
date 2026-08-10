@@ -9,7 +9,6 @@ import static carpet.api.settings.RuleCategory.COMMAND;
 import static carpet.api.settings.RuleCategory.FEATURE;
 import static carpet.api.settings.RuleCategory.SURVIVAL;
 
-@SuppressWarnings("unused")
 public final class CarpetIceAdditionSettings {
     public static final String ICE = "CarpetIceAddition";
 
