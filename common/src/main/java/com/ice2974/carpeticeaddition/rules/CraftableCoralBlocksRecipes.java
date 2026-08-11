@@ -4,7 +4,7 @@ import java.util.List;
 
 /**
  * 纯字符串数据：珊瑚块配方 id 表与判定。不依赖任何 Minecraft 类，
- * 供各平台 Mixin（B2/B3 过滤）与配方书同步 Helper 复用。
+ * 供各平台配方书同步 Helper 复用。
  *
  * 配方 namespace 固定为 {@code carpet-ice-addition}（与 mod id 一致），
  * path 覆盖 10 种珊瑚扇（活 + 死）。

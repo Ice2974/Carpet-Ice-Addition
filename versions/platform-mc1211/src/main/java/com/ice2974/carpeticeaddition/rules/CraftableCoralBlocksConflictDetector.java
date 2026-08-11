@@ -8,36 +8,19 @@ import net.minecraft.recipe.Recipe;
 import net.minecraft.recipe.RecipeEntry;
 import net.minecraft.recipe.RecipeManager;
 import net.minecraft.recipe.RecipeType;
-import net.minecraft.recipe.input.CraftingRecipeInput;
-import net.minecraft.recipe.input.RecipeInput;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
-import net.minecraft.world.World;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 /**
- * craftableCoralBlocks 外部配方冲突检测与外部替代 recipe 查找（1.21.1 yarn）。
- *
- * <p>冲突判定：RecipeManager 中存在非本模组 10 个内置 recipe ID 的 crafting 配方，
- * 其输出产物 Item 与本模组自带 10 条 coral recipe 的某个目标产物一致（仅比较输出产物，不比较
- * recipe id / 输入 / pattern）。目标产物集合以 {@link CraftableCoralBlocksRecipes#RESULT_ITEM_IDS}
- * 为权威来源，不依赖运行期本模组 recipe 是否成功注册。
- *
- * <p>检测范围限定 {@link RecipeType#CRAFTING}：stonecutting / smelting / custom recipe type 等不触发
- * 锁定（craftableCoralBlocks 仅控制 crafting table / Crafter 合成路径）。
- *
- * <p>外部替代查找：用于 B2 重载 A（普通 getFirstMatch）与 B3（Crafter）—— 在 effective=false 且原返回
- * 命中本模组 coral recipe 时，改返回一个 namespace 外部、且对当前 input 真实 matches 的 recipe；
- * 无外部真实匹配时返回 empty。
+ * Detects conflicting external crafting recipes for craftableCoralBlocks.
  */
 public final class CraftableCoralBlocksConflictDetector {
     private static final Logger LOGGER = LoggerFactory.getLogger("Carpet Ice Addition");
@@ -132,35 +115,4 @@ public final class CraftableCoralBlocksConflictDetector {
         }
     }
 
-    /**
-     * B2 重载 A：在 effective=false 且原返回命中本模组 coral recipe 时，从 {@link RecipeManager#getAllMatches}
-     * 结果中取一个 namespace 外部的真实匹配返回。无则返回 empty。
-     */
-    public static <I extends RecipeInput, T extends Recipe<I>> Optional<RecipeEntry<T>> findExternalMatch(
-            RecipeManager manager, RecipeType<T> type, I input, World world) {
-        List<RecipeEntry<T>> all = manager.getAllMatches(type, input, world);
-        for (RecipeEntry<T> entry : all) {
-            if (!CraftableCoralBlocksRecipes.isCoralRecipe(entry.id().getNamespace(), entry.id().getPath())) {
-                return Optional.of(entry);
-            }
-        }
-        return Optional.empty();
-    }
-
-    /**
-     * B3 Crafter：在 effective=false 且原返回命中本模组 coral recipe 时，取一个 namespace 外部、对当前
-     * input 真实 matches 的 crafting recipe 返回。无则返回 empty。
-     */
-    public static Optional<RecipeEntry<net.minecraft.recipe.CraftingRecipe>> findExternalCrafterMatch(
-            World world, CraftingRecipeInput input) {
-        RecipeManager manager = world.getRecipeManager();
-        List<RecipeEntry<net.minecraft.recipe.CraftingRecipe>> all =
-                manager.getAllMatches(RecipeType.CRAFTING, input, world);
-        for (RecipeEntry<net.minecraft.recipe.CraftingRecipe> entry : all) {
-            if (!CraftableCoralBlocksRecipes.isCoralRecipe(entry.id().getNamespace(), entry.id().getPath())) {
-                return Optional.of(entry);
-            }
-        }
-        return Optional.empty();
-    }
 }

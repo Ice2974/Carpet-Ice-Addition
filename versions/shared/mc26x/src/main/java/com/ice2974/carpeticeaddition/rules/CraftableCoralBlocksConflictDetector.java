@@ -10,35 +10,21 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.context.ContextMap;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.crafting.CraftingInput;
-import net.minecraft.world.item.crafting.CraftingRecipe;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeHolder;
-import net.minecraft.world.item.crafting.RecipeInput;
 import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.item.crafting.display.RecipeDisplay;
 import net.minecraft.world.item.crafting.display.SlotDisplay;
 import net.minecraft.world.item.crafting.display.SlotDisplayContext;
-import net.minecraft.world.level.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashSet;
-import java.util.Optional;
 import java.util.Set;
 
 /**
- * craftableCoralBlocks 外部配方冲突检测与外部替代 recipe 查找（26.x mojmap）。
- *
- * <p>冲突判定：RecipeManager 中存在非本模组 10 个内置 recipe ID 的 crafting 配方，
- * 其输出产物 Item 与本模组自带 10 条 coral recipe 的某个目标产物一致。目标产物集合以
- * {@link CraftableCoralBlocksRecipes#RESULT_ITEM_IDS} 为权威来源。
- *
- * <p>检测范围限定 {@link RecipeType#CRAFTING}：stonecutting / smelting / custom recipe type 等不触发锁定。
- *
- * <p>26.x 无 {@code getAllMatches}，外部替代查找通过遍历 {@link RecipeManager#getRecipes()} 并调用
- * {@link Recipe#matches(RecipeInput, Level)} 实现真实匹配。result 提取走 RecipeDisplay / SlotDisplay（mojmap 命名）。
+ * Detects conflicting external crafting recipes for craftableCoralBlocks.
  */
 public final class CraftableCoralBlocksConflictDetector {
     private static final Logger LOGGER = LoggerFactory.getLogger("Carpet Ice Addition");
@@ -146,63 +132,4 @@ public final class CraftableCoralBlocksConflictDetector {
         }
     }
 
-    /**
-     * B2 重载 A：effective=false 且原返回命中本模组 coral recipe 时，遍历 {@link RecipeManager#getRecipes()}
-     * 取一个 namespace 外部、对当前 input 真实 matches 的 recipe 返回。无则返回 empty。
-     */
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    public static <I extends RecipeInput, T extends Recipe<I>> Optional<RecipeHolder<T>> findExternalMatch(
-            RecipeManager manager, RecipeType<T> type, I input, Level level) {
-        for (RecipeHolder<?> holder : manager.getRecipes()) {
-            Recipe<?> recipe = holder.value();
-            if (recipe.getType() != type) {
-                continue;
-            }
-            Identifier id = holder.id().identifier();
-            if (CraftableCoralBlocksRecipes.isCoralRecipe(id.getNamespace(), id.getPath())) {
-                continue;
-            }
-            try {
-                if (((Recipe) recipe).matches(input, level)) {
-                    return Optional.of((RecipeHolder<T>) holder);
-                }
-            } catch (Throwable ignored) {
-                // 跳过匹配异常的 recipe
-            }
-        }
-        return Optional.empty();
-    }
-
-    /**
-     * B3 Crafter：effective=false 且原返回命中本模组 coral recipe 时，取一个 namespace 外部、对当前
-     * input 真实 matches 的 crafting recipe 返回。无则返回 empty。
-     */
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    public static Optional<RecipeHolder<CraftingRecipe>> findExternalCrafterMatch(ServerLevel level, CraftingInput input) {
-        if (level == null) {
-            return Optional.empty();
-        }
-        RecipeManager manager = (RecipeManager) level.recipeAccess();
-        if (manager == null) {
-            return Optional.empty();
-        }
-        for (RecipeHolder<?> holder : manager.getRecipes()) {
-            Recipe<?> recipe = holder.value();
-            if (recipe.getType() != RecipeType.CRAFTING) {
-                continue;
-            }
-            Identifier id = holder.id().identifier();
-            if (CraftableCoralBlocksRecipes.isCoralRecipe(id.getNamespace(), id.getPath())) {
-                continue;
-            }
-            try {
-                if (((Recipe) recipe).matches(input, level)) {
-                    return Optional.of((RecipeHolder<CraftingRecipe>) holder);
-                }
-            } catch (Throwable ignored) {
-                // 跳过匹配异常的 recipe
-            }
-        }
-        return Optional.empty();
-    }
 }

@@ -103,6 +103,8 @@ public final class CraftableCoralBlocksDataPackController {
             retryUsed = false;
             pendingTarget = null;
         }
+        CraftableCoralBlocksState.setConflictLocked(false);
+        CraftableCoralBlocksState.setDesiredValue(null);
     }
 
     private static void bind(MinecraftServer minecraftServer) {

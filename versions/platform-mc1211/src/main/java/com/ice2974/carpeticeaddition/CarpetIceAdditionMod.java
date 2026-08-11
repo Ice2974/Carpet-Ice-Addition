@@ -5,7 +5,6 @@ import carpet.CarpetServer;
 import carpet.utils.CommandHelper;
 import com.ice2974.carpeticeaddition.rules.BotTabListNameHelper;
 import com.ice2974.carpeticeaddition.rules.CraftableCoralBlocksDataPackController;
-import com.ice2974.carpeticeaddition.rules.CraftableCoralBlocksRecipeBookHelper;
 import com.ice2974.carpeticeaddition.rules.CraftableCoralBlocksState;
 import com.ice2974.carpeticeaddition.settings.CraftableCoralBlocksSettings;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionFluidSettings;
@@ -129,16 +128,6 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
     }
 
     @Override
-    public void onReload(MinecraftServer server) {
-        try {
-            // 先重新计算冲突锁定状态（更新 effective），再执行 recipe book 同步与菜单刷新
-            // Datapack lifecycle events own conflict and recipe-book synchronization.
-        } catch (Throwable throwable) {
-            reportFeatureCompatibilityIssue("craftableCoralBlocks", throwable);
-        }
-    }
-
-    @Override
     public String version() {
         return version;
     }
@@ -178,9 +167,8 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
         VillagerEventsRuntime121.onServerClosed(server);
         KillItemConfigManager.shutdown();
         MachineStatusConfigManager.shutdown();
-       try {
+        try {
             CraftableCoralBlocksDataPackController.onServerClosed(server);
-           CraftableCoralBlocksRecipeBookHelper.onServerClosed(server);
         } catch (Throwable throwable) {
             reportFeatureCompatibilityIssue("craftableCoralBlocks", throwable);
         }

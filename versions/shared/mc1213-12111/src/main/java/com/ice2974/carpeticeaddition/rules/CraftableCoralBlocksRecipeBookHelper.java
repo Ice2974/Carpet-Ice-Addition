@@ -92,7 +92,4 @@ public final class CraftableCoralBlocksRecipeBookHelper {
         }
     }
 
-    public static void onServerClosed(MinecraftServer server) {
-        // No recipe objects or server-specific cache survives a server instance.
-    }
 }
