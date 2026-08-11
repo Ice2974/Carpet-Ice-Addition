@@ -6,7 +6,7 @@ import carpet.utils.CommandHelper;
 import com.ice2974.carpeticeaddition.command.KillItemCommandMc261;
 import com.ice2974.carpeticeaddition.command.MachineStatusCommandMc261;
 import com.ice2974.carpeticeaddition.rules.BotTabListNameHelper;
-import com.ice2974.carpeticeaddition.rules.CraftableCoralBlocksConflictDetector;
+import com.ice2974.carpeticeaddition.rules.CraftableCoralBlocksDataPackController;
 import com.ice2974.carpeticeaddition.rules.CraftableCoralBlocksRecipeBookHelper;
 import com.ice2974.carpeticeaddition.rules.CraftableCoralBlocksState;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionEndPlatformSettings;
@@ -69,6 +69,7 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
                 .getVersion()
                 .getFriendlyString();
         CarpetServer.manageExtension(INSTANCE);
+        CraftableCoralBlocksDataPackController.initialize();
     }
 
     @Override
@@ -89,7 +90,7 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
             }
             if ("craftableCoralBlocks".equals(ruleName)) {
                 MinecraftServer server = source != null ? source.getServer() : CarpetServer.minecraft_server;
-                CraftableCoralBlocksRecipeBookHelper.onRuleChanged(server);
+                CraftableCoralBlocksDataPackController.onRuleChanged(server);
                 return;
             }
             if ("waterFluidTickDelay".equals(ruleName) || "lavaFluidTickDelay".equals(ruleName)) {
@@ -121,7 +122,7 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
                         com.ice2974.carpeticeaddition.translation.TranslationFormatUtil.translate(
                                 "carpet.rule.craftableCoralBlocks.conflict.locked")));
             }
-            CraftableCoralBlocksRecipeBookHelper.onPlayerJoin(CarpetServer.minecraft_server, player);
+            CraftableCoralBlocksDataPackController.onPlayerJoin(CarpetServer.minecraft_server, player);
         } catch (Throwable throwable) {
             reportFeatureCompatibilityIssue("craftableCoralBlocks", throwable);
         }
@@ -130,8 +131,7 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
     @Override
     public void onReload(MinecraftServer server) {
         try {
-            CraftableCoralBlocksConflictDetector.recomputeAndNotify(server);
-            CraftableCoralBlocksRecipeBookHelper.onReload(server);
+            // Datapack lifecycle events own conflict and recipe-book synchronization.
         } catch (Throwable throwable) {
             reportFeatureCompatibilityIssue("craftableCoralBlocks", throwable);
         }
@@ -164,7 +164,7 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
         // 会在 onServerLoaded 中早返回 false 导致启动漏报。onServerLoadedWorlds 注入 loadLevel RETURN，
         // overworld 与 RecipeManager 均已就绪。integrated / dedicated server 均触发。
         try {
-            CraftableCoralBlocksConflictDetector.recomputeAndNotify(server);
+            CraftableCoralBlocksDataPackController.onServerLoadedWorlds(server);
         } catch (Throwable throwable) {
             reportFeatureCompatibilityIssue("craftableCoralBlocks", throwable);
         }
@@ -177,8 +177,9 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
         VillagerEventsRuntime26.onServerClosed(server);
         KillItemConfigManager.shutdown();
         MachineStatusConfigManager.shutdown();
-        try {
-            CraftableCoralBlocksRecipeBookHelper.onServerClosed(server);
+       try {
+            CraftableCoralBlocksDataPackController.onServerClosed(server);
+           CraftableCoralBlocksRecipeBookHelper.onServerClosed(server);
         } catch (Throwable throwable) {
             reportFeatureCompatibilityIssue("craftableCoralBlocks", throwable);
         }

@@ -2,17 +2,17 @@
 
 ### Crafting recipe conflict lock
 
-Crafting-related rules register built-in recipes from this mod. If another datapack or mod provides a crafting recipe with the same output as one of those built-in recipes, the corresponding rule is automatically locked to `false` at runtime.
+Crafting-related rules provide this mod's recipes through a corresponding built-in datapack. Enabling a rule selects that datapack; disabling it deselects the datapack and triggers a vanilla server resource reload. If another datapack or mod provides a crafting recipe with the same output as one of those built-in recipes, the corresponding rule is automatically locked to `false` at runtime.
 
 When locked:
 
-- the built-in recipe from this mod stops applying;
+- the built-in datapack from this mod is deselected;
 - the external datapack/mod recipe keeps working;
 - `/carpet <ruleName>` shows `false`;
 - `/carpet <ruleName> true` is rejected;
 - all online players receive a notice;
 - `carpet.conf` is not modified;
-- removing the conflicting datapack and running `/reload` releases the lock and restores the previous configured value.
+- removing the conflicting datapack and running `/reload` releases the lock and restores the previous configured value; online recipe books are synchronized after a successful resource reload.
 
 ## Rules
 
@@ -56,7 +56,7 @@ Prevents a crafter from crafting when the container it faces cannot fully accept
 
 ### craftableCoralBlocks
 
-Allows 9 coral fans of the same type to be crafted into the corresponding coral block, including dead coral variants.
+Allows 9 coral fans of the same type to be crafted into the corresponding coral block, including dead coral variants. Toggling the rule selects or deselects this mod's built-in datapack and reloads server data resources.
 
 - Type: `boolean`
 - Default: `false`

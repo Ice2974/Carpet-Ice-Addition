@@ -12,3 +12,86 @@ allprojects {
         mavenCentral()
     }
 }
+
+def craftableCoralPlatformProjects = [
+        ':versions:platform-mc1211',
+        ':versions:platform-mc1213',
+        ':versions:platform-mc1214',
+        ':versions:platform-mc1215',
+        ':versions:platform-mc1216',
+        ':versions:platform-mc1218',
+        ':versions:platform-mc1219',
+        ':versions:platform-mc12110',
+        ':versions:platform-mc12111',
+        ':versions:platform-mc261',
+        ':versions:platform-mc262'
+]
+
+def craftableCoralRecipePaths = [
+        'coral_block_from_tube_coral_fan',
+        'coral_block_from_brain_coral_fan',
+        'coral_block_from_bubble_coral_fan',
+        'coral_block_from_fire_coral_fan',
+        'coral_block_from_horn_coral_fan',
+        'coral_block_from_dead_tube_coral_fan',
+        'coral_block_from_dead_brain_coral_fan',
+        'coral_block_from_dead_bubble_coral_fan',
+        'coral_block_from_dead_fire_coral_fan',
+        'coral_block_from_dead_horn_coral_fan'
+]
+
+def craftableCoralPackFormats = [
+        ':versions:platform-mc1211': 48,
+        ':versions:platform-mc1213': 57,
+        ':versions:platform-mc1214': 61,
+        ':versions:platform-mc1215': 71,
+        ':versions:platform-mc1216': 80,
+        ':versions:platform-mc1218': 81,
+        ':versions:platform-mc1219': 88,
+        ':versions:platform-mc12110': 88,
+        ':versions:platform-mc12111': 94,
+        ':versions:platform-mc261': 101,
+        ':versions:platform-mc262': 107
+]
+
+def verifyCraftableCoralBlocksJars = tasks.register('verifyCraftableCoralBlocksJars') {
+    doLast {
+        craftableCoralPlatformProjects.each { projectPath ->
+            def platform = project(projectPath)
+            def outputTask = platform.tasks.findByName('remapJar') ?: platform.tasks.named('jar').get()
+            def jarFile = outputTask.archiveFile.get().asFile
+            assert jarFile.isFile(): "Missing remapped JAR for ${projectPath}: ${jarFile}"
+
+            def entries = new java.util.zip.ZipFile(jarFile).withCloseable { zip ->
+                zip.entries().collect { entry -> entry.name }
+            }
+            def packRoot = 'resourcepacks/craftable_coral_blocks/'
+            def packMeta = "${packRoot}pack.mcmeta"
+            def recipeRoot = "${packRoot}data/carpet-ice-addition/recipe/"
+            def expectedRecipes = craftableCoralRecipePaths.collect { path -> "${recipeRoot}${path}.json".toString() }
+
+            assert entries.count { name -> name == packMeta } == 1: "Expected one ${packMeta} in ${jarFile.name}"
+            assert entries.containsAll(expectedRecipes): "Missing coral recipe in ${jarFile.name}"
+            assert entries.findAll { name -> name.startsWith(recipeRoot) && name.endsWith('.json') }.sort() == expectedRecipes.sort():
+                    "Unexpected coral recipes in ${jarFile.name}"
+            assert entries.every { name -> !name.startsWith('data/carpet-ice-addition/recipe/coral_block_') }:
+                    "Legacy main datapack coral recipe remains in ${jarFile.name}"
+
+            def meta = new java.util.zip.ZipFile(jarFile).withCloseable { zip ->
+                def entry = zip.getEntry(packMeta)
+                new groovy.json.JsonSlurper().parse(zip.getInputStream(entry))
+            }
+            assert meta.pack.pack_format == craftableCoralPackFormats[projectPath]:
+                    "Unexpected pack_format in ${jarFile.name}: ${meta.pack.pack_format}"
+        }
+    }
+}
+
+gradle.projectsEvaluated {
+    craftableCoralPlatformProjects.each { projectPath ->
+        verifyCraftableCoralBlocksJars.configure {
+            def platform = project(projectPath)
+            dependsOn platform.tasks.findByName('remapJar') ?: platform.tasks.named('jar')
+        }
+    }
+}

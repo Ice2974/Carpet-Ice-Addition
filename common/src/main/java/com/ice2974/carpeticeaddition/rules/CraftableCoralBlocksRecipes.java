@@ -50,7 +50,7 @@ public final class CraftableCoralBlocksRecipes {
 
     /**
      * 判定某个 recipe id 字符串（形如 {@code namespace:path}）是否为本规则注册的珊瑚块配方。
-     * 只认 {@code carpet-ice-addition} namespace 下 10 个固定 path，避免误伤其他 datapack / Mod。
+     * 只认 {@code carpet-ice-addition} namespace 下 10 个固定 path，作为内置 datapack 配方的稳定 ID 集合。
      */
     public static boolean isCoralRecipeId(String id) {
         if (id == null) {

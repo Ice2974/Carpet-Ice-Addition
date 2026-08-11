@@ -31,7 +31,7 @@ import java.util.Set;
 /**
  * craftableCoralBlocks 外部配方冲突检测与外部替代 recipe 查找（26.x mojmap）。
  *
- * <p>冲突判定：RecipeManager 中存在 namespace ≠ {@code carpet-ice-addition} 的 crafting 配方，
+ * <p>冲突判定：RecipeManager 中存在非本模组 10 个内置 recipe ID 的 crafting 配方，
  * 其输出产物 Item 与本模组自带 10 条 coral recipe 的某个目标产物一致。目标产物集合以
  * {@link CraftableCoralBlocksRecipes#RESULT_ITEM_IDS} 为权威来源。
  *
@@ -66,7 +66,7 @@ public final class CraftableCoralBlocksConflictDetector {
                 continue;
             }
             Identifier id = holder.id().identifier();
-            if (CraftableCoralBlocksRecipes.NAMESPACE.equals(id.getNamespace())) {
+            if (CraftableCoralBlocksRecipes.isCoralRecipe(id.getNamespace(), id.getPath())) {
                 continue;
             }
             try {
@@ -122,7 +122,9 @@ public final class CraftableCoralBlocksConflictDetector {
             // 直接字段写压 false（不触发 observer / 不保存 carpet.conf）
             CraftableCoralBlocksSettings.craftableCoralBlocks = false;
             CraftableCoralBlocksState.setConflictLocked(true);
-            broadcast(server, "carpet.rule.craftableCoralBlocks.conflict.locked");
+            if (!wasLocked) {
+                broadcast(server, "carpet.rule.craftableCoralBlocks.conflict.locked");
+            }
         } else if (wasLocked) {
             // 冲突解除：按 desiredValue 恢复字段，立即清空 desiredValue
             Boolean desired = CraftableCoralBlocksState.getDesiredValue();
@@ -157,7 +159,7 @@ public final class CraftableCoralBlocksConflictDetector {
                 continue;
             }
             Identifier id = holder.id().identifier();
-            if (CraftableCoralBlocksRecipes.NAMESPACE.equals(id.getNamespace())) {
+            if (CraftableCoralBlocksRecipes.isCoralRecipe(id.getNamespace(), id.getPath())) {
                 continue;
             }
             try {
@@ -190,7 +192,7 @@ public final class CraftableCoralBlocksConflictDetector {
                 continue;
             }
             Identifier id = holder.id().identifier();
-            if (CraftableCoralBlocksRecipes.NAMESPACE.equals(id.getNamespace())) {
+            if (CraftableCoralBlocksRecipes.isCoralRecipe(id.getNamespace(), id.getPath())) {
                 continue;
             }
             try {
