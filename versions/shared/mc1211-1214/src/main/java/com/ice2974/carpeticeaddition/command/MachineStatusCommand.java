@@ -100,7 +100,7 @@ public final class MachineStatusCommand {
                                 ))))
                 .then(literal("rename")
                         .then(argument("arguments", StringArgumentType.greedyString())
-                                .suggests(MachineStatusCommand::suggestMachineNames)
+                                .suggests(MachineStatusCommand::suggestRenameArguments)
                                 .executes(context -> {
                                     ParsedRenameArguments arguments = parseRenameArguments(StringArgumentType.getString(context, "arguments"));
                                     return renameMachine(context, arguments.name(), arguments.newName());
@@ -114,7 +114,7 @@ public final class MachineStatusCommand {
                                 ))))
                 .then(literal("move")
                         .then(argument("arguments", StringArgumentType.greedyString())
-                                .suggests(MachineStatusCommand::suggestMachineNames)
+                                .suggests(MachineStatusCommand::suggestMoveArguments)
                                 .executes(context -> {
                                     ParsedMoveArguments arguments = parseMoveArguments(
                                             context.getSource(),
@@ -515,7 +515,7 @@ public final class MachineStatusCommand {
                 continue;
             }
             if (!name.equals(remaining)) {
-                builder.suggest(name);
+                builder.suggest(StringArgumentType.escapeIfRequired(name));
             }
         }
         return builder.buildFuture();
@@ -533,6 +533,49 @@ public final class MachineStatusCommand {
             }
         }
         return builder.buildFuture();
+    }
+
+    private static CompletableFuture<Suggestions> suggestRenameArguments(CommandContext<ServerCommandSource> context, SuggestionsBuilder builder) {
+        String rawArguments = builder.getRemaining();
+        ParsedToken nameToken = CommandStringParsingUtil.parseNextToken(rawArguments, 0);
+        if (nameToken == null || nameToken.nextIndex() == rawArguments.length()) {
+            return suggestMachineNames(context, builder);
+        }
+
+        int newNameStart = CommandStringParsingUtil.skipWhitespace(rawArguments, nameToken.nextIndex());
+        return suggestUnusedMachineNames(context, builder.createOffset(builder.getStart() + newNameStart));
+    }
+
+    private static CompletableFuture<Suggestions> suggestMoveArguments(CommandContext<ServerCommandSource> context, SuggestionsBuilder builder) {
+        String rawArguments = builder.getRemaining();
+        ParsedToken nameToken = CommandStringParsingUtil.parseNextToken(rawArguments, 0);
+        if (nameToken == null || nameToken.nextIndex() == rawArguments.length()) {
+            return suggestMachineNames(context, builder);
+        }
+
+        int dimensionStart = CommandStringParsingUtil.skipWhitespace(rawArguments, nameToken.nextIndex());
+        if (dimensionStart >= rawArguments.length()) {
+            return suggestMoveDimensions(context, builder.createOffset(builder.getStart() + dimensionStart));
+        }
+
+        ParsedToken dimensionToken = CommandStringParsingUtil.parseNextToken(rawArguments, dimensionStart);
+        if (dimensionToken == null || dimensionToken.nextIndex() == rawArguments.length()) {
+            return suggestMoveDimensions(context, builder.createOffset(builder.getStart() + dimensionStart));
+        }
+
+        int positionStart = CommandStringParsingUtil.skipWhitespace(rawArguments, dimensionToken.nextIndex());
+        return suggestMovePosition(context, builder.createOffset(builder.getStart() + positionStart));
+    }
+
+    private static CompletableFuture<Suggestions> suggestMoveDimensions(CommandContext<ServerCommandSource> context, SuggestionsBuilder builder) {
+        return CommandSource.suggestIdentifiers(
+                context.getSource().getServer().getWorldRegistryKeys().stream().map(RegistryKey::getValue),
+                builder
+        );
+    }
+
+    private static CompletableFuture<Suggestions> suggestMovePosition(CommandContext<ServerCommandSource> context, SuggestionsBuilder builder) {
+        return BlockPosArgumentType.blockPos().listSuggestions(context, builder);
     }
 
     private static List<MachineWithStatus> collectMachines(MinecraftServer server, MachineStatusKind filter) {
@@ -732,12 +775,7 @@ public final class MachineStatusCommand {
     }
 
     private static String quoteMachineName(String name) {
-        if (name.indexOf(' ') < 0 && name.indexOf('"') < 0 && name.indexOf('\\') < 0) {
-            return name;
-        }
-        return "\"" + name
-                .replace("\\", "\\\\")
-                .replace("\"", "\\\"") + "\"";
+        return StringArgumentType.escapeIfRequired(name);
     }
 
     private static int visualWidth(String text) {
