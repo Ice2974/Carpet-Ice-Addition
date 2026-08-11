@@ -61,12 +61,6 @@ public final class CraftableCoralBlocksRecipeBookHelper {
         }
     }
 
-    public static void onRuleChanged(MinecraftServer server) {
-        if (server != null) {
-            syncPlayers(server);
-        }
-    }
-
     public static void onPackDisable(MinecraftServer server) {
         if (server == null) {
             return;

@@ -35,7 +35,6 @@ public final class CraftableCoralBlocksDataPackController {
     private static boolean ready;
     private static boolean degraded;
     private static boolean retryUsed;
-    private static Boolean pendingTarget;
     private static long generation;
 
     private CraftableCoralBlocksDataPackController() {
@@ -92,23 +91,25 @@ public final class CraftableCoralBlocksDataPackController {
     }
 
     public static void onServerClosed(MinecraftServer minecraftServer) {
-        if (server == minecraftServer) {
-            generation++;
-            server = null;
-            reloadInFlight = false;
-            ownReloadStart = false;
-            ready = false;
-            worldsLoaded = false;
-            degraded = false;
-            retryUsed = false;
-            pendingTarget = null;
+        if (server != minecraftServer) {
+            return;
         }
+        generation++;
+        server = null;
+        reloadInFlight = false;
+        ownReloadStart = false;
+        ready = false;
+        worldsLoaded = false;
+        degraded = false;
+        retryUsed = false;
         CraftableCoralBlocksState.setConflictLocked(false);
         CraftableCoralBlocksState.setDesiredValue(null);
     }
 
     private static void bind(MinecraftServer minecraftServer) {
         if (server != minecraftServer) {
+            CraftableCoralBlocksState.setConflictLocked(false);
+            CraftableCoralBlocksState.setDesiredValue(null);
             server = minecraftServer;
             generation++;
             reloadInFlight = false;
@@ -117,7 +118,6 @@ public final class CraftableCoralBlocksDataPackController {
             worldsLoaded = false;
             degraded = false;
             retryUsed = false;
-            pendingTarget = null;
         }
     }
 
@@ -160,12 +160,10 @@ public final class CraftableCoralBlocksDataPackController {
         }
         boolean target = CraftableCoralBlocksSettings.effective();
         boolean actual = isPackEnabled(minecraftServer);
-        pendingTarget = target;
         if (reloadInFlight) {
             return;
         }
         if (target == actual) {
-            pendingTarget = null;
             if (!ready) {
                 CraftableCoralBlocksRecipeBookHelper.onReload(minecraftServer);
                 ready = true;

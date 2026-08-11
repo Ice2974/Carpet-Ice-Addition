@@ -60,21 +60,36 @@ public final class CraftableCoralBlocksConflictDetector {
                 if (displays == null || displays.isEmpty()) {
                     continue;
                 }
-                SlotDisplay resultDisplay = displays.get(0).result();
-                if (resultDisplay == null) {
-                    continue;
-                }
-                ItemStack result = resultDisplay.resolveForFirstStack(ctx);
-                if (result == null || result.isEmpty()) {
-                    continue;
-                }
-                Item item = result.getItem();
-                if (item == null) {
-                    continue;
-                }
-                Identifier resultId = BuiltInRegistries.ITEM.getKey(item);
-                if (targets.contains(resultId.toString())) {
-                    return true;
+                for (RecipeDisplay display : displays) {
+                    try {
+                        SlotDisplay resultDisplay = display.result();
+                        if (resultDisplay == null) {
+                            continue;
+                        }
+                        java.util.List<ItemStack> results = resultDisplay.resolveForStacks(ctx);
+                        if (results == null) {
+                            continue;
+                        }
+                        for (ItemStack result : results) {
+                            try {
+                                if (result == null || result.isEmpty()) {
+                                    continue;
+                                }
+                                Item item = result.getItem();
+                                if (item == null) {
+                                    continue;
+                                }
+                                Identifier resultId = BuiltInRegistries.ITEM.getKey(item);
+                                if (targets.contains(resultId.toString())) {
+                                    return true;
+                                }
+                            } catch (Throwable ignored) {
+                                // 跳过无法解析的 result，继续检查同一 display 的其他 result
+                            }
+                        }
+                    } catch (Throwable ignored) {
+                        // 跳过无法提取的 display，继续检查同一 recipe 的其他 display
+                    }
                 }
             } catch (Throwable ignored) {
                 // 跳过无法提取产物的 recipe
