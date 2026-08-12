@@ -3,6 +3,7 @@ package com.ice2974.carpeticeaddition.command;
 import com.ice2974.carpeticeaddition.command.MachineStatusConfigManager.MachineRecord;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
 import com.ice2974.carpeticeaddition.translation.TranslationFormatUtil;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.ClickEvent;
@@ -114,12 +115,10 @@ public final class MachineStatusRollbackWarningHandler {
     }
 
     private static String quoteMachineName(String name) {
-        if (name.indexOf(' ') < 0 && name.indexOf('"') < 0 && name.indexOf('\\') < 0) {
+        if (name.chars().allMatch(character -> character < 128 && com.mojang.brigadier.StringReader.isAllowedInUnquotedString((char) character))) {
             return name;
         }
-        return "\"" + name
-                .replace("\\", "\\\\")
-                .replace("\"", "\\\"") + "\"";
+        return StringArgumentType.escapeIfRequired(name);
     }
 
     private static int visualWidth(String text) {
