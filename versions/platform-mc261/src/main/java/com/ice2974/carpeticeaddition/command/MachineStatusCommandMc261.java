@@ -105,7 +105,6 @@ public final class MachineStatusCommandMc261 {
                                 .suggests(MachineStatusCommandMc261::suggestMachineNames)
                                 .then(Commands.argument("dimension", DimensionArgument.dimension())
                                         .then(Commands.argument("pos", BlockPosArgument.blockPos())
-                                                .suggests(MachineStatusCommandMc261::suggestMovePosition)
                                                 .executes(context -> moveMachine(
                                                         context,
                                                         validateMachineName(StringArgumentType.getString(context, "name")),
@@ -456,16 +455,6 @@ public final class MachineStatusCommandMc261 {
             }
         }
         return builder.buildFuture();
-    }
-
-    private static CompletableFuture<Suggestions> suggestMovePosition(CommandContext<CommandSourceStack> context, SuggestionsBuilder builder) {
-        return BlockPosArgument.blockPos().listSuggestions(context, builder).thenApply(suggestions -> {
-            String currentPosition = formatPos(BlockPos.containing(context.getSource().getPosition()));
-            if (currentPosition.startsWith(builder.getRemaining())) {
-                builder.suggest(currentPosition);
-            }
-            return builder.build();
-        });
     }
 
     private static List<MachineWithStatus> collectMachines(MinecraftServer server, MachineStatusKind filter) {

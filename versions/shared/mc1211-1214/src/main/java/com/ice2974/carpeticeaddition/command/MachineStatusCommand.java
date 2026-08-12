@@ -118,7 +118,6 @@ public final class MachineStatusCommand {
                                                 builder
                                         ))
                                         .then(argument("pos", BlockPosArgumentType.blockPos())
-                                                .suggests(MachineStatusCommand::suggestMovePosition)
                                                 .executes(context -> moveMachine(
                                                         context,
                                                         validateMachineName(StringArgumentType.getString(context, "name")),
@@ -469,16 +468,6 @@ public final class MachineStatusCommand {
             }
         }
         return builder.buildFuture();
-    }
-
-    private static CompletableFuture<Suggestions> suggestMovePosition(CommandContext<ServerCommandSource> context, SuggestionsBuilder builder) {
-        return BlockPosArgumentType.blockPos().listSuggestions(context, builder).thenApply(suggestions -> {
-            String currentPosition = formatPos(BlockPos.ofFloored(context.getSource().getPosition()));
-            if (currentPosition.startsWith(builder.getRemaining())) {
-                builder.suggest(currentPosition);
-            }
-            return builder.build();
-        });
     }
 
     private static List<MachineWithStatus> collectMachines(MinecraftServer server, MachineStatusKind filter) {
