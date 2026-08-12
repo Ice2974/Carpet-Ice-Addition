@@ -73,7 +73,7 @@ Cleanup detail caches expire after about 10 minutes, after which the cleanup com
 | - | - | - |
 | `<dimension>` | Dimension registry ID | `minecraft:overworld`, `minecraft:the_nether`, `minecraft:the_end` |
 | `<pos>` | Target block position | `100 64 -20` |
-| `<name>` | Unique machine name. Names without spaces can be entered directly, including Chinese names; if the name contains spaces or other content that should be preserved exactly, wrap it in double quotes | `ironFarm`, `刷铁机`, `"Piglin Trading Hall"`, `"Nether Portal Switch"` |
+| `<name>` | Unique machine name. Names matching Brigadier's unquoted single-token rules can be entered directly, including `-`, `_`, `.`, and `+`; Chinese, spaces, or any other content that cannot be parsed as an unquoted single token must be wrapped in double quotes | `ironFarm`, `farm-1.2+test`, `"刷铁机"`, `"Piglin Trading Hall"`, `"Nether Portal Switch"` |
 
 ### Status Meanings
 

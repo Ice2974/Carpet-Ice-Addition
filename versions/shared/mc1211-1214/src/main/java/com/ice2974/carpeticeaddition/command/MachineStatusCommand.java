@@ -1,11 +1,9 @@
 package com.ice2974.carpeticeaddition.command;
 
 import carpet.utils.CommandHelper;
-import com.ice2974.carpeticeaddition.command.CommandStringParsingUtil.ParsedToken;
 import com.ice2974.carpeticeaddition.command.MachineStatusConfigManager.MachineRecord;
 import com.ice2974.carpeticeaddition.command.MachineStatusStateUtil.ParsedState;
 import com.ice2974.carpeticeaddition.translation.TranslationFormatUtil;
-import com.mojang.brigadier.StringReader;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -19,7 +17,6 @@ import net.minecraft.block.BlockState;
 import net.minecraft.command.CommandSource;
 import net.minecraft.command.argument.BlockPosArgumentType;
 import net.minecraft.command.argument.IdentifierArgumentType;
-import net.minecraft.command.argument.PosArgument;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
@@ -63,9 +60,6 @@ public final class MachineStatusCommand {
     private static final DynamicCommandExceptionType CHUNK_NOT_LOADED = new DynamicCommandExceptionType(
             value -> tr("command.carpet-ice-addition.machine_status.error.chunk_not_loaded", value)
     );
-    private static final DynamicCommandExceptionType INVALID_ARGUMENTS = new DynamicCommandExceptionType(
-            value -> tr("command.carpet-ice-addition.machine_status.error.invalid_arguments", value)
-    );
     private static final SimpleCommandExceptionType CONFIG_SAVE_FAILED = new SimpleCommandExceptionType(
             tr("command.carpet-ice-addition.machine_status.error.config_save_failed")
     );
@@ -83,45 +77,54 @@ public final class MachineStatusCommand {
                                         builder
                                 ))
                                 .then(argument("pos", BlockPosArgumentType.blockPos())
-                                        .then(argument("name", StringArgumentType.greedyString())
+                                        .then(argument("name", StringArgumentType.string())
                                                 .suggests(MachineStatusCommand::suggestUnusedMachineNames)
                                                 .executes(context -> addMachine(
                                                         context,
                                                         IdentifierArgumentType.getIdentifier(context, "dimension"),
                                                         BlockPosArgumentType.getBlockPos(context, "pos"),
-                                                        parseSingleMachineName(StringArgumentType.getString(context, "name"))
+                                                        validateMachineName(StringArgumentType.getString(context, "name"))
                                                 ))))))
                 .then(literal("remove")
-                        .then(argument("name", StringArgumentType.greedyString())
+                        .then(argument("name", StringArgumentType.string())
                                 .suggests(MachineStatusCommand::suggestMachineNames)
                                 .executes(context -> removeMachine(
                                         context,
-                                        parseSingleMachineName(StringArgumentType.getString(context, "name"))
+                                        validateMachineName(StringArgumentType.getString(context, "name"))
                                 ))))
                 .then(literal("rename")
-                        .then(argument("arguments", StringArgumentType.greedyString())
-                                .suggests(MachineStatusCommand::suggestRenameArguments)
-                                .executes(context -> {
-                                    ParsedRenameArguments arguments = parseRenameArguments(StringArgumentType.getString(context, "arguments"));
-                                    return renameMachine(context, arguments.name(), arguments.newName());
-                                })))
+                        .then(argument("name", StringArgumentType.string())
+                                .suggests(MachineStatusCommand::suggestMachineNames)
+                                .then(argument("newName", StringArgumentType.string())
+                                        .suggests(MachineStatusCommand::suggestUnusedMachineNames)
+                                        .executes(context -> renameMachine(
+                                                context,
+                                                validateMachineName(StringArgumentType.getString(context, "name")),
+                                                validateMachineName(StringArgumentType.getString(context, "newName"))
+                                        )))))
                 .then(literal("update")
-                        .then(argument("name", StringArgumentType.greedyString())
+                        .then(argument("name", StringArgumentType.string())
                                 .suggests(MachineStatusCommand::suggestMachineNames)
                                 .executes(context -> updateMachine(
                                         context,
-                                        parseSingleMachineName(StringArgumentType.getString(context, "name"))
+                                        validateMachineName(StringArgumentType.getString(context, "name"))
                                 ))))
                 .then(literal("move")
-                        .then(argument("arguments", StringArgumentType.greedyString())
-                                .suggests(MachineStatusCommand::suggestMoveArguments)
-                                .executes(context -> {
-                                    ParsedMoveArguments arguments = parseMoveArguments(
-                                            context.getSource(),
-                                            StringArgumentType.getString(context, "arguments")
-                                    );
-                                    return moveMachine(context, arguments.name(), arguments.dimensionId(), arguments.pos());
-                                })))
+                        .then(argument("name", StringArgumentType.string())
+                                .suggests(MachineStatusCommand::suggestMachineNames)
+                                .then(argument("dimension", IdentifierArgumentType.identifier())
+                                        .suggests((context, builder) -> CommandSource.suggestIdentifiers(
+                                                context.getSource().getServer().getWorldRegistryKeys().stream().map(RegistryKey::getValue),
+                                                builder
+                                        ))
+                                        .then(argument("pos", BlockPosArgumentType.blockPos())
+                                                .suggests(MachineStatusCommand::suggestMovePosition)
+                                                .executes(context -> moveMachine(
+                                                        context,
+                                                        validateMachineName(StringArgumentType.getString(context, "name")),
+                                                        IdentifierArgumentType.getIdentifier(context, "dimension"),
+                                                        BlockPosArgumentType.getBlockPos(context, "pos")
+                                                ))))))
                 .then(literal("list")
                         .executes(context -> listMachines(context, null))
                         .then(literal("running").executes(context -> listMachines(context, MachineStatusKind.RUNNING)))
@@ -129,11 +132,11 @@ public final class MachineStatusCommand {
                         .then(literal("invalid").executes(context -> listMachines(context, MachineStatusKind.INVALID)))
                         .then(literal("unloaded").executes(context -> listMachines(context, MachineStatusKind.UNLOADED))))
                 .then(literal("info")
-                        .then(argument("name", StringArgumentType.greedyString())
+                        .then(argument("name", StringArgumentType.string())
                                 .suggests(MachineStatusCommand::suggestMachineNames)
                                 .executes(context -> showInfo(
                                         context,
-                                        parseSingleMachineName(StringArgumentType.getString(context, "name"))
+                                        validateMachineName(StringArgumentType.getString(context, "name"))
                                 )))));
     }
 
@@ -443,139 +446,39 @@ public final class MachineStatusCommand {
     }
 
     private static String validateMachineName(String rawName) throws CommandSyntaxException {
-        String normalized = rawName == null ? "" : rawName.trim();
-        if (normalized.isEmpty()) {
+        if (rawName == null || rawName.isBlank()) {
             throw INVALID_IDENTIFIER.create(rawName);
         }
-        return normalized;
-    }
-
-    private static String parseSingleMachineName(String rawArgument) throws CommandSyntaxException {
-        ParsedToken token = requireToken(rawArgument, 0);
-        ensureNoTrailingContent(rawArgument, token.nextIndex());
-        return validateMachineName(token.value());
-    }
-
-    private static ParsedRenameArguments parseRenameArguments(String rawArguments) throws CommandSyntaxException {
-        ParsedToken nameToken = requireToken(rawArguments, 0);
-        ParsedToken newNameToken = requireToken(rawArguments, nameToken.nextIndex());
-        ensureNoTrailingContent(rawArguments, newNameToken.nextIndex());
-        return new ParsedRenameArguments(
-                validateMachineName(nameToken.value()),
-                validateMachineName(newNameToken.value())
-        );
-    }
-
-    private static ParsedMoveArguments parseMoveArguments(ServerCommandSource source, String rawArguments) throws CommandSyntaxException {
-        ParsedToken nameToken = requireToken(rawArguments, 0);
-        ParsedToken dimensionToken = requireToken(rawArguments, nameToken.nextIndex());
-        int positionStart = CommandStringParsingUtil.skipWhitespace(rawArguments, dimensionToken.nextIndex());
-        if (positionStart >= rawArguments.length()) {
-            throw INVALID_ARGUMENTS.create(rawArguments);
-        }
-
-        String positionArgument = rawArguments.substring(positionStart);
-        StringReader reader = new StringReader(positionArgument);
-        PosArgument posArgument = BlockPosArgumentType.blockPos().parse(reader);
-        String trailing = positionArgument.substring(reader.getCursor()).trim();
-        if (!trailing.isEmpty()) {
-            throw INVALID_ARGUMENTS.create(rawArguments);
-        }
-
-        return new ParsedMoveArguments(
-                validateMachineName(nameToken.value()),
-                parseIdentifier(dimensionToken.value()),
-                posArgument.toAbsoluteBlockPos(source)
-        );
-    }
-
-    private static ParsedToken requireToken(String rawArguments, int startIndex) throws CommandSyntaxException {
-        ParsedToken token = CommandStringParsingUtil.parseNextToken(rawArguments, startIndex);
-        if (token == null) {
-            throw INVALID_ARGUMENTS.create(rawArguments);
-        }
-        return token;
-    }
-
-    private static void ensureNoTrailingContent(String rawArguments, int nextIndex) throws CommandSyntaxException {
-        if (CommandStringParsingUtil.skipWhitespace(rawArguments, nextIndex) != rawArguments.length()) {
-            throw INVALID_ARGUMENTS.create(rawArguments);
-        }
+        return rawName;
     }
 
     private static CompletableFuture<Suggestions> suggestUnusedMachineNames(CommandContext<ServerCommandSource> context, SuggestionsBuilder builder) {
-        String remaining = builder.getRemaining();
-        if (remaining.indexOf(' ') >= 0) {
-            return builder.buildFuture();
-        }
-
-        String lower = remaining.toLowerCase(Locale.ROOT);
-        for (String name : machineNames()) {
-            if (!name.toLowerCase(Locale.ROOT).startsWith(lower)) {
-                continue;
-            }
-            if (!name.equals(remaining)) {
-                builder.suggest(StringArgumentType.escapeIfRequired(name));
-            }
-        }
-        return builder.buildFuture();
+        return suggestMachineNames(context, builder);
     }
 
     private static CompletableFuture<Suggestions> suggestMachineNames(CommandContext<ServerCommandSource> context, SuggestionsBuilder builder) {
-        String remaining = builder.getRemaining().toLowerCase(Locale.ROOT);
-        String unquotedRemaining = remaining.startsWith("\"") ? remaining.substring(1) : remaining;
+        String remaining = builder.getRemaining();
+        String lowerRemaining = remaining.toLowerCase(Locale.ROOT);
+        String unquotedRemaining = lowerRemaining.startsWith("\"") ? lowerRemaining.substring(1) : lowerRemaining;
         for (String name : machineNames()) {
             String suggestion = quoteMachineName(name);
             String lowerSuggestion = suggestion.toLowerCase(Locale.ROOT);
             String lowerName = name.toLowerCase(Locale.ROOT);
-            if (lowerSuggestion.startsWith(remaining) || lowerName.startsWith(unquotedRemaining)) {
+            if (lowerSuggestion.startsWith(lowerRemaining) || lowerName.startsWith(unquotedRemaining)) {
                 builder.suggest(suggestion);
             }
         }
         return builder.buildFuture();
     }
 
-    private static CompletableFuture<Suggestions> suggestRenameArguments(CommandContext<ServerCommandSource> context, SuggestionsBuilder builder) {
-        String rawArguments = builder.getRemaining();
-        ParsedToken nameToken = CommandStringParsingUtil.parseNextToken(rawArguments, 0);
-        if (nameToken == null || nameToken.nextIndex() == rawArguments.length()) {
-            return suggestMachineNames(context, builder);
-        }
-
-        int newNameStart = CommandStringParsingUtil.skipWhitespace(rawArguments, nameToken.nextIndex());
-        return suggestUnusedMachineNames(context, builder.createOffset(builder.getStart() + newNameStart));
-    }
-
-    private static CompletableFuture<Suggestions> suggestMoveArguments(CommandContext<ServerCommandSource> context, SuggestionsBuilder builder) {
-        String rawArguments = builder.getRemaining();
-        ParsedToken nameToken = CommandStringParsingUtil.parseNextToken(rawArguments, 0);
-        if (nameToken == null || nameToken.nextIndex() == rawArguments.length()) {
-            return suggestMachineNames(context, builder);
-        }
-
-        int dimensionStart = CommandStringParsingUtil.skipWhitespace(rawArguments, nameToken.nextIndex());
-        if (dimensionStart >= rawArguments.length()) {
-            return suggestMoveDimensions(context, builder.createOffset(builder.getStart() + dimensionStart));
-        }
-
-        ParsedToken dimensionToken = CommandStringParsingUtil.parseNextToken(rawArguments, dimensionStart);
-        if (dimensionToken == null || dimensionToken.nextIndex() == rawArguments.length()) {
-            return suggestMoveDimensions(context, builder.createOffset(builder.getStart() + dimensionStart));
-        }
-
-        int positionStart = CommandStringParsingUtil.skipWhitespace(rawArguments, dimensionToken.nextIndex());
-        return suggestMovePosition(context, builder.createOffset(builder.getStart() + positionStart));
-    }
-
-    private static CompletableFuture<Suggestions> suggestMoveDimensions(CommandContext<ServerCommandSource> context, SuggestionsBuilder builder) {
-        return CommandSource.suggestIdentifiers(
-                context.getSource().getServer().getWorldRegistryKeys().stream().map(RegistryKey::getValue),
-                builder
-        );
-    }
-
     private static CompletableFuture<Suggestions> suggestMovePosition(CommandContext<ServerCommandSource> context, SuggestionsBuilder builder) {
-        return BlockPosArgumentType.blockPos().listSuggestions(context, builder);
+        return BlockPosArgumentType.blockPos().listSuggestions(context, builder).thenApply(suggestions -> {
+            String currentPosition = formatPos(BlockPos.ofFloored(context.getSource().getPosition()));
+            if (currentPosition.startsWith(builder.getRemaining())) {
+                builder.suggest(currentPosition);
+            }
+            return builder.build();
+        });
     }
 
     private static List<MachineWithStatus> collectMachines(MinecraftServer server, MachineStatusKind filter) {
@@ -775,6 +678,9 @@ public final class MachineStatusCommand {
     }
 
     private static String quoteMachineName(String name) {
+        if (name.chars().allMatch(character -> character < 128 && com.mojang.brigadier.StringReader.isAllowedInUnquotedString((char) character))) {
+            return name;
+        }
         return StringArgumentType.escapeIfRequired(name);
     }
 
@@ -818,9 +724,4 @@ public final class MachineStatusCommand {
     private record MachineWithStatus(MachineRecord record, MachineRuntimeStatus status) {
     }
 
-    private record ParsedRenameArguments(String name, String newName) {
-    }
-
-    private record ParsedMoveArguments(String name, Identifier dimensionId, BlockPos pos) {
-    }
 }
