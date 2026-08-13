@@ -251,7 +251,7 @@
 - 类型: `boolean`
 - 默认值: `false`
 - 可选值: `false`, `true`
-- 分类: `ICE`, `FEATURE`
+- 分类: `ICE`, `FEATURE`, `SURVIVAL`
 
 ### 自定义末地平台位置 (customEndPlatformPosition)
 

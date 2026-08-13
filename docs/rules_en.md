@@ -251,7 +251,7 @@ Prevents water from being consumed when using a vanilla water bucket while holdi
 - Type: `boolean`
 - Default: `false`
 - Possible values: `false`, `true`
-- Categories: `ICE`, `FEATURE`
+- Categories: `ICE`, `FEATURE`, `SURVIVAL`
 
 ### customEndPlatformPosition
 
