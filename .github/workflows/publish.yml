@@ -228,7 +228,8 @@ jobs:
           fi
           sha1=$(sha1sum "$jar" | awk '{print $1}')
 
-          versions_json=$(curl -fsS --retry 3 --retry-delay 5 "https://api.modrinth.com/v2/project/${MODRINTH_PROJECT_ID}/version")
+          # Modrinth API 要求可识别的 User-Agent；此请求保持匿名 GET，不携带任何 token
+          versions_json=$(curl -fsS --retry 3 --retry-delay 5 --user-agent "Ice2974/Carpet-Ice-Addition/${MOD_VERSION}" "https://api.modrinth.com/v2/project/${MODRINTH_PROJECT_ID}/version")
           match_count=$(jq --arg tag "$RELEASE_TAG" --arg name "$version_name" \
             '[.[] | select(.version_number == $tag and .name == $name)] | length' <<<"$versions_json")
 
