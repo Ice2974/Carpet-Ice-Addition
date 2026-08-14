@@ -27,8 +27,7 @@ Require holding scaffolding or an empty main hand to break scaffolding.
 
 ### invisibleItemFrames
 
-Allows players to right-click item frames or glow item frames that already contain an item with a phantom membrane to make them invisible.\
-(The feature design references carpet-redcraft-addons' betterItemFrames rule, while the current implementation has been independently rewritten for this mod's target versions and layering.)
+Allows players to right-click item frames or glow item frames that already contain an item with a phantom membrane to make them invisible.
 
 - Type: `boolean`
 - Default: `false`
@@ -37,8 +36,7 @@ Allows players to right-click item frames or glow item frames that already conta
 
 ### fixedItemFrames
 
-Allows players to right-click item frames or glow item frames that already contain an item with a glass pane to make them fixed; fixed frames can be unfixed by right-clicking them with an axe.\
-(The feature design references carpet-redcraft-addons' betterItemFrames rule, while the current implementation has been independently rewritten for this mod's target versions and layering.)
+Allows players to right-click item frames or glow item frames that already contain an item with a glass pane to make them fixed; fixed frames can be unfixed by right-clicking them with an axe.
 
 - Type: `boolean`
 - Default: `false`
@@ -65,8 +63,7 @@ Allows 9 coral fans of the same type to be crafted into the corresponding coral 
 
 ### recordWorldEventFix
 
-Fixes the issue where a music disc can keep playing after being quickly inserted into and removed from a jukebox, which may also cause overlapping disc audio. See MC-112245.\
-(This rule was initially ported from Carpet-Fixes and has since been adapted for this mod's needs.)
+Fixes the issue where a music disc can keep playing after being quickly inserted into and removed from a jukebox, which may also cause overlapping disc audio. See MC-112245.
 
 - Type: `boolean`
 - Default: `false`
@@ -122,8 +119,6 @@ Frosted ice drops 1 regular ice when broken by a player using any tool with the 
 
 Makes pickaxes the proper tools for breaking frosted ice, so that pickaxe mining speed is applied as if it were ice.
 
-Note: For real players to get the full mining-speed experience (break progress matching the server), the client must have both Carpet and this mod fully installed. If the client does not fully install Carpet and this mod, the real player's client-side break animation may not fully match the server's break timing.
-
 - Type: `boolean`
 - Default: `false`
 - Possible values: `false`, `true`
@@ -149,8 +144,7 @@ Crimson nylium and warped nylium will not decay into netherrack when covered by 
 
 ### botTabListNamePrefix
 
-Add a prefix to bots in the Tab list, using `&` to represent section symbols.\
-(The feature design references a similar rule from Carpet-TCTC-Addition, and the current implementation has been rewritten for this mod's needs.)
+Add a prefix to bots in the Tab list, using `&` to represent section symbols.
 
 - Type: `String`
 - Default: `#none`
@@ -159,8 +153,7 @@ Add a prefix to bots in the Tab list, using `&` to represent section symbols.\
 
 ### botTabListNameSuffix
 
-Add a suffix to bots in the Tab list, using `&` to represent section symbols.\
-(The feature design references a similar rule from Carpet-TCTC-Addition, and the current implementation has been rewritten for this mod's needs.)
+Add a suffix to bots in the Tab list, using `&` to represent section symbols.
 
 - Type: `String`
 - Default: `#none`
@@ -209,8 +202,7 @@ Bots will not take reflected damage caused by Thorns when attacking entities or 
 ### disablePlayerAttackingTamedMobs
 
 Players cannot damage their own tamed mobs while server PVP is enabled, and cannot damage any player-owned tamed mobs while server PVP is disabled.\
-Affected mobs include cats, wolves, parrots, nautiluses, zombie nautiluses, horses, donkeys, mules, zombie horses, skeleton horses, llamas, and trader llamas.\
-(The feature design references a similar rule from DoormatCarpetExtension, and the current implementation has been rewritten for this mod's needs.)
+Affected mobs include cats, wolves, parrots, nautiluses, zombie nautiluses, horses, donkeys, mules, zombie horses, skeleton horses, llamas, and trader llamas.
 
 - Type: `boolean`
 - Default: `false`
@@ -257,8 +249,6 @@ Prevents water from being consumed when using a vanilla water bucket while holdi
 
 Prevents players from receiving the mining speed penalty while airborne.
 
-Note: For real players to get the full mining-speed experience (break progress matching the server), the client must have both Carpet and this mod fully installed. If the client does not fully install Carpet and this mod, the real player's client-side break animation may not fully match the server's break timing.
-
 - Type: `boolean`
 - Default: `false`
 - Possible values: `false`, `true`
@@ -294,8 +284,7 @@ Fixes a Carpet crash that can happen when leaving a singleplayer world after pre
 
 ### disableIllegalTextCharacterCheck
 
-Skips vanilla text character validation, allowing characters that are normally rejected, such as section signs.\
-(The rule behavior and shared text-character-check interception approach reference a similar rule in Carpet-TCTC-Addition; the implementation for this project's architecture and supported versions was written independently.)
+Skips vanilla text character validation, allowing characters that are normally rejected, such as section signs.
 
 - Type: `boolean`
 - Default: `false`
@@ -314,7 +303,8 @@ Customizes the water flow delay in game ticks. Setting it to `freeze` freezes sc
 
 ### lavaFluidTickDelay
 
-Customizes the lava flow delay in game ticks. In ultrawarm dimensions, the delay is divided by three with a minimum value of 1. Setting it to `freeze` freezes lava flow without affecting random ticks
+Customizes the lava flow delay in game ticks. In ultrawarm dimensions, the delay is divided by three with a minimum value of 1. Setting it to `freeze` freezes lava flow without affecting random ticks.
+
 - Type: `String`
 - Default: `30`
 - Suggested values: `freeze`, `6`, `30`, `60`
