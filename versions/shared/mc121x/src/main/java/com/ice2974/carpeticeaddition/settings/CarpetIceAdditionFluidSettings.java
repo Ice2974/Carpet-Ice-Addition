@@ -27,7 +27,7 @@ public final class CarpetIceAdditionFluidSettings {
 
     @Rule(
             categories = {ICE, FEATURE},
-            options = {"freeze", "1", "5", "10"},
+            options = {"freeze", "5"},
             strict = false,
             validators = FluidTickDelayValidator.class
     )
@@ -35,7 +35,7 @@ public final class CarpetIceAdditionFluidSettings {
 
     @Rule(
             categories = {ICE, FEATURE},
-            options = {"freeze", "6", "30", "60"},
+            options = {"freeze", "30"},
             strict = false,
             validators = FluidTickDelayValidator.class
     )

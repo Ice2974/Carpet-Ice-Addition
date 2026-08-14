@@ -301,7 +301,7 @@ Customizes the water flow delay in game ticks. Setting it to `freeze` freezes sc
 
 - Type: `String`
 - Default: `5`
-- Suggested values: `freeze`, `1`, `5`, `10`
+- Suggested values: `freeze`, `5`
 - Accepted values: `freeze` or an integer from `1` through `72000`
 - Categories: `ICE`, `FEATURE`
 
@@ -311,6 +311,6 @@ Customizes the lava flow delay in game ticks. In ultrawarm dimensions, the delay
 
 - Type: `String`
 - Default: `30`
-- Suggested values: `freeze`, `6`, `30`, `60`
+- Suggested values: `freeze`, `30`
 - Accepted values: `freeze` or an integer from `1` through `72000`
 - Categories: `ICE`, `FEATURE`
