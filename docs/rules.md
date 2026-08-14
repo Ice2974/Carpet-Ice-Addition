@@ -253,6 +253,17 @@
 - 可选值: `false`, `true`
 - 分类: `ICE`, `FEATURE`, `SURVIVAL`
 
+### 禁用空中挖掘惩罚 (disableAirborneMiningPenalty)
+
+使玩家未站在地面上时不再受到挖掘速度惩罚。
+
+注：真人玩家若要获得完整的挖掘速度体验（破坏进度条与实际一致），需要客户端完整安装 Carpet 和本模组；客户端未完整安装 Carpet 和本模组时，真人玩家客户端的破坏动画可能与服务端判定不完全同步。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`, `SURVIVAL`, `CLIENT`
+
 ### 自定义末地平台位置 (customEndPlatformPosition)
 
 允许自定义实体通过末地传送门进入末地时生成的末地黑曜石平台中心位置，并同步调整进入末地后的落点。

@@ -29,6 +29,7 @@
     "EndPortalBlockCustomEndPlatformPositionMixin",
     "BlockItemEasyWaterloggedBlockPlacementMixin",
     "ItemUsagePortableInfiniteWaterMixin",
+    "DisableAirborneMiningPenaltyMixin",
     "SafeScaffoldingBreakMixin",
     "PlayerListEntryTabListNameMixin",
     "ServerCommonNetworkHandlerAccessor",

@@ -67,6 +67,9 @@ public final class CarpetIceAdditionSettings {
     @Rule(categories = {ICE, FEATURE, SURVIVAL})
     public static boolean portableInfiniteWater = false;
 
+    @Rule(categories = {ICE, FEATURE, SURVIVAL, CLIENT})
+    public static boolean disableAirborneMiningPenalty = false;
+
     @Rule(categories = {ICE, FEATURE, CLIENT})
     public static boolean disableIllegalTextCharacterCheck = false;
 

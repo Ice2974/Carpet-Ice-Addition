@@ -28,6 +28,7 @@
     "EndPortalBlockCustomEndPlatformPositionMixin",
     "BlockItemEasyWaterloggedBlockPlacementMc12111Mixin",
     "ItemUsagePortableInfiniteWaterMixin",
+    "DisableAirborneMiningPenaltyMixin",
     "TrialSpawnerDataMixin",
     "ServerWorldPhantomSpawnWarningMixin",
     "ServerWorldRecordWorldEventMixin",

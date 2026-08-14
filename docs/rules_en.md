@@ -253,6 +253,17 @@ Prevents water from being consumed when using a vanilla water bucket while holdi
 - Possible values: `false`, `true`
 - Categories: `ICE`, `FEATURE`, `SURVIVAL`
 
+### disableAirborneMiningPenalty
+
+Prevents players from receiving the mining speed penalty while airborne.
+
+Note: For real players to get the full mining-speed experience (break progress matching the server), the client must have both Carpet and this mod fully installed. If the client does not fully install Carpet and this mod, the real player's client-side break animation may not fully match the server's break timing.
+
+- Type: `boolean`
+- Default: `false`
+- Possible values: `false`, `true`
+- Categories: `ICE`, `FEATURE`, `SURVIVAL`, `CLIENT`
+
 ### customEndPlatformPosition
 
 Allows customizing the center position of the End obsidian platform generated when entities enter the End, while keeping the arrival position in sync.
