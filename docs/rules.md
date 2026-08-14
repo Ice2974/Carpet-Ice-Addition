@@ -61,7 +61,7 @@
 - 类型: `boolean`
 - 默认值: `false`
 - 可选值: `false`, `true`
-- 分类: `ICE`, `FEATURE`
+- 分类: `ICE`, `FEATURE`, `SURVIVAL`
 
 ### 唱片世界事件时序修复 (recordWorldEventFix)
 
@@ -127,7 +127,7 @@
 - 类型: `boolean`
 - 默认值: `false`
 - 可选值: `false`, `true`
-- 分类: `ICE`, `BUGFIX`, `SURVIVAL`
+- 分类: `ICE`, `BUGFIX`, `SURVIVAL`, `CLIENT`
 
 ### 类冰岩浆块 (iceLikeMagmaBlocks)
 
@@ -279,7 +279,7 @@
 - 类型: `boolean`
 - 默认值: `true`
 - 可选值: `false`, `true`
-- 分类: `ICE`, `BUGFIX`
+- 分类: `ICE`, `BUGFIX`, `CLIENT`
 
 ### 禁用非法字符检查 (disableIllegalTextCharacterCheck)
 
@@ -289,7 +289,7 @@
 - 类型: `boolean`
 - 默认值: `false`
 - 可选值: `true`, `false`
-- 分类: `ICE`, `FEATURE`
+- 分类: `ICE`, `FEATURE`, `CLIENT`
 
 ### 水流体刻延迟 (waterFluidTickDelay)
 

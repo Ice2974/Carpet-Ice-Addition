@@ -4,6 +4,7 @@ import carpet.api.settings.Rule;
 import com.ice2974.carpeticeaddition.rules.CraftableCoralBlocksValidator;
 
 import static carpet.api.settings.RuleCategory.FEATURE;
+import static carpet.api.settings.RuleCategory.SURVIVAL;
 
 /**
  * craftableCoralBlocks 规则的平台侧定义（26.x mojmap）。
@@ -21,7 +22,7 @@ public final class CraftableCoralBlocksSettings {
     private CraftableCoralBlocksSettings() {
     }
 
-    @Rule(categories = {ICE, FEATURE}, validators = CraftableCoralBlocksValidator.class)
+    @Rule(categories = {ICE, FEATURE, SURVIVAL}, validators = CraftableCoralBlocksValidator.class)
     public static boolean craftableCoralBlocks = false;
 
     /**

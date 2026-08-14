@@ -4,6 +4,7 @@ import carpet.api.settings.Rule;
 import carpet.api.settings.Validators;
 
 import static carpet.api.settings.RuleCategory.BUGFIX;
+import static carpet.api.settings.RuleCategory.CLIENT;
 import static carpet.api.settings.RuleCategory.COMMAND;
 import static carpet.api.settings.RuleCategory.FEATURE;
 import static carpet.api.settings.RuleCategory.SURVIVAL;
@@ -42,7 +43,7 @@ public final class CarpetIceAdditionSettings {
     @Rule(categories = {ICE, FEATURE, SURVIVAL})
     public static boolean silkTouchFrostedIce = false;
 
-    @Rule(categories = {ICE, BUGFIX, SURVIVAL})
+    @Rule(categories = {ICE, BUGFIX, SURVIVAL, CLIENT})
     public static boolean frostedIceProperToolFix = false;
 
     @Rule(categories = {ICE, FEATURE, SURVIVAL})
@@ -66,7 +67,7 @@ public final class CarpetIceAdditionSettings {
     @Rule(categories = {ICE, FEATURE, SURVIVAL})
     public static boolean portableInfiniteWater = false;
 
-    @Rule(categories = {ICE, FEATURE})
+    @Rule(categories = {ICE, FEATURE, CLIENT})
     public static boolean disableIllegalTextCharacterCheck = false;
 
     @Rule(categories = {ICE, FEATURE})

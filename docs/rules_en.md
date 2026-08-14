@@ -35,7 +35,7 @@ Allows players to right-click item frames or glow item frames that already conta
 - Possible values: `false`, `true`
 - Categories: `ICE`, `FEATURE`
 
-## fixedItemFrames
+### fixedItemFrames
 
 Allows players to right-click item frames or glow item frames that already contain an item with a glass pane to make them fixed; fixed frames can be unfixed by right-clicking them with an axe.\
 (The feature design references carpet-redcraft-addons' betterItemFrames rule, while the current implementation has been independently rewritten for this mod's target versions and layering.)
@@ -61,7 +61,7 @@ Allows 9 coral fans of the same type to be crafted into the corresponding coral 
 - Type: `boolean`
 - Default: `false`
 - Possible values: `false`, `true`
-- Categories: `ICE`, `FEATURE`
+- Categories: `ICE`, `FEATURE`, `SURVIVAL`
 
 ### recordWorldEventFix
 
@@ -127,7 +127,7 @@ Note: For real players to get the full mining-speed experience (break progress m
 - Type: `boolean`
 - Default: `false`
 - Possible values: `false`, `true`
-- Categories: `ICE`, `BUGFIX`, `SURVIVAL`
+- Categories: `ICE`, `BUGFIX`, `SURVIVAL`, `CLIENT`
 
 ### iceLikeMagmaBlocks
 
@@ -279,7 +279,7 @@ Fixes a Carpet crash that can happen when leaving a singleplayer world after pre
 - Type: `boolean`
 - Default: `true`
 - Possible values: `false`, `true`
-- Categories: `ICE`, `BUGFIX`
+- Categories: `ICE`, `BUGFIX`, `CLIENT`
 
 ### disableIllegalTextCharacterCheck
 
@@ -289,7 +289,7 @@ Skips vanilla text character validation, allowing characters that are normally r
 - Type: `boolean`
 - Default: `false`
 - Possible values: `true`, `false`
-- Categories: `ICE`, `FEATURE`
+- Categories: `ICE`, `FEATURE`, `CLIENT`
 
 ### waterFluidTickDelay
 
