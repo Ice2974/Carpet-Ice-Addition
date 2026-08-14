@@ -23,7 +23,7 @@
 - 类型: `boolean`
 - 默认值: `false`
 - 可选值: `false`, `true`
-- 分类: `ICE`, `SURVIVAL`
+- 分类: `ICE`, `FEATURE`
 
 ### 可隐形展示框 (invisibleItemFrames)
 
@@ -107,7 +107,7 @@
 - 类型: `boolean`
 - 默认值: `false`
 - 可选值: `false`, `true`
-- 分类: `ICE`, `FEATURE`
+- 分类: `ICE`, `FEATURE`, `SURVIVAL`
 
 ### 可采集霜冰 (silkTouchFrostedIce)
 
@@ -116,7 +116,7 @@
 - 类型: `boolean`
 - 默认值: `false`
 - 可选值: `false`, `true`
-- 分类: `ICE`, `FEATURE`
+- 分类: `ICE`, `FEATURE`, `SURVIVAL`
 
 ### 霜冰合适工具补齐 (frostedIceProperToolFix)
 
@@ -127,7 +127,7 @@
 - 类型: `boolean`
 - 默认值: `false`
 - 可选值: `false`, `true`
-- 分类: `ICE`, `FEATURE`
+- 分类: `ICE`, `BUGFIX`, `SURVIVAL`
 
 ### 类冰岩浆块 (iceLikeMagmaBlocks)
 
@@ -136,7 +136,7 @@
 - 类型: `boolean`
 - 默认值: `false`
 - 可选值: `false`, `true`
-- 分类: `ICE`, `FEATURE`
+- 分类: `ICE`, `FEATURE`, `SURVIVAL`
 
 ### 禁用菌岩退化 (disableNyliumDecay)
 
@@ -155,7 +155,7 @@
 - 类型: `String`
 - 默认值: `#none`
 - 参考值: `#none`, `[Bot]`
-- 分类: `ICE`
+- 分类: `ICE`, `BOT`
 
 ### 假人Tab栏名称后缀 (botTabListNameSuffix)
 
@@ -165,7 +165,7 @@
 - 类型: `String`
 - 默认值: `#none`
 - 参考值: `#none`, `[Fake]`
-- 分类: `ICE`
+- 分类: `ICE`, `BOT`
 
 ### 掉落物清理指令 (commandKillItem)
 
@@ -183,7 +183,7 @@
 - 类型: `String`
 - 默认值: `ops`
 - 可选值: `false`, `true`, `ops`, `0`, `1`, `2`, `3`, `4`
-- 分类: `ICE`, `COMMAND`, `SURVIVAL`
+- 分类: `ICE`, `COMMAND`
 
 ### 回档前机器状态警告 (machineStatusRollbackWarning)
 
@@ -195,7 +195,7 @@
 - 类型: `boolean`
 - 默认值: `false`
 - 可选值: `false`, `true`
-- 分类: `ICE`, `SURVIVAL`
+- 分类: `ICE`
 
 ### 假人免疫荆棘反伤 (fakePlayerIgnoreThornsDamage)
 
@@ -204,7 +204,7 @@
 - 类型: `boolean`
 - 默认值: `false`
 - 可选值: `false`, `true`
-- 分类: `ICE`, `FEATURE`
+- 分类: `ICE`, `FEATURE`, `SURVIVAL`, `BOT`
 
 ### 禁止伤害已驯服生物 (disablePlayerAttackingTamedMobs)
 
@@ -215,7 +215,7 @@
 - 类型: `boolean`
 - 默认值: `false`
 - 可选值: `false`, `true`
-- 分类: `ICE`, `SURVIVAL`
+- 分类: `ICE`, `FEATURE`
 
 ### 幻翼生成预警 (phantomSpawnWarning)
 
@@ -233,7 +233,7 @@
 - 类型: `boolean`
 - 默认值: `false`
 - 可选值: `false`, `true`
-- 分类: `ICE`, `FEATURE`
+- 分类: `ICE`, `FEATURE`, `SURVIVAL`
 
 ### 轻松含水放置 (easyWaterloggedBlockPlacement)
 

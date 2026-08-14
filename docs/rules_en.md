@@ -23,7 +23,7 @@ Require holding scaffolding or an empty main hand to break scaffolding.
 - Type: `boolean`
 - Default: `false`
 - Possible values: `false`, `true`
-- Categories: `ICE`, `SURVIVAL`
+- Categories: `ICE`, `FEATURE`
 
 ### invisibleItemFrames
 
@@ -107,7 +107,7 @@ Budding amethyst can be collected by using a suitable tool with the Silk Touch e
 - Type: `boolean`
 - Default: `false`
 - Possible values: `false`, `true`
-- Categories: `ICE`, `FEATURE`
+- Categories: `ICE`, `FEATURE`, `SURVIVAL`
 
 ### silkTouchFrostedIce
 
@@ -116,7 +116,7 @@ Frosted ice drops 1 regular ice when broken by a player using any tool with the 
 - Type: `boolean`
 - Default: `false`
 - Possible values: `false`, `true`
-- Categories: `ICE`, `FEATURE`
+- Categories: `ICE`, `FEATURE`, `SURVIVAL`
 
 ### frostedIceProperToolFix
 
@@ -127,7 +127,7 @@ Note: For real players to get the full mining-speed experience (break progress m
 - Type: `boolean`
 - Default: `false`
 - Possible values: `false`, `true`
-- Categories: `ICE`, `FEATURE`
+- Categories: `ICE`, `BUGFIX`, `SURVIVAL`
 
 ### iceLikeMagmaBlocks
 
@@ -136,7 +136,7 @@ Allows magma blocks broken by players with tools without Silk Touch to generate 
 - Type: `boolean`
 - Default: `false`
 - Possible values: `false`, `true`
-- Categories: `ICE`, `FEATURE`
+- Categories: `ICE`, `FEATURE`, `SURVIVAL`
 
 ### disableNyliumDecay
 
@@ -155,7 +155,7 @@ Add a prefix to bots in the Tab list, using `&` to represent section symbols.\
 - Type: `String`
 - Default: `#none`
 - Suggested values: `#none`, `[Bot]`
-- Categories: `ICE`
+- Categories: `ICE`, `BOT`
 
 ### botTabListNameSuffix
 
@@ -165,7 +165,7 @@ Add a suffix to bots in the Tab list, using `&` to represent section symbols.\
 - Type: `String`
 - Default: `#none`
 - Suggested values: `#none`, `[Fake]`
-- Categories: `ICE`
+- Categories: `ICE`, `BOT`
 
 ### commandKillItem
 
@@ -183,7 +183,7 @@ Registers the /machineStatus command to save the target block state when a techn
 - Type: `String`
 - Default: `ops`
 - Possible values: `false`, `true`, `ops`, `0`, `1`, `2`, `3`, `4`
-- Categories: `ICE`, `COMMAND`, `SURVIVAL`
+- Categories: `ICE`, `COMMAND`
 
 ### machineStatusRollbackWarning
 
@@ -195,7 +195,7 @@ Supported MCDR plugins by default: Quick Backup Multi (`!!qb`), Prime Backup (`!
 - Type: `boolean`
 - Default: `false`
 - Possible values: `false`, `true`
-- Categories: `ICE`, `SURVIVAL`
+- Categories: `ICE`
 
 ### fakePlayerIgnoreThornsDamage
 
@@ -204,7 +204,7 @@ Bots will not take reflected damage caused by Thorns when attacking entities or 
 - Type: `boolean`
 - Default: `false`
 - Possible values: `false`, `true`
-- Categories: `ICE`, `FEATURE`
+- Categories: `ICE`, `FEATURE`, `SURVIVAL`, `BOT`
 
 ### disablePlayerAttackingTamedMobs
 
@@ -215,7 +215,7 @@ Affected mobs include cats, wolves, parrots, nautiluses, zombie nautiluses, hors
 - Type: `boolean`
 - Default: `false`
 - Possible values: `false`, `true`
-- Categories: `ICE`, `SURVIVAL`
+- Categories: `ICE`, `FEATURE`
 
 ### phantomSpawnWarning
 
@@ -233,7 +233,7 @@ Makes phantoms neutral toward players: they will not attack players first, but w
 - Type: `boolean`
 - Default: `false`
 - Possible values: `false`, `true`
-- Categories: `ICE`, `FEATURE`
+- Categories: `ICE`, `FEATURE`, `SURVIVAL`
 
 ### easyWaterloggedBlockPlacement
 

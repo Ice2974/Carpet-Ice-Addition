@@ -10,11 +10,12 @@ import static carpet.api.settings.RuleCategory.SURVIVAL;
 
 public final class CarpetIceAdditionSettings {
     public static final String ICE = "CarpetIceAddition";
+    public static final String BOT = "BOT";
 
     private CarpetIceAdditionSettings() {
     }
 
-    @Rule(categories = {ICE, SURVIVAL})
+    @Rule(categories = {ICE, FEATURE})
     public static boolean safeScaffoldingBreak = false;
 
     @Rule(categories = {ICE, FEATURE})
@@ -35,22 +36,22 @@ public final class CarpetIceAdditionSettings {
     @Rule(categories = {ICE, FEATURE})
     public static boolean disableAmethystGrowth = false;
 
-    @Rule(categories = {ICE, FEATURE})
+    @Rule(categories = {ICE, FEATURE, SURVIVAL})
     public static boolean silkTouchBuddingAmethyst = false;
 
-    @Rule(categories = {ICE, FEATURE})
+    @Rule(categories = {ICE, FEATURE, SURVIVAL})
     public static boolean silkTouchFrostedIce = false;
 
-    @Rule(categories = {ICE, FEATURE})
+    @Rule(categories = {ICE, BUGFIX, SURVIVAL})
     public static boolean frostedIceProperToolFix = false;
 
-    @Rule(categories = {ICE, FEATURE})
+    @Rule(categories = {ICE, FEATURE, SURVIVAL})
     public static boolean iceLikeMagmaBlocks = false;
 
     @Rule(categories = {ICE, FEATURE})
     public static boolean disableNyliumDecay = false;
 
-    @Rule(categories = {ICE, FEATURE})
+    @Rule(categories = {ICE, FEATURE, SURVIVAL, BOT})
     public static boolean fakePlayerIgnoreThornsDamage = false;
 
     @Rule(categories = {ICE, FEATURE})
@@ -68,13 +69,13 @@ public final class CarpetIceAdditionSettings {
     @Rule(categories = {ICE, FEATURE})
     public static boolean disableIllegalTextCharacterCheck = false;
 
-    @Rule(categories = {ICE, SURVIVAL})
+    @Rule(categories = {ICE, FEATURE})
     public static boolean disablePlayerAttackingTamedMobs = false;
 
     @Rule(categories = {ICE, SURVIVAL})
     public static boolean phantomSpawnWarning = false;
 
-    @Rule(categories = {ICE, FEATURE})
+    @Rule(categories = {ICE, FEATURE, SURVIVAL})
     public static boolean neutralPhantoms = false;
 
     @Rule(
@@ -85,24 +86,24 @@ public final class CarpetIceAdditionSettings {
     public static String commandKillItem = "ops";
 
     @Rule(
-            categories = {ICE, COMMAND, SURVIVAL},
+            categories = {ICE, COMMAND},
             options = {"false", "true", "ops", "0", "1", "2", "3", "4"},
             validators = Validators.CommandLevel.class
     )
     public static String commandMachineStatus = "ops";
 
-    @Rule(categories = {ICE, SURVIVAL})
+    @Rule(categories = {ICE})
     public static boolean machineStatusRollbackWarning = false;
 
     @Rule(
-            categories = {ICE},
+            categories = {ICE, BOT},
             options = {"#none", "[Bot]"},
             strict = false
     )
     public static String botTabListNamePrefix = "#none";
 
     @Rule(
-            categories = {ICE},
+            categories = {ICE, BOT},
             options = {"#none", "[Fake]"},
             strict = false
     )
