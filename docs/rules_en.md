@@ -14,6 +14,10 @@ When locked:
 - `carpet.conf` is not modified;
 - removing the conflicting datapack and running `/reload` releases the lock and restores the previous configured value; online recipe books are synchronized after a successful resource reload.
 
+### Client-category
+
+Rules with the `CLIENT` category involve client-side behavior and only take full effect when both Carpet and this mod are fully installed on the client as well. With a server-only installation, these rules only partially take effect.
+
 ## Rules
 
 ### safeScaffoldingBreak
