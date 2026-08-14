@@ -3,7 +3,6 @@ package com.ice2974.carpeticeaddition.settings;
 import carpet.api.settings.Rule;
 
 import static carpet.api.settings.RuleCategory.BUGFIX;
-import static carpet.api.settings.RuleCategory.CLIENT;
 
 /**
  * 仅在较低 MC 版本（1.21–1.21.1）生效的规则。
@@ -14,6 +13,6 @@ public final class CarpetIceAdditionLowVersionSettings {
     private CarpetIceAdditionLowVersionSettings() {
     }
 
-    @Rule(categories = {CarpetIceAdditionSettings.ICE, BUGFIX, CLIENT})
+    @Rule(categories = {CarpetIceAdditionSettings.ICE, BUGFIX})
     public static boolean carpetSingleplayerExitCrashFix = true;
 }

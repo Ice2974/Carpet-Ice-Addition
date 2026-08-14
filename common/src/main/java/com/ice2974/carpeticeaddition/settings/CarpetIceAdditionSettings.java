@@ -4,7 +4,6 @@ import carpet.api.settings.Rule;
 import carpet.api.settings.Validators;
 
 import static carpet.api.settings.RuleCategory.BUGFIX;
-import static carpet.api.settings.RuleCategory.CLIENT;
 import static carpet.api.settings.RuleCategory.COMMAND;
 import static carpet.api.settings.RuleCategory.FEATURE;
 import static carpet.api.settings.RuleCategory.SURVIVAL;
@@ -66,7 +65,7 @@ public final class CarpetIceAdditionSettings {
     @Rule(categories = {ICE, FEATURE, SURVIVAL})
     public static boolean portableInfiniteWater = false;
 
-    @Rule(categories = {ICE, CLIENT})
+    @Rule(categories = {ICE, FEATURE})
     public static boolean disableIllegalTextCharacterCheck = false;
 
     @Rule(categories = {ICE, SURVIVAL})

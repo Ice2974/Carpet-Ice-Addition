@@ -279,7 +279,7 @@
 - 类型: `boolean`
 - 默认值: `true`
 - 可选值: `false`, `true`
-- 分类: `ICE`, `BUGFIX`, `CLIENT`
+- 分类: `ICE`, `BUGFIX`
 
 ### 禁用非法字符检查 (disableIllegalTextCharacterCheck)
 
@@ -289,7 +289,7 @@
 - 类型: `boolean`
 - 默认值: `false`
 - 可选值: `true`, `false`
-- 分类: `ICE`, `CLIENT`
+- 分类: `ICE`, `FEATURE`
 
 ### 水流体刻延迟 (waterFluidTickDelay)
 

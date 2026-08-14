@@ -279,7 +279,7 @@ Fixes a Carpet crash that can happen when leaving a singleplayer world after pre
 - Type: `boolean`
 - Default: `true`
 - Possible values: `false`, `true`
-- Categories: `ICE`, `BUGFIX`, `CLIENT`
+- Categories: `ICE`, `BUGFIX`
 
 ### disableIllegalTextCharacterCheck
 
@@ -289,7 +289,7 @@ Skips vanilla text character validation, allowing characters that are normally r
 - Type: `boolean`
 - Default: `false`
 - Possible values: `true`, `false`
-- Categories: `ICE`, `CLIENT`
+- Categories: `ICE`, `FEATURE`
 
 ### waterFluidTickDelay
 
