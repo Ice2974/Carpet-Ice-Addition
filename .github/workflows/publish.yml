@@ -1,0 +1,278 @@
+name: Publish
+
+on:
+  release:
+    types:
+      - published
+
+permissions:
+  contents: read
+
+# 同一 Tag 的发布流程严格串行，避免 Modrinth 幂等预检与实际创建之间产生竞态
+concurrency:
+  group: publish-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build and verify all platforms
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+      mod_version: ${{ steps.meta.outputs.mod_version }}
+      mod_name: ${{ steps.meta.outputs.mod_name }}
+      platforms: ${{ steps.meta.outputs.platforms }}
+    steps:
+      - name: Reject prereleases
+        if: github.event.release.prerelease == true
+        run: |
+          echo "::error::检测到 GitHub prerelease：当前发布流程仅支持正式 Release，已阻止发布。"
+          exit 1
+
+      - name: Checkout release tag
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Verify release tag matches mod_version
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          MOD_VERSION=$(sed -n 's/^mod_version=//p' gradle.properties | tr -d '\r')
+          if [ "$RELEASE_TAG" != "$MOD_VERSION" ]; then
+            echo "::error::Release tag (${RELEASE_TAG}) 与 gradle.properties 的 mod_version (${MOD_VERSION}) 不一致，已阻止发布。"
+            exit 1
+          fi
+
+      - name: Build and verify
+        run: ./gradlew build verifyCraftableCoralBlocksJars --stacktrace
+
+      - name: Collect release jars and build manifest
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          # 平台清单、mod_version、mod_name 均以仓库现有配置为单一来源
+          mapfile -t PLATFORMS < <(grep -oP "include 'versions:platform-\K[^']+" settings.gradle | sort -u)
+          if [ "${#PLATFORMS[@]}" -eq 0 ]; then
+            echo "::error::未能从 settings.gradle 解析出任何平台。"
+            exit 1
+          fi
+          MOD_VERSION=$(sed -n 's/^mod_version=//p' gradle.properties | tr -d '\r')
+          MOD_NAME=$(sed -n 's/^mod_name=//p' gradle.properties | tr -d '\r')
+
+          rm -rf staging
+          mkdir -p staging
+          entries_file=$(mktemp)
+
+          for platform in "${PLATFORMS[@]}"; do
+            lib_dir="versions/platform-${platform}/build/libs"
+            mapfile -t jars < <(find "$lib_dir" -maxdepth 1 -name 'Carpet-Ice-Addition-v*.jar' ! -name '*-sources.jar' | sort)
+            if [ "${#jars[@]}" -ne 1 ]; then
+              echo "::error::平台 ${platform} 应恰好产出 1 个正式 JAR，实际 ${#jars[@]} 个。"
+              find "$lib_dir" -maxdepth 1 -type f -name '*.jar' -printf '  %f\n' || true
+              exit 1
+            fi
+            jar="${jars[0]}"
+            file_name=$(basename "$jar")
+            if [[ "$file_name" != "Carpet-Ice-Addition-v${MOD_VERSION}-mc"*.jar ]]; then
+              echo "::error::JAR 文件名 ${file_name} 未包含 -v${MOD_VERSION}-，与 mod_version 不一致。"
+              exit 1
+            fi
+            cp --parents "$jar" staging/
+            stem="${file_name#Carpet-Ice-Addition-v}"
+            label="${stem%.jar}"
+            label="${label#*-mc}"
+            version_name="${MOD_NAME} v${MOD_VERSION} for mc${label}"
+            jq -n --arg platform "$platform" --arg jar "$jar" --arg file_name "$file_name" --arg version_name "$version_name" \
+              '{platform: $platform, jar: $jar, file_name: $file_name, version_name: $version_name}' >> "$entries_file"
+          done
+
+          # manifest 中的 jar 路径 = artifact 根目录相对路径（staging 保留了 versions/... 目录结构）
+          jq -s --arg tag "$RELEASE_TAG" --arg mod_version "$MOD_VERSION" --arg mod_name "$MOD_NAME" \
+            '{tag: $tag, mod_version: $mod_version, mod_name: $mod_name, expected_count: (. | length), platforms: .}' \
+            "$entries_file" > staging/release-manifest.json
+          echo "已收集 ${#PLATFORMS[@]} 个平台 JAR 并生成 staging/release-manifest.json"
+
+      - name: Export metadata outputs
+        id: meta
+        run: |
+          set -euo pipefail
+          {
+            echo "tag=$(jq -r '.tag' staging/release-manifest.json)"
+            echo "mod_version=$(jq -r '.mod_version' staging/release-manifest.json)"
+            echo "mod_name=$(jq -r '.mod_name' staging/release-manifest.json)"
+            echo "platforms=$(jq -c '[.platforms[].platform]' staging/release-manifest.json)"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Upload mod jars and manifest
+        uses: actions/upload-artifact@v7
+        with:
+          name: mod-jars
+          path: staging/
+          if-no-files-found: error
+
+  upload-github-release:
+    name: Upload jars to GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ needs.build.outputs.tag }}
+    steps:
+      - name: Download mod jars and manifest
+        uses: actions/download-artifact@v8
+        with:
+          name: mod-jars
+          path: dist
+
+      - name: Upload jars to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mapfile -t jars < <(jq -r '.platforms[].jar' dist/release-manifest.json)
+          if [ "${#jars[@]}" -eq 0 ]; then
+            echo "::error::manifest 中没有任何 JAR。"
+            exit 1
+          fi
+          args=()
+          for jar in "${jars[@]}"; do
+            if [ ! -f "dist/${jar}" ]; then
+              echo "::error::JAR 不存在：dist/${jar}"
+              exit 1
+            fi
+            args+=("dist/${jar}")
+          done
+          gh release upload "$RELEASE_TAG" "${args[@]}" --clobber --repo "$GITHUB_REPOSITORY"
+
+      - name: Verify release assets by file name
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # 两路输出统一去除 CRLF；用纯 bash 关联数组做精确文件名匹配，不依赖 grep 实现
+          mapfile -t expected < <(jq -r '.platforms[].file_name' dist/release-manifest.json | tr -d '\r')
+          mapfile -t actual < <(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' | tr -d '\r')
+          declare -A actual_set=()
+          for name in "${actual[@]}"; do
+            actual_set["$name"]=1
+          done
+          missing=0
+          for name in "${expected[@]}"; do
+            if [ -z "${actual_set[$name]:-}" ]; then
+              echo "::error::Release 资产缺少文件：${name}"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            echo "当前 Release 资产列表："
+            printf '  %s\n' "${actual[@]}"
+            exit 1
+          fi
+          echo "已核对全部 ${#expected[@]} 个 JAR 均存在于 Release ${RELEASE_TAG}。"
+
+  upload-modrinth:
+    name: Publish to Modrinth (${{ matrix.platform }})
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: ${{ fromJson(needs.build.outputs.platforms) }}
+    env:
+      MODRINTH_PROJECT_ID: '3ZWOd2ma'
+      RELEASE_TAG: ${{ needs.build.outputs.tag }}
+      MOD_VERSION: ${{ needs.build.outputs.mod_version }}
+      MOD_NAME: ${{ needs.build.outputs.mod_name }}
+      PLATFORM: ${{ matrix.platform }}
+    steps:
+      - name: Download mod jars and manifest
+        uses: actions/download-artifact@v8
+        with:
+          name: mod-jars
+          path: dist
+
+      - name: Derive metadata and idempotency precheck
+        id: precheck
+        run: |
+          set -euo pipefail
+          entry=$(jq -c --arg platform "$PLATFORM" '.platforms[] | select(.platform == $platform)' dist/release-manifest.json)
+          if [ -z "$entry" ]; then
+            echo "::error::manifest 中找不到平台 ${PLATFORM}。"
+            exit 1
+          fi
+          jar_rel=$(jq -r '.jar' <<<"$entry")
+          file_name=$(jq -r '.file_name' <<<"$entry")
+          version_name=$(jq -r '.version_name' <<<"$entry")
+
+          jar="dist/${jar_rel}"
+          if [ ! -f "$jar" ]; then
+            echo "::error::JAR 不存在：${jar}"
+            exit 1
+          fi
+          if [[ "$file_name" != "Carpet-Ice-Addition-v${MOD_VERSION}-mc"*.jar ]]; then
+            echo "::error::JAR 文件名 ${file_name} 与 mod_version ${MOD_VERSION} 不一致。"
+            exit 1
+          fi
+          sha1=$(sha1sum "$jar" | awk '{print $1}')
+
+          versions_json=$(curl -fsS --retry 3 --retry-delay 5 "https://api.modrinth.com/v2/project/${MODRINTH_PROJECT_ID}/version")
+          match_count=$(jq --arg tag "$RELEASE_TAG" --arg name "$version_name" \
+            '[.[] | select(.version_number == $tag and .name == $name)] | length' <<<"$versions_json")
+
+          should_upload=true
+          if [ "$match_count" -eq 0 ]; then
+            echo "Modrinth 不存在 version_number=${RELEASE_TAG} 且 name=${version_name} 的版本，将执行上传。"
+          elif [ "$match_count" -eq 1 ]; then
+            match=$(jq -c --arg tag "$RELEASE_TAG" --arg name "$version_name" \
+              '[.[] | select(.version_number == $tag and .name == $name)][0]' <<<"$versions_json")
+            consistent=$(jq -r --arg file_name "$file_name" --arg sha1 "$sha1" \
+              '([.files[] | select(.filename == $file_name and .hashes.sha1 == $sha1)] | length) > 0' <<<"$match")
+            if [ "$consistent" = "true" ]; then
+              should_upload=false
+              echo "Modrinth 已存在完全一致的版本（文件名与 sha1 均匹配），跳过上传：${version_name}"
+            else
+              echo "::error::Modrinth 已存在同版本号同名版本，但文件不一致，拒绝静默跳过："
+              echo "  期望 file_name=${file_name} sha1=${sha1}"
+              jq -r '.files[] | "  远端 filename=\(.filename) sha1=\(.hashes.sha1)"' <<<"$match"
+              echo "  请人工处理（例如删除远端版本后重跑 workflow）。"
+              exit 1
+            fi
+          else
+            echo "::error::Modrinth 存在 ${match_count} 个 version_number=${RELEASE_TAG} 且 name=${version_name} 的版本，需人工去重后重跑。"
+            exit 1
+          fi
+
+          {
+            echo "should_upload=${should_upload}"
+            echo "jar=${jar}"
+            echo "name=${version_name}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Publish to Modrinth
+        if: steps.precheck.outputs.should_upload == 'true'
+        uses: Kira-NT/mc-publish@52307b03863581dec6b652b83e597aec02ebb075 # v3.3.1
+        with:
+          modrinth-id: '3ZWOd2ma'
+          modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
+          modrinth-featured: false
+          files: ${{ steps.precheck.outputs.jar }}
+          name: ${{ steps.precheck.outputs.name }}
+          version: ${{ needs.build.outputs.tag }}
+          version-type: release
+          changelog: ${{ github.event.release.body }}
+          game-version-filter: releases
+          retry-attempts: 3
+          retry-delay: 10000
