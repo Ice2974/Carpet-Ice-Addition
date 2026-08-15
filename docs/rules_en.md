@@ -58,7 +58,7 @@ Prevents a crafter from crafting when the container it faces cannot fully accept
 
 ### craftableCoralBlocks
 
-Allows 9 coral fans of the same type to be crafted into the corresponding coral block, including dead coral variants. Toggling the rule selects or deselects this mod's built-in datapack and reloads server data resources.
+Allows 9 coral fans of the same type to be crafted into the corresponding coral block, including dead coral variants.
 
 - Type: `boolean`
 - Default: `false`
