@@ -52,6 +52,9 @@ public final class CarpetIceAdditionSettings {
     @Rule(categories = {ICE, FEATURE})
     public static boolean disableNyliumDecay = false;
 
+    @Rule(categories = {ICE, FEATURE})
+    public static boolean woolSuppressesSculkSpread = false;
+
     @Rule(categories = {ICE, FEATURE, SURVIVAL, BOT})
     public static boolean fakePlayerIgnoreThornsDamage = false;
 

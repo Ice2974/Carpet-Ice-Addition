@@ -146,6 +146,15 @@
 - 可选值: `false`, `true`
 - 分类: `ICE`, `FEATURE`
 
+### 羊毛抑制幽匿蔓延 (woolSuppressesSculkSpread)
+
+当幽匿催发体上方放置羊毛时，阻止其产生或蔓延幽匿系列方块，同时保留附近生物死亡时阻止经验球生成的特性。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`
+
 ### 假人Tab栏名称前缀 (botTabListNamePrefix)
 
 为 Tab 栏中的假人添加前缀，可使用 `&` 代替分节符。

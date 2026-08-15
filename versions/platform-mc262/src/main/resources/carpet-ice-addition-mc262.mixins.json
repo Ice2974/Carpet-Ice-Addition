@@ -25,6 +25,7 @@
     "ItemFrameMixin",
     "MobSpawnerLogicMixin",
     "NyliumDecayMixin",
+    "SculkCatalystListenerMixin",
     "EndPortalBlockCustomEndPlatformPositionMixin",
     "BlockItemEasyWaterloggedBlockPlacementMixin",
     "ItemUtilsPortableInfiniteWaterMixin",
