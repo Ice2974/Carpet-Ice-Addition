@@ -148,7 +148,7 @@ Crimson nylium and warped nylium will not decay into netherrack when covered by 
 
 ### woolSuppressesSculkSpread
 
-Prevents a sculk catalyst from generating or spreading sculk blocks when covered by wool, while preserving its ability to suppress experience drops from nearby mob deaths.
+Prevents a sculk catalyst from generating sculk blocks when covered by wool, while preserving its ability to suppress experience drops from nearby mob deaths.
 
 - Type: `boolean`
 - Default: `false`
