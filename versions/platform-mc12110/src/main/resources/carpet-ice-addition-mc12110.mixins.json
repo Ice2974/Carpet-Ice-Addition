@@ -22,6 +22,8 @@
     "MobSpawnerLogicMixin",
     "NyliumDecayMixin",
     "SculkCatalystListenerMixin",
+    "WardenAngerManagerMixin",
+    "WardenEntityMixin",
     "EndPortalBlockCustomEndPlatformPositionMixin",
     "BlockItemEasyWaterloggedBlockPlacementMixin",
     "ItemUsagePortableInfiniteWaterMixin",

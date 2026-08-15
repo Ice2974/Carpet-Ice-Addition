@@ -155,6 +155,15 @@ Prevents a sculk catalyst from generating sculk blocks when covered by wool, whi
 - Possible values: `false`, `true`
 - Categories: `ICE`, `FEATURE`
 
+### wardenNotHostileToPlayers
+
+Prevents wardens from becoming hostile toward players or targeting them for attack without preventing them from detecting player-caused vibrations.
+
+- Type: `boolean`
+- Default: `false`
+- Possible values: `false`, `true`
+- Categories: `ICE`, `FEATURE`, `SURVIVAL`
+
 ### botTabListNamePrefix
 
 Add a prefix to bots in the Tab list, using `&` to represent section symbols.
