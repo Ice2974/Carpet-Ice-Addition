@@ -13,7 +13,7 @@ allprojects {
     }
 }
 
-def craftableCoralPlatformProjects = [
+def platformProjects = [
         ':versions:platform-mc1211',
         ':versions:platform-mc1213',
         ':versions:platform-mc1214',
@@ -56,7 +56,7 @@ def craftableCoralPackFormats = [
 
 def verifyCraftableCoralBlocksJars = tasks.register('verifyCraftableCoralBlocksJars') {
     doLast {
-        craftableCoralPlatformProjects.each { projectPath ->
+        platformProjects.each { projectPath ->
             def platform = project(projectPath)
             def outputTask = platform.tasks.findByName('remapJar') ?: platform.tasks.named('jar').get()
             def jarFile = outputTask.archiveFile.get().asFile
@@ -87,11 +87,45 @@ def verifyCraftableCoralBlocksJars = tasks.register('verifyCraftableCoralBlocksJ
     }
 }
 
-gradle.projectsEvaluated {
-    craftableCoralPlatformProjects.each { projectPath ->
-        verifyCraftableCoralBlocksJars.configure {
+def verifyFabricModJson = tasks.register('verifyFabricModJson') {
+    doLast {
+        platformProjects.each { projectPath ->
             def platform = project(projectPath)
-            dependsOn platform.tasks.findByName('remapJar') ?: platform.tasks.named('jar')
+            def outputTask = platform.tasks.findByName('remapJar') ?: platform.tasks.named('jar').get()
+            def jarFile = outputTask.archiveFile.get().asFile
+            assert jarFile.isFile(): "Missing remapped JAR for ${projectPath}: ${jarFile}"
+
+            def bytes = new java.util.zip.ZipFile(jarFile).withCloseable { zip ->
+                def entry = zip.getEntry('fabric.mod.json')
+                if (entry == null) {
+                    throw new GradleException("fabric.mod.json entry not found in ${jarFile.name} (${projectPath})")
+                }
+                zip.getInputStream(entry).withCloseable { it.readAllBytes() }
+            }
+            if (bytes.length >= 3 && (bytes[0] & 0xFF) == 0xEF && (bytes[1] & 0xFF) == 0xBB && (bytes[2] & 0xFF) == 0xBF) {
+                throw new GradleException("fabric.mod.json in ${jarFile.name} (${projectPath}) starts with a UTF-8 BOM")
+            }
+            def text = new String(bytes, java.nio.charset.StandardCharsets.UTF_8)
+            try {
+                new groovy.json.JsonSlurper().parseText(text)
+            } catch (Exception e) {
+                throw new GradleException("fabric.mod.json in ${jarFile.name} (${projectPath}) is not valid JSON: ${e.message}", e)
+            }
+            if (text.contains('${')) {
+                throw new GradleException("Unexpanded template placeholder in fabric.mod.json of ${jarFile.name} (${projectPath})")
+            }
         }
+    }
+}
+
+gradle.projectsEvaluated {
+    assert platformProjects.toSorted() == gradle.rootProject.allprojects.findAll { it.path.startsWith(':versions:platform-') }*.path.toSorted():
+            'platformProjects must stay in sync with the :versions:platform-* projects included by settings.gradle'
+
+    platformProjects.each { projectPath ->
+        def platform = project(projectPath)
+        def jarTask = platform.tasks.findByName('remapJar') ?: platform.tasks.named('jar')
+        verifyCraftableCoralBlocksJars.configure { dependsOn jarTask }
+        verifyFabricModJson.configure { dependsOn jarTask }
     }
 }

@@ -55,7 +55,7 @@ jobs:
           fi
 
       - name: Build and verify
-        run: ./gradlew build verifyCraftableCoralBlocksJars --stacktrace
+        run: ./gradlew build verifyCraftableCoralBlocksJars verifyFabricModJson --stacktrace
 
       - name: Collect release jars and build manifest
         env:

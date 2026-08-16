@@ -40,4 +40,4 @@ jobs:
         uses: gradle/actions/setup-gradle@v6
 
       - name: Build and verify
-        run: ./gradlew build verifyCraftableCoralBlocksJars --stacktrace
+        run: ./gradlew build verifyCraftableCoralBlocksJars verifyFabricModJson --stacktrace
