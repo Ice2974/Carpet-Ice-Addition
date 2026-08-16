@@ -70,6 +70,83 @@ jobs:
           fi
           MOD_VERSION=$(sed -n 's/^mod_version=//p' gradle.properties | tr -d '\r')
           MOD_NAME=$(sed -n 's/^mod_name=//p' gradle.properties | tr -d '\r')
+          user_agent="Ice2974/Carpet-Ice-Addition/${MOD_VERSION}"
+
+          # Modrinth 发布 metadata 只在此处一次性解析：release 标签集与依赖项目 ID，经 manifest 供 11 个发布 job 共用
+          tags_file=$(mktemp)
+          curl -fsS --retry 3 --retry-delay 5 --user-agent "$user_agent" "https://api.modrinth.com/v2/tag/game_version" > "$tags_file"
+          carpet_project_id=$(curl -fsS --retry 3 --retry-delay 5 --user-agent "$user_agent" "https://api.modrinth.com/v2/project/carpet" | jq -r '.id')
+          fabric_api_project_id=$(curl -fsS --retry 3 --retry-delay 5 --user-agent "$user_agent" "https://api.modrinth.com/v2/project/fabric-api" | jq -r '.id')
+          if [ -z "$carpet_project_id" ] || [ "$carpet_project_id" = "null" ] || [ -z "$fabric_api_project_id" ] || [ "$fabric_api_project_id" = "null" ]; then
+            echo "::error::无法解析 Modrinth 依赖项目 ID：carpet=${carpet_project_id}，fabric-api=${fabric_api_project_id}。"
+            exit 1
+          fi
+
+          # 展开脚本：断言 minecraft_dependency 与 release_minecraft_range 起止一致，再对 release 标签展开闭区间
+          expand_script=$(mktemp)
+          cat > "$expand_script" <<'PY'
+          import json
+          import os
+          import re
+          import sys
+
+          platform = sys.argv[1]
+          props = {}
+          with open("gradle.properties", encoding="utf-8") as fh:
+              for line in fh:
+                  line = line.strip()
+                  if not line or line.startswith("#") or "=" not in line:
+                      continue
+                  key, _, value = line.partition("=")
+                  props[key.strip()] = value.strip()
+
+          def fail(message):
+              print(f"::error::{message}", file=sys.stderr)
+              sys.exit(1)
+
+          def version_key(version):
+              return tuple(int(part) for part in version.split("."))
+
+          def compare_versions(left, right):
+              lp = [int(x) for x in left.split(".")]
+              rp = [int(x) for x in right.split(".")]
+              width = max(len(lp), len(rp))
+              lp += [0] * (width - len(lp))
+              rp += [0] * (width - len(rp))
+              return (lp > rp) - (lp < rp)
+
+          dependency_key = f"{platform}_minecraft_dependency"
+          range_key = f"{platform}_release_minecraft_range"
+          if dependency_key not in props:
+              fail(f"gradle.properties 缺少 {dependency_key}。")
+          if range_key not in props:
+              fail(f"gradle.properties 缺少 {range_key}。")
+
+          tokens = re.findall(r"(>=|<=)\s*([0-9]+(?:\.[0-9]+)*)", props[dependency_key])
+          if len(tokens) != 2 or {op for op, _ in tokens} != {">=", "<="}:
+              fail(f"{dependency_key}={props[dependency_key]} 不是 >=A <=B 形式的闭区间。")
+          dep_bounds = sorted((value for _, value in tokens), key=version_key)
+
+          range_parts = [part for part in re.split(r"\s*[~-]\s*", props[range_key]) if part]
+          if not 1 <= len(range_parts) <= 2:
+              fail(f"{range_key}={props[range_key]} 无法解析为 1-2 个版本。")
+          range_bounds = sorted(range_parts, key=version_key)
+          padded_range_bounds = range_bounds * 2 if len(range_bounds) == 1 else range_bounds
+          if dep_bounds != padded_range_bounds:
+              fail(f"{platform}：{dependency_key}={props[dependency_key]} 与 {range_key}={props[range_key]} 起止范围不一致。")
+
+          with open(os.environ["MODRINTH_GAME_VERSION_TAGS_FILE"], encoding="utf-8") as fh:
+              tags = json.load(fh)
+          releases = [tag["version"] for tag in tags if tag.get("version_type") == "release"]
+          lower, upper = dep_bounds
+          game_versions = sorted(
+              (tag for tag in releases if compare_versions(tag, lower) >= 0 and compare_versions(tag, upper) <= 0),
+              key=version_key,
+          )
+          if not game_versions:
+              fail(f"{dependency_key}={props[dependency_key]} 在 Modrinth release 标签中展开结果为空。")
+          print(json.dumps(game_versions))
+          PY
 
           rm -rf staging
           mkdir -p staging
@@ -94,8 +171,16 @@ jobs:
             label="${stem%.jar}"
             label="${label#*-mc}"
             version_name="${MOD_NAME} v${MOD_VERSION} for mc${label}"
+            game_versions_json=$(MODRINTH_GAME_VERSION_TAGS_FILE="$tags_file" python3 "$expand_script" "$platform")
             jq -n --arg platform "$platform" --arg jar "$jar" --arg file_name "$file_name" --arg version_name "$version_name" \
-              '{platform: $platform, jar: $jar, file_name: $file_name, version_name: $version_name}' >> "$entries_file"
+              --argjson game_versions "$game_versions_json" \
+              --arg carpet_project_id "$carpet_project_id" --arg fabric_api_project_id "$fabric_api_project_id" \
+              '{platform: $platform, jar: $jar, file_name: $file_name, version_name: $version_name,
+                game_versions: $game_versions, loaders: ["fabric"],
+                dependencies: [
+                  {slug: "carpet", project_id: $carpet_project_id, dependency_type: "required"},
+                  {slug: "fabric-api", project_id: $fabric_api_project_id, dependency_type: "required"}
+                ]}' >> "$entries_file"
           done
 
           # manifest 中的 jar 路径 = artifact 根目录相对路径（staging 保留了 versions/... 目录结构）
@@ -188,7 +273,9 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false
+      # 同一 Modrinth 项目的 Version 创建串行执行，降低并发写入竞态；首个平台异常即停止后续 Modrinth 写入
+      fail-fast: true
+      max-parallel: 1
       matrix:
         platform: ${{ fromJson(needs.build.outputs.platforms) }}
     env:
@@ -227,6 +314,7 @@ jobs:
             exit 1
           fi
           sha1=$(sha1sum "$jar" | awk '{print $1}')
+          game_versions=$(jq -r '.game_versions | join("\n")' <<<"$entry")
 
           # Modrinth API 要求可识别的 User-Agent；此请求保持匿名 GET，不携带任何 token
           versions_json=$(curl -fsS --retry 3 --retry-delay 5 --user-agent "Ice2974/Carpet-Ice-Addition/${MOD_VERSION}" "https://api.modrinth.com/v2/project/${MODRINTH_PROJECT_ID}/version")
@@ -234,6 +322,7 @@ jobs:
             '[.[] | select(.version_number == $tag and .name == $name)] | length' <<<"$versions_json")
 
           should_upload=true
+          existing_version_id=""
           if [ "$match_count" -eq 0 ]; then
             echo "Modrinth 不存在 version_number=${RELEASE_TAG} 且 name=${version_name} 的版本，将执行上传。"
           elif [ "$match_count" -eq 1 ]; then
@@ -243,6 +332,7 @@ jobs:
               '([.files[] | select(.filename == $file_name and .hashes.sha1 == $sha1)] | length) > 0' <<<"$match")
             if [ "$consistent" = "true" ]; then
               should_upload=false
+              existing_version_id=$(jq -r '.id' <<<"$match")
               echo "Modrinth 已存在完全一致的版本（文件名与 sha1 均匹配），跳过上传：${version_name}"
             else
               echo "::error::Modrinth 已存在同版本号同名版本，但文件不一致，拒绝静默跳过："
@@ -257,23 +347,161 @@ jobs:
           fi
 
           {
+            echo "game_versions<<EOF"
+            echo "${game_versions}"
+            echo "EOF"
             echo "should_upload=${should_upload}"
             echo "jar=${jar}"
             echo "name=${version_name}"
+            echo "existing_version_id=${existing_version_id}"
           } >> "$GITHUB_OUTPUT"
 
       - name: Publish to Modrinth
+        id: publish
         if: steps.precheck.outputs.should_upload == 'true'
         uses: Kira-NT/mc-publish@52307b03863581dec6b652b83e597aec02ebb075 # v3.3.1
         with:
           modrinth-id: '3ZWOd2ma'
           modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
           modrinth-featured: false
+          # token 仅 VERSION_CREATE：禁用 unfeature（默认 subset 会 PATCH 历史 Version 导致 401）
+          modrinth-unfeature-mode: none
           files: ${{ steps.precheck.outputs.jar }}
           name: ${{ steps.precheck.outputs.name }}
           version: ${{ needs.build.outputs.tag }}
           version-type: release
           changelog: ${{ github.event.release.body }}
+          # 核心发布 metadata 显式传入，不依赖 mc-publish 解析 JAR 内 fabric.mod.json
+          loaders: fabric
+          game-versions: ${{ steps.precheck.outputs.game_versions }}
+          dependencies: |
+            carpet(required)
+            fabric-api(required)
           game-version-filter: releases
           retry-attempts: 3
           retry-delay: 10000
+
+      - name: Verify Modrinth version
+        if: always() && steps.precheck.outcome == 'success'
+        env:
+          PUBLISH_OUTCOME: ${{ steps.publish.outcome }}
+          PUBLISH_VERSION_ID: ${{ steps.publish.outputs.modrinth-version }}
+          EXISTING_VERSION_ID: ${{ steps.precheck.outputs.existing_version_id }}
+        run: |
+          set -euo pipefail
+          entry=$(jq -c --arg platform "$PLATFORM" '.platforms[] | select(.platform == $platform)' dist/release-manifest.json)
+          if [ -z "$entry" ]; then
+            echo "::error::manifest 中找不到平台 ${PLATFORM}。"
+            exit 1
+          fi
+          jar_rel=$(jq -r '.jar' <<<"$entry")
+          file_name=$(jq -r '.file_name' <<<"$entry")
+          version_name=$(jq -r '.version_name' <<<"$entry")
+          expected_game_versions=$(jq -c '.game_versions | sort' <<<"$entry")
+          expected_loaders=$(jq -c '.loaders | sort' <<<"$entry")
+          expected_dependencies=$(jq -c '[.dependencies[] | {project_id, dependency_type}] | sort_by(.project_id)' <<<"$entry")
+          sha1=$(sha1sum "dist/${jar_rel}" | awk '{print $1}')
+          user_agent="Ice2974/Carpet-Ice-Addition/${MOD_VERSION}"
+
+          fetch_project_versions() {
+            curl -fsS --retry 3 --retry-delay 5 --user-agent "$user_agent" \
+              "https://api.modrinth.com/v2/project/${MODRINTH_PROJECT_ID}/version"
+          }
+
+          matching_versions() {
+            jq -c --arg tag "$RELEASE_TAG" --arg name "$version_name" \
+              '[.[] | select(.version_number == $tag and .name == $name)]'
+          }
+
+          # 有限短轮询：仅在尚未命中时等待读延迟，最多 6 次 × 5s
+          poll_list_matches() {
+            local matches="[]"
+            for attempt in 1 2 3 4 5 6; do
+              matches=$(fetch_project_versions | matching_versions)
+              if [ "$(jq 'length' <<<"$matches")" -ge 1 ]; then
+                break
+              fi
+              sleep 5
+            done
+            printf '%s' "$matches"
+          }
+
+          # publish 步骤失败或被取消：只做残留检查并输出信息（exit 0），不掩盖 publish 自身的失败结论
+          if [ "$PUBLISH_OUTCOME" = "failure" ] || [ "$PUBLISH_OUTCOME" = "cancelled" ]; then
+            matches=$(poll_list_matches)
+            residue_count=$(jq 'length' <<<"$matches")
+            if [ "$residue_count" -eq 0 ]; then
+              echo "publish 步骤失败，但 Modrinth 上没有 version_number=${RELEASE_TAG} 且 name=${version_name} 的残留版本；修复后可直接重跑。"
+            else
+              echo "::warning::publish 步骤失败，且 Modrinth 存在 ${residue_count} 个疑似残留版本，重跑前需人工删除："
+              jq -r '.[] | "  id=\(.id) files=\([.files[].filename] | join(",")) loaders=\(.loaders | join(",")) game_versions=\(.game_versions | join(","))"' <<<"$matches"
+            fi
+            exit 0
+          fi
+
+          # 确定目标 Version ID：新上传优先用 publish 输出；幂等跳过用 precheck 记录；均缺失时按列表回退定位
+          target_id="$PUBLISH_VERSION_ID"
+          if [ -z "$target_id" ] && [ "$PUBLISH_OUTCOME" = "skipped" ]; then
+            target_id="$EXISTING_VERSION_ID"
+          fi
+          if [ -z "$target_id" ]; then
+            matches=$(poll_list_matches)
+            match_count=$(jq 'length' <<<"$matches")
+            if [ "$match_count" -ne 1 ]; then
+              echo "::error::无法确定目标 Version ID（publish outcome=${PUBLISH_OUTCOME}，列表匹配 ${match_count} 个，应为恰好 1 个）。"
+              exit 1
+            fi
+            target_id=$(jq -r '.[0].id' <<<"$matches")
+            echo "未获得 publish/precheck 的 Version ID，已按列表回退定位：${target_id}"
+          fi
+
+          # 按 ID 轮询可查后做字段校验；字段不一致不轮询，直接判失败
+          version_json=""
+          for attempt in 1 2 3 4 5 6; do
+            if version_json=$(curl -fsS --retry 3 --retry-delay 5 --user-agent "$user_agent" "https://api.modrinth.com/v2/version/${target_id}"); then
+              break
+            fi
+            version_json=""
+            sleep 5
+          done
+          if [ -z "$version_json" ]; then
+            echo "::error::查询 Version ${target_id} 失败（已轮询 6 次 × 5s）。"
+            exit 1
+          fi
+
+          errors=0
+          report_mismatch() {
+            echo "::error::$1 不一致：expected=$2，actual=$3。"
+            errors=1
+          }
+          actual=$(jq -r '.version_number' <<<"$version_json")
+          [ "$actual" = "$RELEASE_TAG" ] || report_mismatch "version_number" "$RELEASE_TAG" "$actual"
+          actual=$(jq -r '.name' <<<"$version_json")
+          [ "$actual" = "$version_name" ] || report_mismatch "name" "$version_name" "$actual"
+          file_ok=$(jq -r --arg file_name "$file_name" --arg sha1 "$sha1" \
+            '([.files[] | select(.filename == $file_name and .hashes.sha1 == $sha1)] | length) > 0' <<<"$version_json")
+          if [ "$file_ok" != "true" ]; then
+            echo "::error::files 中未找到 filename=${file_name} 且 sha1=${sha1} 的条目。"
+            jq -r '.files[] | "  远端 filename=\(.filename) sha1=\(.hashes.sha1)"' <<<"$version_json"
+            errors=1
+          fi
+          actual=$(jq -c '.loaders | sort' <<<"$version_json")
+          [ "$actual" = "$expected_loaders" ] || report_mismatch "loaders" "$expected_loaders" "$actual"
+          actual=$(jq -c '.game_versions | sort' <<<"$version_json")
+          [ "$actual" = "$expected_game_versions" ] || report_mismatch "game_versions" "$expected_game_versions" "$actual"
+          actual=$(jq -c '[.dependencies[] | {project_id, dependency_type}] | sort_by(.project_id)' <<<"$version_json")
+          [ "$actual" = "$expected_dependencies" ] || report_mismatch "dependencies" "$expected_dependencies" "$actual"
+
+          # 项目列表核对唯一性：>=2 直接判失败（重复创建/空壳残留的暴露点）
+          match_count=$(poll_list_matches | jq 'length')
+          if [ "$match_count" -ne 1 ]; then
+            echo "::error::项目 Version 列表中 version_number=${RELEASE_TAG} 且 name=${version_name} 的版本有 ${match_count} 个（应为恰好 1 个）："
+            poll_list_matches | jq -r '.[] | "  id=\(.id) files=\([.files[].filename] | join(",")) loaders=\(.loaders | join(",")) game_versions=\(.game_versions | join(","))"'
+            errors=1
+          fi
+
+          if [ "$errors" -ne 0 ]; then
+            exit 1
+          fi
+          echo "已验证 Modrinth Version ${target_id}（${version_name}）：version_number/name/files/loaders/game_versions/dependencies 与唯一性全部通过。"
+          jq -r '"  game_versions: \(.game_versions | join(", "))", "  loaders: \(.loaders | join(", "))", "  dependencies: \([.dependencies[].project_id] | join(", "))"' <<<"$version_json"
