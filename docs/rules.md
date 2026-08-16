@@ -310,7 +310,7 @@
 允许在切石机输出槽使用 Ctrl+Q 一次丢出整组产物。
 
 - 类型: `boolean`
-- 默认值: `true`
+- 默认值: `false`
 - 可选值: `false`, `true`
 - 分类: `ICE`, `BUGFIX`
 

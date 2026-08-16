@@ -310,7 +310,7 @@ Fixes a Carpet crash that can happen when leaving a singleplayer world after pre
 Allows dropping an entire stack from the stonecutter output slot using Ctrl+Q.
 
 - Type: `boolean`
-- Default: `true`
+- Default: `false`
 - Possible values: `false`, `true`
 - Categories: `ICE`, `BUGFIX`
 
