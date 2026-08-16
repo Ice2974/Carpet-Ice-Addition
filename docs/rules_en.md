@@ -205,7 +205,8 @@ Registers the /machineStatus command to save the target block state when a techn
 Checks saved machine states when a player enters a supported rollback command, and warns that player if any machines are not in their saved shutdown state. This rule does not block or modify rollback commands.
 
 Supported backup mod by default: Quick Backup Multi (`/qb`, `/quickbackupmulti`).\
-Supported MCDR plugins by default: Quick Backup Multi (`!!qb`), Prime Backup (`!!pb`), Chunk Backup (`!!cb`).
+Supported MCDR plugins by default: Quick Backup Multi (`!!qb`), Prime Backup (`!!pb`), Chunk Backup (`!!cb`).\
+Rollback commands to detect can be configured in `<world>/carpet-ice-addition/machine_status.json`.
 
 - Type: `boolean`
 - Default: `false`
