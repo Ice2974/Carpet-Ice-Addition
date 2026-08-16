@@ -16,4 +16,7 @@ public final class CarpetIceAdditionLowVersionSettings {
 
     @Rule(categories = {CarpetIceAdditionSettings.ICE, BUGFIX, CLIENT})
     public static boolean carpetSingleplayerExitCrashFix = true;
+
+    @Rule(categories = {CarpetIceAdditionSettings.ICE, BUGFIX})
+    public static boolean ctrlQStonecuttingFix = true;
 }

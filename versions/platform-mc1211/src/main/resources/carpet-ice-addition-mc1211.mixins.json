@@ -41,6 +41,7 @@
     "ServerWorldRecordWorldEventMixin",
     "TrialSpawnerDataMixin",
     "CraftingScreenHandlerCraftableCoralBlocksMixin",
+    "ScreenHandlerCtrlQStonecuttingFixMixin",
     "CarpetServerOnServerClosedNullFixMixin",
     "WaterFluidTickRateMixin",
     "LavaFluidTickRateMixin",

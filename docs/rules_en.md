@@ -305,6 +305,17 @@ Fixes a Carpet crash that can happen when leaving a singleplayer world after pre
 - Possible values: `false`, `true`
 - Categories: `ICE`, `BUGFIX`, `CLIENT`
 
+### ctrlQStonecuttingFix `MC<=1.21.1`
+
+Allows dropping an entire stack from the stonecutter output slot using Ctrl+Q.
+
+This backports the vanilla 1.21.2 fix for Ctrl+Q on crafting-result slots (the same change also fixed MC-135971): on the logical server, matching output is repeatedly taken and dropped until the output slot is empty or the result changes, so the total dropped may exceed one stack (for example, 64 input with a 1-to-2 recipe drops 128 items). Plain Q, shift-clicks, and mouse pickups are unaffected. The fix is server-side only: clients do not need this mod, and installing it on the client alone does not change vanilla behavior.
+
+- Type: `boolean`
+- Default: `true`
+- Possible values: `false`, `true`
+- Categories: `ICE`, `BUGFIX`
+
 ### disableIllegalTextCharacterCheck
 
 Skips vanilla text character validation, allowing characters that are normally rejected, such as section signs.
