@@ -317,7 +317,8 @@ jobs:
           game_versions=$(jq -r '.game_versions | join("\n")' <<<"$entry")
 
           # Modrinth API 要求可识别的 User-Agent；此请求保持匿名 GET，不携带任何 token
-          versions_json=$(curl -fsS --retry 3 --retry-delay 5 --user-agent "Ice2974/Carpet-Ice-Addition/${MOD_VERSION}" "https://api.modrinth.com/v2/project/${MODRINTH_PROJECT_ID}/version")
+          # ?_= 查询串仅是绕过当前列表端点边缘缓存的工程规避手段，不构成对 Modrinth API 缓存语义的假设
+          versions_json=$(curl -fsS --retry 3 --retry-delay 5 --user-agent "Ice2974/Carpet-Ice-Addition/${MOD_VERSION}" "https://api.modrinth.com/v2/project/${MODRINTH_PROJECT_ID}/version?_=$(date +%s%N)&include_changelog=false")
           match_count=$(jq --arg tag "$RELEASE_TAG" --arg name "$version_name" \
             '[.[] | select(.version_number == $tag and .name == $name)] | length' <<<"$versions_json")
 
@@ -403,9 +404,18 @@ jobs:
           sha1=$(sha1sum "dist/${jar_rel}" | awk '{print $1}')
           user_agent="Ice2974/Carpet-Ice-Addition/${MOD_VERSION}"
 
+          # ?_= 查询串仅是绕过当前列表端点边缘缓存的工程规避手段（每次调用生成新值），不构成对 Modrinth API 缓存语义的假设
+          # cf-cache-status / age 仅作为诊断日志输出，验证正确性不依赖这些 Cloudflare 私有响应头
           fetch_project_versions() {
-            curl -fsS --retry 3 --retry-delay 5 --user-agent "$user_agent" \
-              "https://api.modrinth.com/v2/project/${MODRINTH_PROJECT_ID}/version"
+            local headers_file body cf_status age
+            headers_file=$(mktemp)
+            body=$(curl -fsS --retry 3 --retry-delay 5 --user-agent "$user_agent" -D "$headers_file" \
+              "https://api.modrinth.com/v2/project/${MODRINTH_PROJECT_ID}/version?_=$(date +%s%N)&include_changelog=false")
+            cf_status=$(tr -d '\r' < "$headers_file" | grep -i '^cf-cache-status:' | tail -1 | cut -d' ' -f2 || true)
+            age=$(tr -d '\r' < "$headers_file" | grep -i '^age:' | tail -1 | cut -d' ' -f2 || true)
+            echo "列表响应诊断：cf-cache-status=${cf_status:-unknown} age=${age:-unknown}" >&2
+            rm -f "$headers_file"
+            printf '%s' "$body"
           }
 
           matching_versions() {
@@ -431,9 +441,9 @@ jobs:
             matches=$(poll_list_matches)
             residue_count=$(jq 'length' <<<"$matches")
             if [ "$residue_count" -eq 0 ]; then
-              echo "publish 步骤失败，但 Modrinth 上没有 version_number=${RELEASE_TAG} 且 name=${version_name} 的残留版本；修复后可直接重跑。"
+              echo "[RESIDUE] publish 步骤失败，但 Modrinth 上没有 version_number=${RELEASE_TAG} 且 name=${version_name} 的残留版本；修复后可直接重跑。"
             else
-              echo "::warning::publish 步骤失败，且 Modrinth 存在 ${residue_count} 个疑似残留版本，重跑前需人工删除："
+              echo "::warning::[RESIDUE] publish 步骤失败，且 Modrinth 存在 ${residue_count} 个疑似残留版本，重跑前需人工删除："
               jq -r '.[] | "  id=\(.id) files=\([.files[].filename] | join(",")) loaders=\(.loaders | join(",")) game_versions=\(.game_versions | join(","))"' <<<"$matches"
             fi
             exit 0
@@ -471,7 +481,7 @@ jobs:
 
           errors=0
           report_mismatch() {
-            echo "::error::$1 不一致：expected=$2，actual=$3。"
+            echo "::error::[ID-CONTENT] $1 不一致：expected=$2，actual=$3。"
             errors=1
           }
           actual=$(jq -r '.version_number' <<<"$version_json")
@@ -481,7 +491,7 @@ jobs:
           file_ok=$(jq -r --arg file_name "$file_name" --arg sha1 "$sha1" \
             '([.files[] | select(.filename == $file_name and .hashes.sha1 == $sha1)] | length) > 0' <<<"$version_json")
           if [ "$file_ok" != "true" ]; then
-            echo "::error::files 中未找到 filename=${file_name} 且 sha1=${sha1} 的条目。"
+            echo "::error::[ID-CONTENT] files 中未找到 filename=${file_name} 且 sha1=${sha1} 的条目。"
             jq -r '.files[] | "  远端 filename=\(.filename) sha1=\(.hashes.sha1)"' <<<"$version_json"
             errors=1
           fi
@@ -492,12 +502,15 @@ jobs:
           actual=$(jq -c '[.dependencies[] | {project_id, dependency_type}] | sort_by(.project_id)' <<<"$version_json")
           [ "$actual" = "$expected_dependencies" ] || report_mismatch "dependencies" "$expected_dependencies" "$actual"
 
-          # 项目列表核对唯一性：>=2 直接判失败（重复创建/空壳残留的暴露点）
-          match_count=$(poll_list_matches | jq 'length')
-          if [ "$match_count" -ne 1 ]; then
-            echo "::error::项目 Version 列表中 version_number=${RELEASE_TAG} 且 name=${version_name} 的版本有 ${match_count} 个（应为恰好 1 个）："
-            poll_list_matches | jq -r '.[] | "  id=\(.id) files=\([.files[].filename] | join(",")) loaders=\(.loaders | join(",")) game_versions=\(.game_versions | join(","))"'
+          # 项目列表即时核对：单次请求并复用结果。0 视为列表可见性延迟（按 ID 已完整验证，最终汇总 job 会复核）
+          list_matches=$(fetch_project_versions | matching_versions)
+          match_count=$(jq 'length' <<<"$list_matches")
+          if [ "$match_count" -gt 1 ]; then
+            echo "::error::[LIST-DUPLICATE] 项目 Version 列表中 version_number=${RELEASE_TAG} 且 name=${version_name} 的版本有 ${match_count} 个（应为恰好 1 个）："
+            jq -r '.[] | "  id=\(.id) files=\([.files[].filename] | join(",")) loaders=\(.loaders | join(",")) game_versions=\(.game_versions | join(","))"' <<<"$list_matches"
             errors=1
+          elif [ "$match_count" -eq 0 ]; then
+            echo "::warning::[LIST-PENDING] 项目 Version 列表暂未出现该版本（列表端点存在缓存可见性延迟；按 ID 验证已通过，最终汇总验证会复核），继续后续平台。"
           fi
 
           if [ "$errors" -ne 0 ]; then
@@ -505,3 +518,125 @@ jobs:
           fi
           echo "已验证 Modrinth Version ${target_id}（${version_name}）：version_number/name/files/loaders/game_versions/dependencies 与唯一性全部通过。"
           jq -r '"  game_versions: \(.game_versions | join(", "))", "  loaders: \(.loaders | join(", "))", "  dependencies: \([.dependencies[].project_id] | join(", "))"' <<<"$version_json"
+
+  verify-modrinth-release:
+    name: Verify all Modrinth versions for release
+    needs: [build, upload-modrinth]
+    # build 失败时跳过（无 artifact 可验）；matrix 失败/被取消时仍运行，产出单次快照诊断
+    if: always() && needs.build.result == 'success'
+    runs-on: ubuntu-latest
+    env:
+      MODRINTH_PROJECT_ID: '3ZWOd2ma'
+      RELEASE_TAG: ${{ needs.build.outputs.tag }}
+      MOD_VERSION: ${{ needs.build.outputs.mod_version }}
+      MATRIX_RESULT: ${{ needs.upload-modrinth.result }}
+    steps:
+      - name: Download mod jars and manifest
+        uses: actions/download-artifact@v8
+        with:
+          name: mod-jars
+          path: dist
+
+      - name: Verify all release versions on Modrinth
+        run: |
+          set -euo pipefail
+          user_agent="Ice2974/Carpet-Ice-Addition/${MOD_VERSION}"
+          # 预期平台完全以 manifest 为准，不写死平台数量
+          expected_count=$(jq -r '.expected_count' dist/release-manifest.json)
+          mapfile -t version_names < <(jq -r '.platforms[].version_name' dist/release-manifest.json)
+          if [ "$expected_count" -le 0 ] || [ "$expected_count" -ne "${#version_names[@]}" ]; then
+            echo "::error::manifest 平台数量异常：expected_count=${expected_count}，platforms 实际 ${#version_names[@]} 条。"
+            exit 1
+          fi
+          echo "本次 Release 预期 ${expected_count} 个 Modrinth Version（tag=${RELEASE_TAG}），matrix 结果=${MATRIX_RESULT}。"
+
+          # ?_= 查询串仅是绕过当前列表端点边缘缓存的工程规避手段（每次调用生成新值），不构成对 Modrinth API 缓存语义的假设；
+          # cf-cache-status / age 仅作为诊断日志输出，验证正确性不依赖这些 Cloudflare 私有响应头
+          fetch_list_snapshot() {
+            local headers_file body cf_status age
+            headers_file=$(mktemp)
+            body=$(curl -fsS --retry 3 --retry-delay 5 --user-agent "$user_agent" -D "$headers_file" \
+              "https://api.modrinth.com/v2/project/${MODRINTH_PROJECT_ID}/version?_=$(date +%s%N)&include_changelog=false")
+            cf_status=$(tr -d '\r' < "$headers_file" | grep -i '^cf-cache-status:' | tail -1 | cut -d' ' -f2 || true)
+            age=$(tr -d '\r' < "$headers_file" | grep -i '^age:' | tail -1 | cut -d' ' -f2 || true)
+            echo "列表快照诊断：cf-cache-status=${cf_status:-unknown} age=${age:-unknown}" >&2
+            rm -f "$headers_file"
+            printf '%s' "$body"
+          }
+
+          snapshot_json=""
+          ready_report=""
+          missing_report=""
+          duplicate_report=""
+          ready_count=0
+          missing_count=0
+          duplicate_count=0
+
+          # 在单份列表快照上本地统计每个预期 Version 的命中数，不逐平台请求 Modrinth
+          evaluate_snapshot() {
+            ready_report=""; missing_report=""; duplicate_report=""
+            ready_count=0; missing_count=0; duplicate_count=0
+            local name count
+            for name in "${version_names[@]}"; do
+              count=$(jq --arg tag "$RELEASE_TAG" --arg name "$name" \
+                '[.[] | select(.version_number == $tag and .name == $name)] | length' <<<"$snapshot_json")
+              case "$count" in
+                1)
+                  ready_count=$((ready_count + 1))
+                  ready_report="${ready_report}  [OK] ${name}\n"
+                  ;;
+                0)
+                  missing_count=$((missing_count + 1))
+                  missing_report="${missing_report}  [MISSING] ${name}\n"
+                  ;;
+                *)
+                  duplicate_count=$((duplicate_count + 1))
+                  duplicate_report="${duplicate_report}  [DUPLICATE x${count}] ${name}\n"
+                  ;;
+              esac
+            done
+          }
+
+          if [ "$MATRIX_RESULT" = "success" ]; then
+            # matrix 全部成功：做有界轮询等待列表最终可见（每轮都是新 nonce 的新 URL，不复用上一轮缓存）
+            for attempt in 1 2 3 4 5 6 7 8 9 10; do
+              snapshot_json=$(fetch_list_snapshot)
+              evaluate_snapshot
+              if [ "$duplicate_count" -gt 0 ]; then
+                echo "::error::[AGGREGATE-DUPLICATE] 以下预期 Version 在项目列表中命中超过 1 个："
+                printf '%b' "$duplicate_report"
+                exit 1
+              fi
+              if [ "$missing_count" -eq 0 ]; then
+                echo "最终汇总通过：${ready_count}/${expected_count} 个预期 Version 全部恰好命中 1 个。"
+                printf '%b' "$ready_report"
+                exit 0
+              fi
+              echo "第 ${attempt}/10 轮：${missing_count} 个 Version 未在列表快照出现，15s 后重试。"
+              if [ "$attempt" -lt 10 ]; then
+                sleep 15
+              fi
+            done
+            echo "::error::[AGGREGATE-MISSING] 轮询耗尽（10 次 × 15s），以下预期 Version 仍未出现在项目列表："
+            printf '%b' "$missing_report"
+            printf '已就绪：\n%b' "$ready_report"
+            exit 1
+          else
+            # matrix 失败或被取消：只获取一次最新快照用于诊断，不做完整轮询等待
+            echo "::warning::upload-modrinth 结果为 ${MATRIX_RESULT}，最终汇总仅获取一次最新列表快照用于诊断。"
+            snapshot_json=$(fetch_list_snapshot)
+            evaluate_snapshot
+            if [ "$duplicate_count" -gt 0 ]; then
+              echo "::error::[AGGREGATE-DUPLICATE] 以下预期 Version 命中超过 1 个："
+              printf '%b' "$duplicate_report"
+              exit 1
+            fi
+            if [ "$missing_count" -eq 0 ]; then
+              echo "诊断结果：${ready_count}/${expected_count} 个预期 Version 均已出现且唯一。"
+              exit 0
+            fi
+            echo "::error::[AGGREGATE-MISSING] 以下预期 Version 未出现在最新列表快照（未做轮询等待）："
+            printf '%b' "$missing_report"
+            printf '已就绪：\n%b' "$ready_report"
+            exit 1
+          fi
