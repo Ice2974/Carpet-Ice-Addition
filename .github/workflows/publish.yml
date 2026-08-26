@@ -322,6 +322,7 @@ jobs:
           match_count=$(jq --arg tag "$RELEASE_TAG" --arg name "$version_name" \
             '[.[] | select(.version_number == $tag and .name == $name)] | length' <<<"$versions_json")
 
+
           should_upload=true
           existing_version_id=""
           if [ "$match_count" -eq 0 ]; then
@@ -331,22 +332,60 @@ jobs:
               '[.[] | select(.version_number == $tag and .name == $name)][0]' <<<"$versions_json")
             consistent=$(jq -r --arg file_name "$file_name" --arg sha1 "$sha1" \
               '([.files[] | select(.filename == $file_name and .hashes.sha1 == $sha1)] | length) > 0' <<<"$match")
-            if [ "$consistent" = "true" ]; then
-              should_upload=false
-              existing_version_id=$(jq -r '.id' <<<"$match")
-              echo "Modrinth 已存在完全一致的版本（文件名与 sha1 均匹配），跳过上传：${version_name}"
-            else
+            if [ "$consistent" != "true" ]; then
               echo "::error::Modrinth 已存在同版本号同名版本，但文件不一致，拒绝静默跳过："
               echo "  期望 file_name=${file_name} sha1=${sha1}"
-              jq -r '.files[] | "  远端 filename=\(.filename) sha1=\(.hashes.sha1)"' <<<"$match"
+              jq -r '.files[] | "  远端 filename=\\(.filename) sha1=\\(.hashes.sha1)"' <<<"$match"
               echo "  请人工处理（例如删除远端版本后重跑 workflow）。"
+              exit 1
+            fi
+            # filename+sha1 一致，再按ID有界重试校验完整 metadata，避免瞬态空值导致错误跳过
+            expected_loaders=$(jq -c '.loaders | sort' <<<"$entry")
+            expected_game_versions=$(jq -c '.game_versions | sort' <<<"$entry")
+            expected_dependencies=$(jq -c '[.dependencies[] | {project_id, dependency_type}] | sort_by(.project_id)' <<<"$entry")
+            existing_id=$(jq -r '.id' <<<"$match")
+            # 诊断辅助：/tag/loader 仅作为日志，不阻断
+            curl -fsS --retry 3 --retry-delay 5 --user-agent "Ice2974/Carpet-Ice-Addition/${MOD_VERSION}" "https://api.modrinth.com/v2/tag/loader" > /dev/null 2>&1 || echo "::warning::诊断：获取 /tag/loader 失败，忽略" >&2
+            curl -fsS --retry 3 --retry-delay 5 --user-agent "Ice2974/Carpet-Ice-Addition/${MOD_VERSION}" "https://api.modrinth.com/v2/tag/game_version" > /dev/null 2>&1 || echo "::warning::诊断：获取 /tag/game_version 失败，忽略" >&2
+            metadata_ok=false
+            last_actual_loaders=""; last_actual_gv=""; last_actual_deps=""; last_version_json=""
+            for attempt in 1 2 3 4 5 6; do
+              if version_json_tmp=$(curl -fsS --retry 3 --retry-delay 5 --user-agent "Ice2974/Carpet-Ice-Addition/${MOD_VERSION}" "https://api.modrinth.com/v2/version/${existing_id}"); then
+                last_version_json="$version_json_tmp"
+                actual_loaders_tmp=$(jq -c '.loaders | sort' <<<"$version_json_tmp")
+                actual_gv_tmp=$(jq -c '.game_versions | sort' <<<"$version_json_tmp")
+                actual_deps_tmp=$(jq -c '[.dependencies[] | {project_id, dependency_type}] | sort_by(.project_id)' <<<"$version_json_tmp")
+                last_actual_loaders="$actual_loaders_tmp"
+                last_actual_gv="$actual_gv_tmp"
+                last_actual_deps="$actual_deps_tmp"
+                if [ "$actual_loaders_tmp" = "$expected_loaders" ] && [ "$actual_gv_tmp" = "$expected_game_versions" ] && [ "$actual_deps_tmp" = "$expected_dependencies" ]; then
+                  metadata_ok=true
+                  break
+                fi
+              fi
+              if [ "$attempt" -lt 6 ]; then sleep 5; fi
+            done
+            if [ "$metadata_ok" = "true" ]; then
+              should_upload=false
+              existing_version_id="$existing_id"
+              echo "Modrinth 已存在完全一致的版本（文件名、sha1、loaders、game_versions、dependencies 均匹配，经按 ID 轮询验证），跳过上传：${version_name}"
+            else
+              echo "::error::[PRECHECK-METADATA-MISMATCH] Modrinth 已存在同名同 tag 版本且文件一致，但按 ID 轮询 6 次后 loaders/game_versions/dependencies 仍不一致（可能为瞬态可见性延迟）。"
+              echo "  expected loaders=${expected_loaders} actual=${last_actual_loaders}"
+              echo "  expected game_versions=${expected_game_versions} actual=${last_actual_gv}"
+              echo "  expected dependencies=${expected_dependencies} actual=${last_actual_deps}"
+              echo "  请稍后重跑；若持续不一致再人工检查远端 Version ${existing_id}。"
+              echo "--- 远端 Version 原始响应（格式化） ---"
+              jq -c '{id, name, loaders, game_versions, dependencies, files: [.files[] | {filename, hashes}]}' <<<"$last_version_json" 2>/dev/null || printf '%s\n' "$last_version_json" | head -c 4000; echo
+              mkdir -p /tmp/precheck-dump
+              printf '%s' "$last_version_json" | jq . > "/tmp/precheck-dump/${PLATFORM}-version.json" 2>/dev/null || printf '%s' "$last_version_json" > "/tmp/precheck-dump/${PLATFORM}-version.json"
+              echo "  已写入 /tmp/precheck-dump/${PLATFORM}-version.json （若失败，会在下一步 upload-artifact 中上传）"
               exit 1
             fi
           else
             echo "::error::Modrinth 存在 ${match_count} 个 version_number=${RELEASE_TAG} 且 name=${version_name} 的版本，需人工去重后重跑。"
             exit 1
           fi
-
           {
             echo "game_versions<<EOF"
             echo "${game_versions}"
@@ -465,43 +504,61 @@ jobs:
             echo "未获得 publish/precheck 的 Version ID，已按列表回退定位：${target_id}"
           fi
 
-          # 按 ID 轮询可查后做字段校验；字段不一致不轮询，直接判失败
+
+          # 按 ID 轮询可查后做完整校验，只有全量一致才算命中，否则继续轮询（最多 12 次 × 5s）
           version_json=""
-          for attempt in 1 2 3 4 5 6; do
+          verify_ok=false
+          last_error_report=""
+          for attempt in 1 2 3 4 5 6 7 8 9 10 11 12; do
             if version_json=$(curl -fsS --retry 3 --retry-delay 5 --user-agent "$user_agent" "https://api.modrinth.com/v2/version/${target_id}"); then
-              break
+              # 诊断辅助：做一次轻量校验，不阻断
+              curl -fsS --retry 3 --retry-delay 5 --user-agent "$user_agent" "https://api.modrinth.com/v2/tag/loader" > /dev/null 2>&1 || echo "::warning::诊断：/tag/loader 查询失败" >&2
+              errors_tmp=0
+              report_tmp=""
+              actual_tmp=$(jq -r '.version_number' <<<"$version_json")
+              if [ "$actual_tmp" != "$RELEASE_TAG" ]; then report_tmp="${report_tmp}[ID-CONTENT] version_number 不一致：expected=$RELEASE_TAG，actual=$actual_tmp\n"; errors_tmp=1; fi
+              actual_tmp=$(jq -r '.name' <<<"$version_json")
+              if [ "$actual_tmp" != "$version_name" ]; then report_tmp="${report_tmp}[ID-CONTENT] name 不一致：expected=$version_name，actual=$actual_tmp\n"; errors_tmp=1; fi
+              file_ok_tmp=$(jq -r --arg file_name "$file_name" --arg sha1 "$sha1" '([.files[] | select(.filename == $file_name and .hashes.sha1 == $sha1)] | length) > 0' <<<"$version_json")
+              if [ "$file_ok_tmp" != "true" ]; then report_tmp="${report_tmp}[ID-CONTENT] files 中未找到 filename=${file_name} 且 sha1=${sha1} 的条目。\n"; errors_tmp=1; fi
+              actual_tmp=$(jq -c '.loaders | sort' <<<"$version_json")
+              if [ "$actual_tmp" != "$expected_loaders" ]; then report_tmp="${report_tmp}[ID-CONTENT] loaders 不一致：expected=$expected_loaders，actual=$actual_tmp\n"; errors_tmp=1; fi
+              actual_tmp=$(jq -c '.game_versions | sort' <<<"$version_json")
+              if [ "$actual_tmp" != "$expected_game_versions" ]; then report_tmp="${report_tmp}[ID-CONTENT] game_versions 不一致：expected=$expected_game_versions，actual=$actual_tmp\n"; errors_tmp=1; fi
+              actual_tmp=$(jq -c '[.dependencies[] | {project_id, dependency_type}] | sort_by(.project_id)' <<<"$version_json")
+              if [ "$actual_tmp" != "$expected_dependencies" ]; then report_tmp="${report_tmp}[ID-CONTENT] dependencies 不一致：expected=$expected_dependencies，actual=$actual_tmp\n"; errors_tmp=1; fi
+              if [ "$errors_tmp" -eq 0 ]; then
+                verify_ok=true
+                break
+              else
+                last_error_report="$report_tmp"
+              fi
+            else
+              version_json=""
+              last_error_report="[FETCH] 查询 Version ${target_id} 失败，重试中...\n"
             fi
-            version_json=""
-            sleep 5
+            if [ "$attempt" -lt 12 ]; then sleep 5; fi
           done
           if [ -z "$version_json" ]; then
-            echo "::error::查询 Version ${target_id} 失败（已轮询 6 次 × 5s）。"
+            echo "::error::查询 Version ${target_id} 失败（已轮询 12 次 × 5s）。"
+            if [ -n "$last_error_report" ]; then printf "%b" "$last_error_report" >&2; fi
+            mkdir -p /tmp/verify-dump
+            printf '%s' "$version_json" | jq . > "/tmp/verify-dump/${PLATFORM}-version.json" 2>/dev/null || printf '%s' "$version_json" > "/tmp/verify-dump/${PLATFORM}-version.json" 2>/dev/null || true
+            exit 1
+          fi
+          if [ "$verify_ok" != "true" ]; then
+            echo "::error::验证 Modrinth Version ${target_id}（${version_name}）轮询超时（ 12 次 × 5s），最后一次校验失败："
+            printf "%b" "$last_error_report" >&2
+            echo "--- 远端 Version 原始响应（格式化） ---"
+              jq . <<<"$version_json" 2>/dev/null || printf '%s\n' "$version_json" | head -c 8000; echo
+            jq -c '{id, name, version_number, loaders, game_versions, dependencies, files: [.files[] | {filename, hashes}]}' <<<"$version_json" 2>/dev/null || true
+            mkdir -p /tmp/verify-dump
+            printf '%s' "$version_json" | jq . > "/tmp/verify-dump/${PLATFORM}-version.json" 2>/dev/null || printf '%s' "$version_json" > "/tmp/verify-dump/${PLATFORM}-version.json" 2>/dev/null || true
+            echo "  已写入 /tmp/verify-dump/${PLATFORM}-version.json （将在 failure 时上传为 artifact）"
             exit 1
           fi
 
           errors=0
-          report_mismatch() {
-            echo "::error::[ID-CONTENT] $1 不一致：expected=$2，actual=$3。"
-            errors=1
-          }
-          actual=$(jq -r '.version_number' <<<"$version_json")
-          [ "$actual" = "$RELEASE_TAG" ] || report_mismatch "version_number" "$RELEASE_TAG" "$actual"
-          actual=$(jq -r '.name' <<<"$version_json")
-          [ "$actual" = "$version_name" ] || report_mismatch "name" "$version_name" "$actual"
-          file_ok=$(jq -r --arg file_name "$file_name" --arg sha1 "$sha1" \
-            '([.files[] | select(.filename == $file_name and .hashes.sha1 == $sha1)] | length) > 0' <<<"$version_json")
-          if [ "$file_ok" != "true" ]; then
-            echo "::error::[ID-CONTENT] files 中未找到 filename=${file_name} 且 sha1=${sha1} 的条目。"
-            jq -r '.files[] | "  远端 filename=\(.filename) sha1=\(.hashes.sha1)"' <<<"$version_json"
-            errors=1
-          fi
-          actual=$(jq -c '.loaders | sort' <<<"$version_json")
-          [ "$actual" = "$expected_loaders" ] || report_mismatch "loaders" "$expected_loaders" "$actual"
-          actual=$(jq -c '.game_versions | sort' <<<"$version_json")
-          [ "$actual" = "$expected_game_versions" ] || report_mismatch "game_versions" "$expected_game_versions" "$actual"
-          actual=$(jq -c '[.dependencies[] | {project_id, dependency_type}] | sort_by(.project_id)' <<<"$version_json")
-          [ "$actual" = "$expected_dependencies" ] || report_mismatch "dependencies" "$expected_dependencies" "$actual"
-
           # 项目列表即时核对：单次请求并复用结果。0 视为列表可见性延迟（按 ID 已完整验证，最终汇总 job 会复核）
           list_matches=$(fetch_project_versions | matching_versions)
           match_count=$(jq 'length' <<<"$list_matches")
@@ -518,6 +575,21 @@ jobs:
           fi
           echo "已验证 Modrinth Version ${target_id}（${version_name}）：version_number/name/files/loaders/game_versions/dependencies 与唯一性全部通过。"
           jq -r '"  game_versions: \(.game_versions | join(", "))", "  loaders: \(.loaders | join(", "))", "  dependencies: \([.dependencies[].project_id] | join(", "))"' <<<"$version_json"
+      - name: Upload verify dump
+        if: failure() && steps.precheck.outcome == 'success'
+        uses: actions/upload-artifact@v7
+        with:
+          name: verify-dump-${{ matrix.platform }}
+          path: /tmp/verify-dump/
+          if-no-files-found: ignore
+
+      - name: Upload precheck dump
+        if: failure() && steps.precheck.outcome == 'failure'
+        uses: actions/upload-artifact@v7
+        with:
+          name: precheck-dump-${{ matrix.platform }}
+          path: /tmp/precheck-dump/
+          if-no-files-found: ignore
 
   verify-modrinth-release:
     name: Verify all Modrinth versions for release
