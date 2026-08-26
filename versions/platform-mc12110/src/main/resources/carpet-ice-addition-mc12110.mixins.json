@@ -42,7 +42,8 @@
     "MobEntityVillagerConversionMixin",
     "WaterFluidTickRateMixin",
     "LavaFluidTickRateMixin",
-    "FlowableFluidFreezeMixin"
+    "FlowableFluidFreezeMixin",
+    "BeaconBlockEntityMixin"
   ],
   "client": [
     "DisableIllegalTextCharacterCheckClipboardMixin"

@@ -118,4 +118,7 @@ public final class CarpetIceAdditionSettings {
             strict = false
     )
     public static String botTabListNameSuffix = "#none";
+
+    @Rule(categories = {ICE, FEATURE, CLIENT})
+    public static boolean beaconIgnoresObstruction = false;
 }

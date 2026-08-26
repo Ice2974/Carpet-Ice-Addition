@@ -43,7 +43,8 @@
     "CraftingMenuCraftableCoralBlocksMixin",
     "WaterFluidTickDelayMixin",
     "LavaFluidTickDelayMixin",
-    "FlowingFluidFreezeMixin"
+    "FlowingFluidFreezeMixin",
+    "BeaconBlockEntityMixin"
   ],
   "client": [
     "DisableIllegalTextCharacterCheckClipboardMixin"

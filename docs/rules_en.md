@@ -287,6 +287,15 @@ Allows customizing the center position of the End obsidian platform generated wh
 - Accepted format: `vanilla` or `x,y,z`
 - Categories: `ICE`, `FEATURE`
 
+### beaconIgnoresObstruction
+
+Allows beacons to function normally regardless of blocks above them.
+
+- Type: `boolean`
+- Default: `false`
+- Possible values: `false`, `true`
+- Categories: `ICE`, `FEATURE`, `CLIENT`
+
 ### mobsSpawnWithoutSpears `MC>=1.21.11`
 
 Prevents naturally spawned zombies, zombie villagers, husks, zombified piglins, and piglins from holding spears.

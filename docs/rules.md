@@ -287,6 +287,15 @@
 - 实际可接受格式: `vanilla` 或 `x,y,z`
 - 分类: `ICE`, `FEATURE`
 
+### 信标忽略遮挡 (beaconIgnoresObstruction)
+
+使信标无视上方方块的遮挡并正常工作。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`, `CLIENT`
+
 ### 禁止自然生成持矛生物 (mobsSpawnWithoutSpears) `MC>=1.21.11`
 
 僵尸、僵尸村民、尸壳、僵尸猪灵和猪灵在自然生成时不会手持长矛。
