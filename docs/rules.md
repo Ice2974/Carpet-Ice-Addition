@@ -128,6 +128,15 @@
 - 可选值: `false`, `true`
 - 分类: `ICE`, `BUGFIX`, `SURVIVAL`, `CLIENT`
 
+### 信标合适工具补齐 (beaconProperToolFix)
+
+使镐成为挖掘信标的合适工具。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `BUGFIX`, `SURVIVAL`, `CLIENT`
+
 ### 类冰岩浆块 (iceLikeMagmaBlocks)
 
 允许玩家使用不带精准采集的工具破坏岩浆块时，根据类似冰块的判定逻辑，在下方为有效固体方块或液体方块时生成岩浆源。

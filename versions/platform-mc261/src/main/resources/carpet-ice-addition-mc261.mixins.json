@@ -10,6 +10,7 @@
     "CanMineBuddingAmethystMixin",
     "CanMineFrostedIceMixin",
     "FrostedIceProperToolFixMixin",
+    "BeaconProperToolFixMixin",
     "CrafterBlockMixin",
     "JukeboxManagerRecordWorldEventMixin",
     "KelpNaturalGrowthMixin",

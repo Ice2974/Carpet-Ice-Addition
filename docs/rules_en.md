@@ -128,6 +128,15 @@ Makes pickaxes the proper tools for breaking frosted ice, so that pickaxe mining
 - Possible values: `false`, `true`
 - Categories: `ICE`, `BUGFIX`, `SURVIVAL`, `CLIENT`
 
+### beaconProperToolFix
+
+Makes pickaxes an effective tool for mining beacons.
+
+- Type: `boolean`
+- Default: `false`
+- Possible values: `false`, `true`
+- Categories: `ICE`, `BUGFIX`, `SURVIVAL`, `CLIENT`
+
 ### iceLikeMagmaBlocks
 
 Allows magma blocks broken by players with tools without Silk Touch to generate a lava source using ice-like support checks when the block below is a valid solid block or liquid block.

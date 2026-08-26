@@ -46,6 +46,9 @@ public final class CarpetIceAdditionSettings {
     @Rule(categories = {ICE, BUGFIX, SURVIVAL, CLIENT})
     public static boolean frostedIceProperToolFix = false;
 
+    @Rule(categories = {ICE, BUGFIX, SURVIVAL, CLIENT})
+    public static boolean beaconProperToolFix = false;
+
     @Rule(categories = {ICE, FEATURE, SURVIVAL})
     public static boolean iceLikeMagmaBlocks = false;
 
