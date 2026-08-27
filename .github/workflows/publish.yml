@@ -1,16 +1,30 @@
 name: Publish
 
+run-name: Publish ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.event.release.tag_name }}${{ github.event_name == 'workflow_dispatch' && inputs.platforms != '' && format(' ({0})', inputs.platforms) || '' }}
+
 on:
   release:
     types:
       - published
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: '要（补）发布的目标 Release tag，必须已存在对应的正式 GitHub Release'
+        required: true
+        type: string
+      platforms:
+        description: '可选：仅发布这些平台，逗号分隔（如 mc1213,mc1214）；留空表示全部平台'
+        required: false
+        default: ''
+        type: string
 
 permissions:
   contents: read
 
-# 同一 Tag 的发布流程严格串行，避免 Modrinth 幂等预检与实际创建之间产生竞态
+# 同一 Tag 的发布流程严格串行，避免 Modrinth 幂等预检与实际创建之间产生竞态；
+# dispatch 与 release 事件用同一 tag 表达式进入同一并发组，避免两种触发方式互相穿插
 concurrency:
-  group: publish-${{ github.event.release.tag_name }}
+  group: publish-${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.event.release.tag_name }}
   cancel-in-progress: false
 
 jobs:
@@ -22,6 +36,7 @@ jobs:
       mod_version: ${{ steps.meta.outputs.mod_version }}
       mod_name: ${{ steps.meta.outputs.mod_name }}
       platforms: ${{ steps.meta.outputs.platforms }}
+      release_body: ${{ steps.meta.outputs.release_body }}
     steps:
       - name: Reject prereleases
         if: github.event.release.prerelease == true
@@ -29,23 +44,62 @@ jobs:
           echo "::error::检测到 GitHub prerelease：当前发布流程仅支持正式 Release，已阻止发布。"
           exit 1
 
+      - name: Ensure dispatch runs on default branch
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          REF_NAME: ${{ github.ref_name }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          if [ "$REF_NAME" != "$DEFAULT_BRANCH" ]; then
+            echo "::error::workflow_dispatch 必须在仓库默认分支 ${DEFAULT_BRANCH} 上运行，当前 ref 为 ${REF_NAME}。"
+            echo "  release 事件的工作流固定取自 tag 所指 commit（旧 tag 永远运行旧 workflow），"
+            echo "  dispatch 只有从默认分支运行才能使用最新 workflow 逻辑。"
+            exit 1
+          fi
+          echo "dispatch 运行于默认分支 ${DEFAULT_BRANCH}，将使用最新 workflow 逻辑。"
+
+      - name: Validate target release
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          if ! gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json tagName,isDraft,isPrerelease > /tmp/target-release.json; then
+            echo "::error::tag ${RELEASE_TAG} 不存在对应的 GitHub Release。"
+            exit 1
+          fi
+          if [ "$(jq -r '.isDraft' /tmp/target-release.json)" = "true" ]; then
+            echo "::error::Release ${RELEASE_TAG} 是 draft，当前发布流程仅支持正式 Release。"
+            exit 1
+          fi
+          if [ "$(jq -r '.isPrerelease' /tmp/target-release.json)" = "true" ]; then
+            echo "::error::Release ${RELEASE_TAG} 是 prerelease，当前发布流程仅支持正式 Release。"
+            exit 1
+          fi
+          echo "已确认 Release ${RELEASE_TAG} 存在且为正式版。"
+
       - name: Checkout release tag
         uses: actions/checkout@v7
         with:
-          ref: ${{ github.event.release.tag_name }}
+          # 显式 refs/tags/ 前缀，避免与同名 branch 产生歧义
+          ref: refs/tags/${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.event.release.tag_name }}
 
       - name: Set up JDK 25
+        if: github.event_name == 'release'
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '25'
 
       - name: Set up Gradle
+        if: github.event_name == 'release'
         uses: gradle/actions/setup-gradle@v6
 
       - name: Verify release tag matches mod_version
         env:
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.event.release.tag_name }}
         run: |
           set -euo pipefail
           MOD_VERSION=$(sed -n 's/^mod_version=//p' gradle.properties | tr -d '\r')
@@ -55,11 +109,15 @@ jobs:
           fi
 
       - name: Build and verify
+        if: github.event_name == 'release'
         run: ./gradlew build verifyCraftableCoralBlocksJars verifyFabricModJson --stacktrace
 
       - name: Collect release jars and build manifest
         env:
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.event.release.tag_name }}
+          EVENT_NAME: ${{ github.event_name }}
+          PLATFORMS_INPUT: ${{ inputs.platforms }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           # 平台清单、mod_version、mod_name 均以仓库现有配置为单一来源
@@ -71,6 +129,90 @@ jobs:
           MOD_VERSION=$(sed -n 's/^mod_version=//p' gradle.properties | tr -d '\r')
           MOD_NAME=$(sed -n 's/^mod_name=//p' gradle.properties | tr -d '\r')
           user_agent="Ice2974/Carpet-Ice-Addition/${MOD_VERSION}"
+
+          # dispatch 模式：解析 platforms CSV 输入（trim、去空、去重、未知平台校验；空 = 全部），
+          # 再从 GitHub Release 资产取正式 JAR，放回与 release 模式相同的
+          # versions/platform-<platform>/build/libs/ 相对路径，使 manifest 主循环两种模式完全共用；
+          # scope 外平台的资产缺失不影响本次发布
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            declare -A known_platforms=()
+            for p in "${PLATFORMS[@]}"; do known_platforms["$p"]=1; done
+            requested_platforms=()
+            declare -A seen_platforms=()
+            IFS=',' read -r -a raw_tokens <<< "${PLATFORMS_INPUT}"
+            for token in "${raw_tokens[@]}"; do
+              token="${token#"${token%%[![:space:]]*}"}"
+              token="${token%"${token##*[![:space:]]}"}"
+              [ -n "$token" ] || continue
+              if [ -n "${seen_platforms[$token]:-}" ]; then
+                echo "platforms 输入重复出现 ${token}，已去重。"
+                continue
+              fi
+              seen_platforms["$token"]=1
+              requested_platforms+=("$token")
+            done
+            if [ "${#requested_platforms[@]}" -gt 0 ]; then
+              unknown_tokens=()
+              for token in "${requested_platforms[@]}"; do
+                [ -n "${known_platforms[$token]:-}" ] || unknown_tokens+=("$token")
+              done
+              if [ "${#unknown_tokens[@]}" -gt 0 ]; then
+                echo "::error::platforms 输入包含未知平台：${unknown_tokens[*]}。合法平台：${PLATFORMS[*]}。"
+                exit 1
+              fi
+              PLATFORMS=("${requested_platforms[@]}")
+            fi
+            echo "本次发布平台范围（共 ${#PLATFORMS[@]} 个）：${PLATFORMS[*]}"
+
+            assets_dir=$(mktemp -d)
+            gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --dir "$assets_dir" \
+              --pattern 'Carpet-Ice-Addition-v*.jar'
+            downloaded=0
+            shopt -s nullglob
+            for asset in "$assets_dir"/*.jar; do
+              file_name=$(basename "$asset")
+              if ! mixins_json=$(unzip -p "$asset" fabric.mod.json); then
+                echo "::error::无法从资产 ${file_name} 读取 fabric.mod.json，无法解析所属平台。"
+                exit 1
+              fi
+              # 遍历全部 mixins 条目（兼容 string 与 object.config），从符合本项目 mixin
+              # 命名规则的配置中解析平台；必须恰好解析出一个平台且在清单内
+              candidates=$(jq -r '
+                [.mixins[]? |
+                   if type == "string" then .
+                   elif type == "object" then (.config // empty)
+                   else empty end
+                   | select(type == "string")]
+                | [ .[] | match("(?:^|/)carpet-ice-addition-(?<platform>mc[0-9]+)\\.mixins\\.json$")
+                       | .captures[] | select(.name == "platform") | .string ]
+                | unique | join(",")' <<<"$mixins_json")
+              IFS=',' read -r -a candidate_arr <<< "$candidates"
+              if [ "${#candidate_arr[@]}" -ne 1 ] || [ -z "${candidate_arr[0]:-}" ]; then
+                echo "::error::资产 ${file_name} 的 mixins 未恰好解析出 1 个平台（解析结果：[${candidates}]）。"
+                echo "  mixins 原始条目："
+                jq -c '.mixins[]?' <<<"$mixins_json" | sed 's/^/    /'
+                exit 1
+              fi
+              asset_platform="${candidate_arr[0]}"
+              if [ -z "${known_platforms[$asset_platform]:-}" ]; then
+                echo "::error::资产 ${file_name} 解析出的平台 ${asset_platform} 不在 settings.gradle 平台清单内。"
+                exit 1
+              fi
+              if [[ "$file_name" != "Carpet-Ice-Addition-v${MOD_VERSION}-mc"*.jar ]]; then
+                echo "::error::JAR 文件名 ${file_name} 未包含 -v${MOD_VERSION}-，与 mod_version 不一致。"
+                exit 1
+              fi
+              mkdir -p "versions/platform-${asset_platform}/build/libs"
+              cp "$asset" "versions/platform-${asset_platform}/build/libs/${file_name}"
+              downloaded=$((downloaded + 1))
+            done
+            shopt -u nullglob
+            if [ "$downloaded" -eq 0 ]; then
+              echo "::error::Release ${RELEASE_TAG} 中没有匹配 Carpet-Ice-Addition-v*.jar 的资产。"
+              exit 1
+            fi
+            echo "已从 Release ${RELEASE_TAG} 下载 ${downloaded} 个资产并映射到平台目录。"
+          fi
 
           # Modrinth 发布 metadata 只在此处一次性解析：release 标签集与依赖项目 ID，经 manifest 供 11 个发布 job 共用
           tags_file=$(mktemp)
@@ -191,13 +333,27 @@ jobs:
 
       - name: Export metadata outputs
         id: meta
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          manifest_tag=$(jq -r '.tag' staging/release-manifest.json)
           {
-            echo "tag=$(jq -r '.tag' staging/release-manifest.json)"
+            echo "tag=${manifest_tag}"
             echo "mod_version=$(jq -r '.mod_version' staging/release-manifest.json)"
             echo "mod_name=$(jq -r '.mod_name' staging/release-manifest.json)"
             echo "platforms=$(jq -c '[.platforms[].platform]' staging/release-manifest.json)"
+          } >> "$GITHUB_OUTPUT"
+          # 两种模式统一从 GitHub Release 读取正文；delimiter 运行期生成并确保不与正文碰撞
+          release_body=$(gh release view "$manifest_tag" --repo "$GITHUB_REPOSITORY" --json body --jq '.body')
+          delim="RBEOF_$(date +%s%N)_$$"
+          while printf '%s\n' "$release_body" | grep -qF -- "$delim"; do
+            delim="RBEOF_$(date +%s%N)_$RANDOM"
+          done
+          {
+            printf 'release_body<<%s\n' "$delim"
+            printf '%s\n' "$release_body"
+            printf '%s\n' "$delim"
           } >> "$GITHUB_OUTPUT"
 
       - name: Upload mod jars and manifest
@@ -223,6 +379,7 @@ jobs:
           path: dist
 
       - name: Upload jars to the release
+        if: github.event_name == 'release'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -273,8 +430,9 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     strategy:
-      # 同一 Modrinth 项目的 Version 创建串行执行，降低并发写入竞态；首个平台异常即停止后续 Modrinth 写入
-      fail-fast: true
+      # 同一 Modrinth 项目的 Version 创建保持串行；单平台失败不再取消其余平台，
+      # 缺失情况由最终汇总 job 报告，失败平台可通过 dispatch 按范围补发
+      fail-fast: false
       max-parallel: 1
       matrix:
         platform: ${{ fromJson(needs.build.outputs.platforms) }}
@@ -339,26 +497,43 @@ jobs:
               echo "  请人工处理（例如删除远端版本后重跑 workflow）。"
               exit 1
             fi
-            # filename+sha1 一致，再按ID有界重试校验完整 metadata，避免瞬态空值导致错误跳过
+            # filename+sha1 一致，再按 ID 有界轮询校验完整 metadata；分级规则：
+            #   project_id/version_number/name 不符、files 非空但无匹配条目 → 立即致命；
+            #   files 为空、loaders/game_versions/dependencies 任何不一致 → 继续轮询（暂态）
             expected_loaders=$(jq -c '.loaders | sort' <<<"$entry")
             expected_game_versions=$(jq -c '.game_versions | sort' <<<"$entry")
             expected_dependencies=$(jq -c '[.dependencies[] | {project_id, dependency_type}] | sort_by(.project_id)' <<<"$entry")
             existing_id=$(jq -r '.id' <<<"$match")
-            # 诊断辅助：/tag/loader 仅作为日志，不阻断
-            curl -fsS --retry 3 --retry-delay 5 --user-agent "Ice2974/Carpet-Ice-Addition/${MOD_VERSION}" "https://api.modrinth.com/v2/tag/loader" > /dev/null 2>&1 || echo "::warning::诊断：获取 /tag/loader 失败，忽略" >&2
-            curl -fsS --retry 3 --retry-delay 5 --user-agent "Ice2974/Carpet-Ice-Addition/${MOD_VERSION}" "https://api.modrinth.com/v2/tag/game_version" > /dev/null 2>&1 || echo "::warning::诊断：获取 /tag/game_version 失败，忽略" >&2
             metadata_ok=false
+            fatal_report=""
             last_actual_loaders=""; last_actual_gv=""; last_actual_deps=""; last_version_json=""
             for attempt in 1 2 3 4 5 6; do
               if version_json_tmp=$(curl -fsS --retry 3 --retry-delay 5 --user-agent "Ice2974/Carpet-Ice-Addition/${MOD_VERSION}" "https://api.modrinth.com/v2/version/${existing_id}"); then
                 last_version_json="$version_json_tmp"
+                actual_tmp=$(jq -r '.project_id' <<<"$version_json_tmp")
+                if [ "$actual_tmp" != "$MODRINTH_PROJECT_ID" ]; then fatal_report="按 ID 查询 ${existing_id} 的 project_id=${actual_tmp} 与预期 ${MODRINTH_PROJECT_ID} 不符。"; break; fi
+                actual_tmp=$(jq -r '.version_number' <<<"$version_json_tmp")
+                if [ "$actual_tmp" != "$RELEASE_TAG" ]; then fatal_report="按 ID 查询 ${existing_id} 的 version_number=${actual_tmp} 与预期 ${RELEASE_TAG} 不符。"; break; fi
+                actual_tmp=$(jq -r '.name' <<<"$version_json_tmp")
+                if [ "$actual_tmp" != "$version_name" ]; then fatal_report="按 ID 查询 ${existing_id} 的 name=${actual_tmp} 与预期 ${version_name} 不符。"; break; fi
+                files_count=$(jq '.files | length' <<<"$version_json_tmp")
+                files_ok=false
+                if [ "$files_count" -gt 0 ]; then
+                  file_ok_tmp=$(jq -r --arg file_name "$file_name" --arg sha1 "$sha1" \
+                    '([.files[] | select(.filename == $file_name and .hashes.sha1 == $sha1)] | length) > 0' <<<"$version_json_tmp")
+                  if [ "$file_ok_tmp" != "true" ]; then
+                    fatal_report="按 ID 查询 ${existing_id} 的 files 非空但未找到 filename=${file_name} 且 sha1=${sha1} 的条目。"
+                    break
+                  fi
+                  files_ok=true
+                fi
                 actual_loaders_tmp=$(jq -c '.loaders | sort' <<<"$version_json_tmp")
                 actual_gv_tmp=$(jq -c '.game_versions | sort' <<<"$version_json_tmp")
                 actual_deps_tmp=$(jq -c '[.dependencies[] | {project_id, dependency_type}] | sort_by(.project_id)' <<<"$version_json_tmp")
                 last_actual_loaders="$actual_loaders_tmp"
                 last_actual_gv="$actual_gv_tmp"
                 last_actual_deps="$actual_deps_tmp"
-                if [ "$actual_loaders_tmp" = "$expected_loaders" ] && [ "$actual_gv_tmp" = "$expected_game_versions" ] && [ "$actual_deps_tmp" = "$expected_dependencies" ]; then
+                if [ "$files_ok" = "true" ] && [ "$actual_loaders_tmp" = "$expected_loaders" ] && [ "$actual_gv_tmp" = "$expected_game_versions" ] && [ "$actual_deps_tmp" = "$expected_dependencies" ]; then
                   metadata_ok=true
                   break
                 fi
@@ -368,15 +543,19 @@ jobs:
             if [ "$metadata_ok" = "true" ]; then
               should_upload=false
               existing_version_id="$existing_id"
-              echo "Modrinth 已存在完全一致的版本（文件名、sha1、loaders、game_versions、dependencies 均匹配，经按 ID 轮询验证），跳过上传：${version_name}"
+              echo "Modrinth 已存在完全一致的版本（project_id、version_number、name、文件名、sha1、loaders、game_versions、dependencies 均匹配，经按 ID 轮询验证），跳过上传：${version_name}"
             else
-              echo "::error::[PRECHECK-METADATA-MISMATCH] Modrinth 已存在同名同 tag 版本且文件一致，但按 ID 轮询 6 次后 loaders/game_versions/dependencies 仍不一致（可能为瞬态可见性延迟）。"
-              echo "  expected loaders=${expected_loaders} actual=${last_actual_loaders}"
-              echo "  expected game_versions=${expected_game_versions} actual=${last_actual_gv}"
-              echo "  expected dependencies=${expected_dependencies} actual=${last_actual_deps}"
-              echo "  请稍后重跑；若持续不一致再人工检查远端 Version ${existing_id}。"
+              if [ -n "$fatal_report" ]; then
+                echo "::error::[PRECHECK-FATAL] ${fatal_report}"
+              else
+                echo "::error::[PRECHECK-METADATA-MISMATCH] Modrinth 已存在同名同 tag 版本且文件一致，但按 ID 轮询 6 次后 files/loaders/game_versions/dependencies 仍未完全一致（可能为瞬态可见性延迟）。"
+                echo "  expected loaders=${expected_loaders} actual=${last_actual_loaders}"
+                echo "  expected game_versions=${expected_game_versions} actual=${last_actual_gv}"
+                echo "  expected dependencies=${expected_dependencies} actual=${last_actual_deps}"
+                echo "  请稍后重跑；若持续不一致再人工检查远端 Version ${existing_id}。"
+              fi
               echo "--- 远端 Version 原始响应（格式化） ---"
-              jq -c '{id, name, loaders, game_versions, dependencies, files: [.files[] | {filename, hashes}]}' <<<"$last_version_json" 2>/dev/null || printf '%s\n' "$last_version_json" | head -c 4000; echo
+              jq -c '{id, project_id, name, version_number, loaders, game_versions, dependencies, files: [.files[] | {filename, hashes}]}' <<<"$last_version_json" 2>/dev/null || printf '%s\n' "$last_version_json" | head -c 4000; echo
               mkdir -p /tmp/precheck-dump
               printf '%s' "$last_version_json" | jq . > "/tmp/precheck-dump/${PLATFORM}-version.json" 2>/dev/null || printf '%s' "$last_version_json" > "/tmp/precheck-dump/${PLATFORM}-version.json"
               echo "  已写入 /tmp/precheck-dump/${PLATFORM}-version.json （若失败，会在下一步 upload-artifact 中上传）"
@@ -410,7 +589,7 @@ jobs:
           name: ${{ steps.precheck.outputs.name }}
           version: ${{ needs.build.outputs.tag }}
           version-type: release
-          changelog: ${{ github.event.release.body }}
+          changelog: ${{ needs.build.outputs.release_body }}
           # 核心发布 metadata 显式传入，不依赖 mc-publish 解析 JAR 内 fabric.mod.json
           loaders: fabric
           game-versions: ${{ steps.precheck.outputs.game_versions }}
@@ -505,53 +684,74 @@ jobs:
           fi
 
 
-          # 按 ID 轮询可查后做完整校验，只有全量一致才算命中，否则继续轮询（最多 12 次 × 5s）
+          # 按 ID 有界轮询做完整校验（最多 12 次 × 5s）。分级规则：
+          #   project_id/version_number/name 不符、files 非空但无匹配条目 → 立即致命；
+          #   files 为空、loaders/game_versions/dependencies 任何不一致 → 继续轮询（暂态）
           version_json=""
           verify_ok=false
-          last_error_report=""
+          fatal_report=""
+          last_transient_report=""
           for attempt in 1 2 3 4 5 6 7 8 9 10 11 12; do
             if version_json=$(curl -fsS --retry 3 --retry-delay 5 --user-agent "$user_agent" "https://api.modrinth.com/v2/version/${target_id}"); then
-              # 诊断辅助：做一次轻量校验，不阻断
-              curl -fsS --retry 3 --retry-delay 5 --user-agent "$user_agent" "https://api.modrinth.com/v2/tag/loader" > /dev/null 2>&1 || echo "::warning::诊断：/tag/loader 查询失败" >&2
-              errors_tmp=0
-              report_tmp=""
+              fatal_report=""
+              actual_tmp=$(jq -r '.project_id' <<<"$version_json")
+              if [ "$actual_tmp" != "$MODRINTH_PROJECT_ID" ]; then fatal_report="[ID-CONTENT] project_id 不一致：expected=${MODRINTH_PROJECT_ID}，actual=${actual_tmp}。"; break; fi
               actual_tmp=$(jq -r '.version_number' <<<"$version_json")
-              if [ "$actual_tmp" != "$RELEASE_TAG" ]; then report_tmp="${report_tmp}[ID-CONTENT] version_number 不一致：expected=$RELEASE_TAG，actual=$actual_tmp\n"; errors_tmp=1; fi
+              if [ "$actual_tmp" != "$RELEASE_TAG" ]; then fatal_report="[ID-CONTENT] version_number 不一致：expected=${RELEASE_TAG}，actual=${actual_tmp}。"; break; fi
               actual_tmp=$(jq -r '.name' <<<"$version_json")
-              if [ "$actual_tmp" != "$version_name" ]; then report_tmp="${report_tmp}[ID-CONTENT] name 不一致：expected=$version_name，actual=$actual_tmp\n"; errors_tmp=1; fi
-              file_ok_tmp=$(jq -r --arg file_name "$file_name" --arg sha1 "$sha1" '([.files[] | select(.filename == $file_name and .hashes.sha1 == $sha1)] | length) > 0' <<<"$version_json")
-              if [ "$file_ok_tmp" != "true" ]; then report_tmp="${report_tmp}[ID-CONTENT] files 中未找到 filename=${file_name} 且 sha1=${sha1} 的条目。\n"; errors_tmp=1; fi
+              if [ "$actual_tmp" != "$version_name" ]; then fatal_report="[ID-CONTENT] name 不一致：expected=${version_name}，actual=${actual_tmp}。"; break; fi
+              files_count=$(jq '.files | length' <<<"$version_json")
+              files_ok=false
+              if [ "$files_count" -gt 0 ]; then
+                file_ok_tmp=$(jq -r --arg file_name "$file_name" --arg sha1 "$sha1" '([.files[] | select(.filename == $file_name and .hashes.sha1 == $sha1)] | length) > 0' <<<"$version_json")
+                if [ "$file_ok_tmp" != "true" ]; then
+                  fatal_report="[ID-CONTENT] files 非空但未找到 filename=${file_name} 且 sha1=${sha1} 的条目。"
+                  break
+                fi
+                files_ok=true
+              fi
+              transient_tmp=""
               actual_tmp=$(jq -c '.loaders | sort' <<<"$version_json")
-              if [ "$actual_tmp" != "$expected_loaders" ]; then report_tmp="${report_tmp}[ID-CONTENT] loaders 不一致：expected=$expected_loaders，actual=$actual_tmp\n"; errors_tmp=1; fi
+              [ "$actual_tmp" = "$expected_loaders" ] || transient_tmp="${transient_tmp}[TRANSIENT] loaders 不一致：expected=${expected_loaders}，actual=${actual_tmp}\n"
               actual_tmp=$(jq -c '.game_versions | sort' <<<"$version_json")
-              if [ "$actual_tmp" != "$expected_game_versions" ]; then report_tmp="${report_tmp}[ID-CONTENT] game_versions 不一致：expected=$expected_game_versions，actual=$actual_tmp\n"; errors_tmp=1; fi
+              [ "$actual_tmp" = "$expected_game_versions" ] || transient_tmp="${transient_tmp}[TRANSIENT] game_versions 不一致：expected=${expected_game_versions}，actual=${actual_tmp}\n"
               actual_tmp=$(jq -c '[.dependencies[] | {project_id, dependency_type}] | sort_by(.project_id)' <<<"$version_json")
-              if [ "$actual_tmp" != "$expected_dependencies" ]; then report_tmp="${report_tmp}[ID-CONTENT] dependencies 不一致：expected=$expected_dependencies，actual=$actual_tmp\n"; errors_tmp=1; fi
-              if [ "$errors_tmp" -eq 0 ]; then
+              [ "$actual_tmp" = "$expected_dependencies" ] || transient_tmp="${transient_tmp}[TRANSIENT] dependencies 不一致：expected=${expected_dependencies}，actual=${actual_tmp}\n"
+              if [ "$files_ok" != "true" ]; then
+                transient_tmp="[TRANSIENT] files 为空，等待写入完成\n${transient_tmp}"
+              fi
+              if [ -z "$transient_tmp" ]; then
                 verify_ok=true
                 break
-              else
-                last_error_report="$report_tmp"
               fi
+              last_transient_report="$transient_tmp"
             else
               version_json=""
-              last_error_report="[FETCH] 查询 Version ${target_id} 失败，重试中...\n"
+              last_transient_report="[FETCH] 查询 Version ${target_id} 失败，重试中...\n"
             fi
             if [ "$attempt" -lt 12 ]; then sleep 5; fi
           done
+          if [ -n "$fatal_report" ]; then
+            echo "::error::验证 Modrinth Version ${target_id}（${version_name}）失败（立即致命，不重试）：${fatal_report}"
+            echo "--- 远端 Version 原始响应（格式化） ---"
+            jq . <<<"$version_json" 2>/dev/null || true
+            mkdir -p /tmp/verify-dump
+            printf '%s' "$version_json" | jq . > "/tmp/verify-dump/${PLATFORM}-version.json" 2>/dev/null || true
+            exit 1
+          fi
           if [ -z "$version_json" ]; then
             echo "::error::查询 Version ${target_id} 失败（已轮询 12 次 × 5s）。"
-            if [ -n "$last_error_report" ]; then printf "%b" "$last_error_report" >&2; fi
+            if [ -n "$last_transient_report" ]; then printf "%b" "$last_transient_report" >&2; fi
             mkdir -p /tmp/verify-dump
-            printf '%s' "$version_json" | jq . > "/tmp/verify-dump/${PLATFORM}-version.json" 2>/dev/null || printf '%s' "$version_json" > "/tmp/verify-dump/${PLATFORM}-version.json" 2>/dev/null || true
+            printf '%s' "$version_json" | jq . > "/tmp/verify-dump/${PLATFORM}-version.json" 2>/dev/null || true
             exit 1
           fi
           if [ "$verify_ok" != "true" ]; then
-            echo "::error::验证 Modrinth Version ${target_id}（${version_name}）轮询超时（ 12 次 × 5s），最后一次校验失败："
-            printf "%b" "$last_error_report" >&2
+            echo "::error::验证 Modrinth Version ${target_id}（${version_name}）轮询超时（12 次 × 5s），最后一次暂态不一致："
+            printf "%b" "$last_transient_report" >&2
             echo "--- 远端 Version 原始响应（格式化） ---"
-              jq . <<<"$version_json" 2>/dev/null || printf '%s\n' "$version_json" | head -c 8000; echo
-            jq -c '{id, name, version_number, loaders, game_versions, dependencies, files: [.files[] | {filename, hashes}]}' <<<"$version_json" 2>/dev/null || true
+            jq . <<<"$version_json" 2>/dev/null || printf '%s\n' "$version_json" | head -c 8000; echo
+            jq -c '{id, project_id, name, version_number, loaders, game_versions, dependencies, files: [.files[] | {filename, hashes}]}' <<<"$version_json" 2>/dev/null || true
             mkdir -p /tmp/verify-dump
             printf '%s' "$version_json" | jq . > "/tmp/verify-dump/${PLATFORM}-version.json" 2>/dev/null || printf '%s' "$version_json" > "/tmp/verify-dump/${PLATFORM}-version.json" 2>/dev/null || true
             echo "  已写入 /tmp/verify-dump/${PLATFORM}-version.json （将在 failure 时上传为 artifact）"
@@ -594,7 +794,7 @@ jobs:
   verify-modrinth-release:
     name: Verify all Modrinth versions for release
     needs: [build, upload-modrinth]
-    # build 失败时跳过（无 artifact 可验）；matrix 失败/被取消时仍运行，产出单次快照诊断
+    # build 失败时跳过（无 artifact 可验）；matrix 失败/被取消时仍运行，做有界轮询后报告终态
     if: always() && needs.build.result == 'success'
     runs-on: ubuntu-latest
     env:
@@ -669,46 +869,32 @@ jobs:
             done
           }
 
-          if [ "$MATRIX_RESULT" = "success" ]; then
-            # matrix 全部成功：做有界轮询等待列表最终可见（每轮都是新 nonce 的新 URL，不复用上一轮缓存）
-            for attempt in 1 2 3 4 5 6 7 8 9 10; do
-              snapshot_json=$(fetch_list_snapshot)
-              evaluate_snapshot
-              if [ "$duplicate_count" -gt 0 ]; then
-                echo "::error::[AGGREGATE-DUPLICATE] 以下预期 Version 在项目列表中命中超过 1 个："
-                printf '%b' "$duplicate_report"
-                exit 1
-              fi
-              if [ "$missing_count" -eq 0 ]; then
-                echo "最终汇总通过：${ready_count}/${expected_count} 个预期 Version 全部恰好命中 1 个。"
-                printf '%b' "$ready_report"
-                exit 0
-              fi
-              echo "第 ${attempt}/10 轮：${missing_count} 个 Version 未在列表快照出现，15s 后重试。"
-              if [ "$attempt" -lt 10 ]; then
-                sleep 15
-              fi
-            done
-            echo "::error::[AGGREGATE-MISSING] 轮询耗尽（10 次 × 15s），以下预期 Version 仍未出现在项目列表："
-            printf '%b' "$missing_report"
-            printf '已就绪：\n%b' "$ready_report"
-            exit 1
-          else
-            # matrix 失败或被取消：只获取一次最新快照用于诊断，不做完整轮询等待
-            echo "::warning::upload-modrinth 结果为 ${MATRIX_RESULT}，最终汇总仅获取一次最新列表快照用于诊断。"
+          # matrix 成功：10 次 × 15s；失败/取消：6 次 × 15s（报告尽量反映终态，缺失平台可经 dispatch 补发）
+          max_attempts=10
+          if [ "$MATRIX_RESULT" != "success" ]; then
+            max_attempts=6
+            echo "::warning::upload-modrinth 结果为 ${MATRIX_RESULT}，最终汇总使用 ${max_attempts} 次 × 15s 轮询后报告缺失项。"
+          fi
+          for attempt in $(seq 1 "$max_attempts"); do
+            # 每轮都是新 nonce 的新 URL，不复用上一轮缓存
             snapshot_json=$(fetch_list_snapshot)
             evaluate_snapshot
             if [ "$duplicate_count" -gt 0 ]; then
-              echo "::error::[AGGREGATE-DUPLICATE] 以下预期 Version 命中超过 1 个："
+              echo "::error::[AGGREGATE-DUPLICATE] 以下预期 Version 在项目列表中命中超过 1 个："
               printf '%b' "$duplicate_report"
               exit 1
             fi
             if [ "$missing_count" -eq 0 ]; then
-              echo "诊断结果：${ready_count}/${expected_count} 个预期 Version 均已出现且唯一。"
+              echo "最终汇总通过：${ready_count}/${expected_count} 个预期 Version 全部恰好命中 1 个。"
+              printf '%b' "$ready_report"
               exit 0
             fi
-            echo "::error::[AGGREGATE-MISSING] 以下预期 Version 未出现在最新列表快照（未做轮询等待）："
-            printf '%b' "$missing_report"
-            printf '已就绪：\n%b' "$ready_report"
-            exit 1
-          fi
+            echo "第 ${attempt}/${max_attempts} 轮：${missing_count} 个 Version 未在列表快照出现，15s 后重试。"
+            if [ "$attempt" -lt "$max_attempts" ]; then
+              sleep 15
+            fi
+          done
+          echo "::error::[AGGREGATE-MISSING] 轮询耗尽（${max_attempts} 次 × 15s），以下预期 Version 仍未出现在项目列表："
+          printf '%b' "$missing_report"
+          printf '已就绪：\n%b' "$ready_report"
+          exit 1
