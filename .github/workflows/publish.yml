@@ -442,6 +442,7 @@ jobs:
       MOD_VERSION: ${{ needs.build.outputs.mod_version }}
       MOD_NAME: ${{ needs.build.outputs.mod_name }}
       PLATFORM: ${{ matrix.platform }}
+      EVENT_NAME: ${{ github.event_name }}
     steps:
       - name: Download mod jars and manifest
         uses: actions/download-artifact@v8
@@ -476,9 +477,34 @@ jobs:
 
           # Modrinth API 要求可识别的 User-Agent；此请求保持匿名 GET，不携带任何 token
           # ?_= 查询串仅是绕过当前列表端点边缘缓存的工程规避手段，不构成对 Modrinth API 缓存语义的假设
-          versions_json=$(curl -fsS --retry 3 --retry-delay 5 --user-agent "Ice2974/Carpet-Ice-Addition/${MOD_VERSION}" "https://api.modrinth.com/v2/project/${MODRINTH_PROJECT_ID}/version?_=$(date +%s%N)&include_changelog=false")
-          match_count=$(jq --arg tag "$RELEASE_TAG" --arg name "$version_name" \
-            '[.[] | select(.version_number == $tag and .name == $name)] | length' <<<"$versions_json")
+          fetch_project_versions() {
+            curl -fsS --retry 3 --retry-delay 5 --user-agent "Ice2974/Carpet-Ice-Addition/${MOD_VERSION}" \
+              "https://api.modrinth.com/v2/project/${MODRINTH_PROJECT_ID}/version?_=$(date +%s%N)&include_changelog=false"
+          }
+          count_matches() {
+            jq --arg tag "$RELEASE_TAG" --arg name "$version_name" \
+              '[.[] | select(.version_number == $tag and .name == $name)] | length' <<<"$1"
+          }
+          versions_json=$(fetch_project_versions)
+          match_count=$(count_matches "$versions_json")
+
+          # 仅 dispatch 补发对 0 命中做有限复核：项目 Version 列表可能存在暂态可见性延迟（工程经验，无官方保证），
+          # 部分发布后立刻补发时可能暂时读不到已存在的 Version，直接上传会绕过幂等预检造成重复创建；
+          # release.published 新版本发布不做此等待，不增加额外延迟
+          if [ "$match_count" -eq 0 ] && [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            for attempt in 1 2 3 4 5 6; do
+              versions_json=$(fetch_project_versions)
+              match_count=$(count_matches "$versions_json")
+              if [ "$match_count" -ge 1 ]; then
+                echo "dispatch 列表复核：第 ${attempt} 轮出现 ${match_count} 个匹配版本。"
+                break
+              fi
+              if [ "$attempt" -lt 6 ]; then sleep 5; fi
+            done
+            if [ "$match_count" -eq 0 ]; then
+              echo "dispatch 列表复核 6 次（×5s）仍为 0 命中，确认远端不存在该版本，允许上传。"
+            fi
+          fi
 
 
           should_upload=true
@@ -497,6 +523,7 @@ jobs:
             # 按 ID 有界轮询校验完整 metadata；分级规则：
             #   project_id/version_number/name 非空且不符、files 非空但无匹配条目 → 立即致命；
             #   上述字段缺失/空值、files 为空、loaders/game_versions/dependencies 任何不一致 → 继续轮询（暂态）
+            #   实际观察到的暂态形态为空数组（loaders=[]/game_versions=[]）；字段缺失/null 属防御性处理，未经真实日志证实
             expected_loaders=$(jq -c '.loaders | sort' <<<"$entry")
             expected_game_versions=$(jq -c '.game_versions | sort' <<<"$entry")
             expected_dependencies=$(jq -c '[.dependencies[] | {project_id, dependency_type}] | sort_by(.project_id)' <<<"$entry")
@@ -539,9 +566,10 @@ jobs:
                   fi
                   files_ok=true
                 fi
-                actual_loaders_tmp=$(jq -c '.loaders | sort' <<<"$version_json_tmp")
-                actual_gv_tmp=$(jq -c '.game_versions | sort' <<<"$version_json_tmp")
-                actual_deps_tmp=$(jq -c '[.dependencies[] | {project_id, dependency_type}] | sort_by(.project_id)' <<<"$version_json_tmp")
+                # 关系字段 null-safe 读取：缺失/null 按空集合处理（暂态不一致，继续轮询），不让 jq 在 set -e 下打断重试
+                actual_loaders_tmp=$(jq -c '(.loaders // []) | sort' <<<"$version_json_tmp")
+                actual_gv_tmp=$(jq -c '(.game_versions // []) | sort' <<<"$version_json_tmp")
+                actual_deps_tmp=$(jq -c '[ (.dependencies // [])[] | {project_id, dependency_type}] | sort_by(.project_id)' <<<"$version_json_tmp")
                 last_actual_loaders="$actual_loaders_tmp"
                 last_actual_gv="$actual_gv_tmp"
                 last_actual_deps="$actual_deps_tmp"
@@ -570,7 +598,7 @@ jobs:
                 echo "  请稍后重跑；若持续不一致再人工检查远端 Version ${existing_id}。"
               fi
               echo "--- 远端 Version 原始响应（格式化） ---"
-              jq -c '{id, project_id, name, version_number, loaders, game_versions, dependencies, files: [.files[] | {filename, hashes}]}' <<<"$last_version_json" 2>/dev/null || printf '%s\n' "$last_version_json" | head -c 4000; echo
+              jq -c '{id, project_id, name, version_number, loaders, game_versions, dependencies, files: [ (.files // [])[] | {filename, hashes}]}' <<<"$last_version_json" 2>/dev/null || printf '%s\n' "$last_version_json" | head -c 4000; echo
               mkdir -p /tmp/precheck-dump
               printf '%s' "$last_version_json" | jq . > "/tmp/precheck-dump/${PLATFORM}-version.json" 2>/dev/null || printf '%s' "$last_version_json" > "/tmp/precheck-dump/${PLATFORM}-version.json"
               echo "  已写入 /tmp/precheck-dump/${PLATFORM}-version.json （若失败，会在下一步 upload-artifact 中上传）"
@@ -677,7 +705,7 @@ jobs:
               echo "[RESIDUE] publish 步骤失败，但 Modrinth 上没有 version_number=${RELEASE_TAG} 且 name=${version_name} 的残留版本；修复后可直接重跑。"
             else
               echo "::warning::[RESIDUE] publish 步骤失败，且 Modrinth 存在 ${residue_count} 个疑似残留版本，重跑前需人工删除："
-              jq -r '.[] | "  id=\(.id) files=\([.files[].filename] | join(",")) loaders=\(.loaders | join(",")) game_versions=\(.game_versions | join(","))"' <<<"$matches"
+              jq -r '.[] | "  id=\(.id) files=\([ (.files // [])[] | .filename ] | join(",")) loaders=\((.loaders // []) | join(",")) game_versions=\((.game_versions // []) | join(","))"' <<<"$matches"
             fi
             exit 0
           fi
@@ -702,6 +730,7 @@ jobs:
           # 按 ID 有界轮询做完整校验（最多 12 次 × 5s）。分级规则：
           #   project_id/version_number/name 非空且不符、files 非空但无匹配条目 → 立即致命；
           #   上述字段缺失/空值、files 为空、loaders/game_versions/dependencies 任何不一致 → 继续轮询（暂态）
+          #   实际观察到的暂态形态为空数组（loaders=[]/game_versions=[]）；字段缺失/null 属防御性处理，未经真实日志证实
           version_json=""
           verify_ok=false
           fatal_report=""
@@ -739,11 +768,12 @@ jobs:
                 fi
                 files_ok=true
               fi
-              actual_tmp=$(jq -c '.loaders | sort' <<<"$version_json")
+              # 关系字段 null-safe 读取：缺失/null 按空集合处理（暂态不一致，继续轮询），不让 jq 在 set -e 下打断重试
+              actual_tmp=$(jq -c '(.loaders // []) | sort' <<<"$version_json")
               [ "$actual_tmp" = "$expected_loaders" ] || transient_tmp="${transient_tmp}[TRANSIENT] loaders 不一致：expected=${expected_loaders}，actual=${actual_tmp}\n"
-              actual_tmp=$(jq -c '.game_versions | sort' <<<"$version_json")
+              actual_tmp=$(jq -c '(.game_versions // []) | sort' <<<"$version_json")
               [ "$actual_tmp" = "$expected_game_versions" ] || transient_tmp="${transient_tmp}[TRANSIENT] game_versions 不一致：expected=${expected_game_versions}，actual=${actual_tmp}\n"
-              actual_tmp=$(jq -c '[.dependencies[] | {project_id, dependency_type}] | sort_by(.project_id)' <<<"$version_json")
+              actual_tmp=$(jq -c '[ (.dependencies // [])[] | {project_id, dependency_type}] | sort_by(.project_id)' <<<"$version_json")
               [ "$actual_tmp" = "$expected_dependencies" ] || transient_tmp="${transient_tmp}[TRANSIENT] dependencies 不一致：expected=${expected_dependencies}，actual=${actual_tmp}\n"
               if [ "$files_ok" != "true" ]; then
                 transient_tmp="[TRANSIENT] files 为空，等待写入完成\n${transient_tmp}"
@@ -779,7 +809,7 @@ jobs:
             printf "%b" "$last_transient_report" >&2
             echo "--- 远端 Version 原始响应（格式化） ---"
             jq . <<<"$version_json" 2>/dev/null || printf '%s\n' "$version_json" | head -c 8000; echo
-            jq -c '{id, project_id, name, version_number, loaders, game_versions, dependencies, files: [.files[] | {filename, hashes}]}' <<<"$version_json" 2>/dev/null || true
+            jq -c '{id, project_id, name, version_number, loaders, game_versions, dependencies, files: [ (.files // [])[] | {filename, hashes}]}' <<<"$version_json" 2>/dev/null || true
             mkdir -p /tmp/verify-dump
             printf '%s' "$version_json" | jq . > "/tmp/verify-dump/${PLATFORM}-version.json" 2>/dev/null || printf '%s' "$version_json" > "/tmp/verify-dump/${PLATFORM}-version.json" 2>/dev/null || true
             echo "  已写入 /tmp/verify-dump/${PLATFORM}-version.json （将在 failure 时上传为 artifact）"
@@ -792,7 +822,7 @@ jobs:
           match_count=$(jq 'length' <<<"$list_matches")
           if [ "$match_count" -gt 1 ]; then
             echo "::error::[LIST-DUPLICATE] 项目 Version 列表中 version_number=${RELEASE_TAG} 且 name=${version_name} 的版本有 ${match_count} 个（应为恰好 1 个）："
-            jq -r '.[] | "  id=\(.id) files=\([.files[].filename] | join(",")) loaders=\(.loaders | join(",")) game_versions=\(.game_versions | join(","))"' <<<"$list_matches"
+            jq -r '.[] | "  id=\(.id) files=\([ (.files // [])[] | .filename ] | join(",")) loaders=\((.loaders // []) | join(",")) game_versions=\((.game_versions // []) | join(","))"' <<<"$list_matches"
             errors=1
           elif [ "$match_count" -eq 0 ]; then
             echo "::warning::[LIST-PENDING] 项目 Version 列表暂未出现该版本（列表端点存在缓存可见性延迟；按 ID 验证已通过，最终汇总验证会复核），继续后续平台。"
@@ -802,7 +832,7 @@ jobs:
             exit 1
           fi
           echo "已验证 Modrinth Version ${target_id}（${version_name}）：version_number/name/files/loaders/game_versions/dependencies 与唯一性全部通过。"
-          jq -r '"  game_versions: \(.game_versions | join(", "))", "  loaders: \(.loaders | join(", "))", "  dependencies: \([.dependencies[].project_id] | join(", "))"' <<<"$version_json"
+          jq -r '"  game_versions: \((.game_versions // []) | join(", "))", "  loaders: \((.loaders // []) | join(", "))", "  dependencies: \([ (.dependencies // [])[] | .project_id ] | join(", "))"' <<<"$version_json"
       - name: Upload verify dump
         if: failure() && steps.precheck.outcome == 'success'
         uses: actions/upload-artifact@v7
