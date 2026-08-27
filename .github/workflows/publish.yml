@@ -486,43 +486,55 @@ jobs:
           if [ "$match_count" -eq 0 ]; then
             echo "Modrinth 不存在 version_number=${RELEASE_TAG} 且 name=${version_name} 的版本，将执行上传。"
           elif [ "$match_count" -eq 1 ]; then
-            match=$(jq -c --arg tag "$RELEASE_TAG" --arg name "$version_name" \
-              '[.[] | select(.version_number == $tag and .name == $name)][0]' <<<"$versions_json")
-            consistent=$(jq -r --arg file_name "$file_name" --arg sha1 "$sha1" \
-              '([.files[] | select(.filename == $file_name and .hashes.sha1 == $sha1)] | length) > 0' <<<"$match")
-            if [ "$consistent" != "true" ]; then
-              echo "::error::Modrinth 已存在同版本号同名版本，但文件不一致，拒绝静默跳过："
-              echo "  期望 file_name=${file_name} sha1=${sha1}"
-              jq -r '.files[] | "  远端 filename=\\(.filename) sha1=\\(.hashes.sha1)"' <<<"$match"
-              echo "  请人工处理（例如删除远端版本后重跑 workflow）。"
+            # 列表仅负责按 version_number+name 定位：0 上传 / 1 取 ID 进入按 ID 轮询 / >1 人工去重；
+            # 不依赖列表快照中的 files 决定是否进入轮询（列表 files 为空属暂态）
+            existing_id=$(jq -r --arg tag "$RELEASE_TAG" --arg name "$version_name" \
+              '[.[] | select(.version_number == $tag and .name == $name)][0].id' <<<"$versions_json")
+            if [ -z "$existing_id" ] || [ "$existing_id" = "null" ]; then
+              echo "::error::列表命中 1 个版本但未能解析出 Version ID，请人工检查。"
               exit 1
             fi
-            # filename+sha1 一致，再按 ID 有界轮询校验完整 metadata；分级规则：
-            #   project_id/version_number/name 不符、files 非空但无匹配条目 → 立即致命；
-            #   files 为空、loaders/game_versions/dependencies 任何不一致 → 继续轮询（暂态）
+            # 按 ID 有界轮询校验完整 metadata；分级规则：
+            #   project_id/version_number/name 非空且不符、files 非空但无匹配条目 → 立即致命；
+            #   上述字段缺失/空值、files 为空、loaders/game_versions/dependencies 任何不一致 → 继续轮询（暂态）
             expected_loaders=$(jq -c '.loaders | sort' <<<"$entry")
             expected_game_versions=$(jq -c '.game_versions | sort' <<<"$entry")
             expected_dependencies=$(jq -c '[.dependencies[] | {project_id, dependency_type}] | sort_by(.project_id)' <<<"$entry")
-            existing_id=$(jq -r '.id' <<<"$match")
             metadata_ok=false
             fatal_report=""
+            last_identity_ok=false
+            last_files_ok=false
             last_actual_loaders=""; last_actual_gv=""; last_actual_deps=""; last_version_json=""
             for attempt in 1 2 3 4 5 6; do
               if version_json_tmp=$(curl -fsS --retry 3 --retry-delay 5 --user-agent "Ice2974/Carpet-Ice-Addition/${MOD_VERSION}" "https://api.modrinth.com/v2/version/${existing_id}"); then
                 last_version_json="$version_json_tmp"
-                actual_tmp=$(jq -r '.project_id' <<<"$version_json_tmp")
-                if [ "$actual_tmp" != "$MODRINTH_PROJECT_ID" ]; then fatal_report="按 ID 查询 ${existing_id} 的 project_id=${actual_tmp} 与预期 ${MODRINTH_PROJECT_ID} 不符。"; break; fi
-                actual_tmp=$(jq -r '.version_number' <<<"$version_json_tmp")
-                if [ "$actual_tmp" != "$RELEASE_TAG" ]; then fatal_report="按 ID 查询 ${existing_id} 的 version_number=${actual_tmp} 与预期 ${RELEASE_TAG} 不符。"; break; fi
-                actual_tmp=$(jq -r '.name' <<<"$version_json_tmp")
-                if [ "$actual_tmp" != "$version_name" ]; then fatal_report="按 ID 查询 ${existing_id} 的 name=${actual_tmp} 与预期 ${version_name} 不符。"; break; fi
+                # 身份字段：非空且不符 → 立即致命；缺失/null/空 → 暂态，继续轮询
+                identity_ok=true
+                actual_tmp=$(jq -r '.project_id // ""' <<<"$version_json_tmp")
+                if [ -n "$actual_tmp" ]; then
+                  if [ "$actual_tmp" != "$MODRINTH_PROJECT_ID" ]; then fatal_report="按 ID 查询 ${existing_id} 的 project_id=${actual_tmp} 与预期 ${MODRINTH_PROJECT_ID} 不符。"; break; fi
+                else
+                  identity_ok=false
+                fi
+                actual_tmp=$(jq -r '.version_number // ""' <<<"$version_json_tmp")
+                if [ -n "$actual_tmp" ]; then
+                  if [ "$actual_tmp" != "$RELEASE_TAG" ]; then fatal_report="按 ID 查询 ${existing_id} 的 version_number=${actual_tmp} 与预期 ${RELEASE_TAG} 不符。"; break; fi
+                else
+                  identity_ok=false
+                fi
+                actual_tmp=$(jq -r '.name // ""' <<<"$version_json_tmp")
+                if [ -n "$actual_tmp" ]; then
+                  if [ "$actual_tmp" != "$version_name" ]; then fatal_report="按 ID 查询 ${existing_id} 的 name=${actual_tmp} 与预期 ${version_name} 不符。"; break; fi
+                else
+                  identity_ok=false
+                fi
                 files_count=$(jq '.files | length' <<<"$version_json_tmp")
                 files_ok=false
                 if [ "$files_count" -gt 0 ]; then
                   file_ok_tmp=$(jq -r --arg file_name "$file_name" --arg sha1 "$sha1" \
                     '([.files[] | select(.filename == $file_name and .hashes.sha1 == $sha1)] | length) > 0' <<<"$version_json_tmp")
                   if [ "$file_ok_tmp" != "true" ]; then
-                    fatal_report="按 ID 查询 ${existing_id} 的 files 非空但未找到 filename=${file_name} 且 sha1=${sha1} 的条目。"
+                    fatal_report="按 ID 查询 ${existing_id} 的 files 非空但未找到 filename=${file_name} 且 sha1=${sha1} 的条目（同名同版本号但文件不一致，拒绝静默跳过，请人工删除远端版本后重跑）。"
                     break
                   fi
                   files_ok=true
@@ -533,7 +545,9 @@ jobs:
                 last_actual_loaders="$actual_loaders_tmp"
                 last_actual_gv="$actual_gv_tmp"
                 last_actual_deps="$actual_deps_tmp"
-                if [ "$files_ok" = "true" ] && [ "$actual_loaders_tmp" = "$expected_loaders" ] && [ "$actual_gv_tmp" = "$expected_game_versions" ] && [ "$actual_deps_tmp" = "$expected_dependencies" ]; then
+                last_identity_ok="$identity_ok"
+                last_files_ok="$files_ok"
+                if [ "$identity_ok" = "true" ] && [ "$files_ok" = "true" ] && [ "$actual_loaders_tmp" = "$expected_loaders" ] && [ "$actual_gv_tmp" = "$expected_game_versions" ] && [ "$actual_deps_tmp" = "$expected_dependencies" ]; then
                   metadata_ok=true
                   break
                 fi
@@ -548,7 +562,8 @@ jobs:
               if [ -n "$fatal_report" ]; then
                 echo "::error::[PRECHECK-FATAL] ${fatal_report}"
               else
-                echo "::error::[PRECHECK-METADATA-MISMATCH] Modrinth 已存在同名同 tag 版本且文件一致，但按 ID 轮询 6 次后 files/loaders/game_versions/dependencies 仍未完全一致（可能为瞬态可见性延迟）。"
+                echo "::error::[PRECHECK-METADATA-MISMATCH] Modrinth 已存在同名同 tag 版本，但按 ID 轮询 6 次后仍未形成完整一致的 metadata（可能为瞬态可见性延迟）。"
+                echo "  身份字段(project_id/version_number/name)完整=${last_identity_ok}，files 完整=${last_files_ok}"
                 echo "  expected loaders=${expected_loaders} actual=${last_actual_loaders}"
                 echo "  expected game_versions=${expected_game_versions} actual=${last_actual_gv}"
                 echo "  expected dependencies=${expected_dependencies} actual=${last_actual_deps}"
@@ -685,8 +700,8 @@ jobs:
 
 
           # 按 ID 有界轮询做完整校验（最多 12 次 × 5s）。分级规则：
-          #   project_id/version_number/name 不符、files 非空但无匹配条目 → 立即致命；
-          #   files 为空、loaders/game_versions/dependencies 任何不一致 → 继续轮询（暂态）
+          #   project_id/version_number/name 非空且不符、files 非空但无匹配条目 → 立即致命；
+          #   上述字段缺失/空值、files 为空、loaders/game_versions/dependencies 任何不一致 → 继续轮询（暂态）
           version_json=""
           verify_ok=false
           fatal_report=""
@@ -694,12 +709,26 @@ jobs:
           for attempt in 1 2 3 4 5 6 7 8 9 10 11 12; do
             if version_json=$(curl -fsS --retry 3 --retry-delay 5 --user-agent "$user_agent" "https://api.modrinth.com/v2/version/${target_id}"); then
               fatal_report=""
-              actual_tmp=$(jq -r '.project_id' <<<"$version_json")
-              if [ "$actual_tmp" != "$MODRINTH_PROJECT_ID" ]; then fatal_report="[ID-CONTENT] project_id 不一致：expected=${MODRINTH_PROJECT_ID}，actual=${actual_tmp}。"; break; fi
-              actual_tmp=$(jq -r '.version_number' <<<"$version_json")
-              if [ "$actual_tmp" != "$RELEASE_TAG" ]; then fatal_report="[ID-CONTENT] version_number 不一致：expected=${RELEASE_TAG}，actual=${actual_tmp}。"; break; fi
-              actual_tmp=$(jq -r '.name' <<<"$version_json")
-              if [ "$actual_tmp" != "$version_name" ]; then fatal_report="[ID-CONTENT] name 不一致：expected=${version_name}，actual=${actual_tmp}。"; break; fi
+              transient_tmp=""
+              # 身份字段：非空且不符 → 立即致命；缺失/null/空 → 暂态（计入 transient，不会误判成功）
+              actual_tmp=$(jq -r '.project_id // ""' <<<"$version_json")
+              if [ -n "$actual_tmp" ]; then
+                if [ "$actual_tmp" != "$MODRINTH_PROJECT_ID" ]; then fatal_report="[ID-CONTENT] project_id 不一致：expected=${MODRINTH_PROJECT_ID}，actual=${actual_tmp}。"; break; fi
+              else
+                transient_tmp="${transient_tmp}[TRANSIENT] project_id 缺失，等待写入完成\n"
+              fi
+              actual_tmp=$(jq -r '.version_number // ""' <<<"$version_json")
+              if [ -n "$actual_tmp" ]; then
+                if [ "$actual_tmp" != "$RELEASE_TAG" ]; then fatal_report="[ID-CONTENT] version_number 不一致：expected=${RELEASE_TAG}，actual=${actual_tmp}。"; break; fi
+              else
+                transient_tmp="${transient_tmp}[TRANSIENT] version_number 缺失，等待写入完成\n"
+              fi
+              actual_tmp=$(jq -r '.name // ""' <<<"$version_json")
+              if [ -n "$actual_tmp" ]; then
+                if [ "$actual_tmp" != "$version_name" ]; then fatal_report="[ID-CONTENT] name 不一致：expected=${version_name}，actual=${actual_tmp}。"; break; fi
+              else
+                transient_tmp="${transient_tmp}[TRANSIENT] name 缺失，等待写入完成\n"
+              fi
               files_count=$(jq '.files | length' <<<"$version_json")
               files_ok=false
               if [ "$files_count" -gt 0 ]; then
@@ -710,7 +739,6 @@ jobs:
                 fi
                 files_ok=true
               fi
-              transient_tmp=""
               actual_tmp=$(jq -c '.loaders | sort' <<<"$version_json")
               [ "$actual_tmp" = "$expected_loaders" ] || transient_tmp="${transient_tmp}[TRANSIENT] loaders 不一致：expected=${expected_loaders}，actual=${actual_tmp}\n"
               actual_tmp=$(jq -c '.game_versions | sort' <<<"$version_json")
