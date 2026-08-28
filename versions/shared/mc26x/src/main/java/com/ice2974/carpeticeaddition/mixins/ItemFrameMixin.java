@@ -46,8 +46,8 @@ public abstract class ItemFrameMixin {
         FrameCustomizationAction action = ItemFrameInteractionHelper.resolveAction(
                 player.isSpectator(),
                 !this.getItem().isEmpty(),
-                CarpetIceAdditionSettings.invisibleItemFrames,
-                CarpetIceAdditionSettings.fixedItemFrames,
+                CarpetIceAdditionSettings.itemFrameInvisible,
+                CarpetIceAdditionSettings.itemFrameFixed,
                 frame.isInvisible(),
                 this.fixed,
                 heldStack.is(Items.PHANTOM_MEMBRANE),
@@ -83,7 +83,7 @@ public abstract class ItemFrameMixin {
             }
             case CLEAR_FIXED -> {
                 boolean creativeMode = player.isCreative();
-                boolean refundTriggered = CarpetIceAdditionSettings.fixedItemFrames && !creativeMode && !this.carpetIceAddition$fixedFrameRefunded;
+                boolean refundTriggered = CarpetIceAdditionSettings.itemFrameFixed && !creativeMode && !this.carpetIceAddition$fixedFrameRefunded;
                 ItemFrameInteractionHelper.logFixedClearAttempt(frame.getUUID(), this.fixed, creativeMode, refundTriggered);
                 if (refundTriggered) {
                     carpetIceAddition$spawnRefundItem((ServerLevel) frame.level(), new ItemStack(Items.GLASS_PANE));
@@ -113,7 +113,7 @@ public abstract class ItemFrameMixin {
         ItemFrame frame = (ItemFrame) (Object) this;
         boolean creativeDestroyer = carpetIceAddition$isCreativeDestroyer(breaker);
 
-        if (CarpetIceAdditionSettings.invisibleItemFrames && frame.isInvisible() && !this.carpetIceAddition$invisibleFrameRefunded) {
+        if (CarpetIceAdditionSettings.itemFrameInvisible && frame.isInvisible() && !this.carpetIceAddition$invisibleFrameRefunded) {
             boolean refundTriggered = !creativeDestroyer;
             ItemFrameInteractionHelper.logInvisibleRefundAttempt(frame.getUUID(), true, creativeDestroyer, refundTriggered);
             if (refundTriggered) {
@@ -123,7 +123,7 @@ public abstract class ItemFrameMixin {
             this.carpetIceAddition$invisibleFramePaid = false;
         }
 
-        if (CarpetIceAdditionSettings.fixedItemFrames && this.fixed && !this.carpetIceAddition$fixedFrameRefunded) {
+        if (CarpetIceAdditionSettings.itemFrameFixed && this.fixed && !this.carpetIceAddition$fixedFrameRefunded) {
             boolean refundTriggered = !creativeDestroyer;
             ItemFrameInteractionHelper.logFixedRefundAttempt(frame.getUUID(), true, creativeDestroyer, refundTriggered);
             if (refundTriggered) {

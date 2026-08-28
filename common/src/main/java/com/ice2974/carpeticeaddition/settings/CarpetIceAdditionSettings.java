@@ -65,10 +65,10 @@ public final class CarpetIceAdditionSettings {
     public static boolean fakePlayerIgnoreThornsDamage = false;
 
     @Rule(categories = {ICE, FEATURE})
-    public static boolean invisibleItemFrames = false;
+    public static boolean itemFrameInvisible = false;
 
     @Rule(categories = {ICE, FEATURE})
-    public static boolean fixedItemFrames = false;
+    public static boolean itemFrameFixed = false;
 
     @Rule(categories = {ICE, FEATURE})
     public static boolean easyWaterloggedBlockPlacement = false;

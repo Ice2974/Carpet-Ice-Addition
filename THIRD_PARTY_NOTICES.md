@@ -27,7 +27,7 @@ Unless otherwise stated, the current implementations have been adapted or rewrit
 
 ## carpet-redcraft-addons
 
-- Related rules `invisibleItemFrames`, `fixedItemFrames`
+- Related rules `itemFrameInvisible`, `itemFrameFixed`
 - Original project carpet-redcraft-addons
 - Related original rule `betterItemFrames`
 - License AGPL-3.0

@@ -29,7 +29,7 @@ Require holding scaffolding or an empty main hand to break scaffolding.
 - Possible values: `false`, `true`
 - Categories: `ICE`, `FEATURE`
 
-### invisibleItemFrames
+### itemFrameInvisible
 
 Allows players to right-click item frames or glow item frames that already contain an item with a phantom membrane to make them invisible.
 
@@ -38,7 +38,7 @@ Allows players to right-click item frames or glow item frames that already conta
 - Possible values: `false`, `true`
 - Categories: `ICE`, `FEATURE`
 
-### fixedItemFrames
+### itemFrameFixed
 
 Allows players to right-click item frames or glow item frames that already contain an item with a glass pane to make them fixed; fixed frames can be unfixed by right-clicking them with an axe.
 

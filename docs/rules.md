@@ -29,7 +29,7 @@
 - 可选值: `false`, `true`
 - 分类: `ICE`, `FEATURE`
 
-### 可隐形展示框 (invisibleItemFrames)
+### 可隐形展示框 (itemFrameInvisible)
 
 允许玩家用幻翼膜右键已放入物品的物品展示框或荧光物品展示框，使其隐形。
 
@@ -38,7 +38,7 @@
 - 可选值: `false`, `true`
 - 分类: `ICE`, `FEATURE`
 
-### 可固定展示框 (fixedItemFrames)
+### 可固定展示框 (itemFrameFixed)
 
 允许玩家用玻璃板右键已放入物品的物品展示框或荧光物品展示框，使其固定；固定后的展示框可用斧头右键解除固定。
 
