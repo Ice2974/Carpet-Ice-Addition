@@ -59,6 +59,7 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
     private static final AtomicBoolean NEUTRAL_PHANTOMS_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean KILLITEM_TEXT_EVENTS_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean CRAFTABLE_CORAL_BLOCKS_ERROR_REPORTED = new AtomicBoolean(false);
+    private static final AtomicBoolean VILLAGER_TRADING_OPTIMIZATION_ERROR_REPORTED = new AtomicBoolean(false);
     private static String version;
 
     @Override
@@ -226,6 +227,8 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
             flag = KILLITEM_TEXT_EVENTS_ERROR_REPORTED;
         } else if ("craftableCoralBlocks".equals(featureName)) {
             flag = CRAFTABLE_CORAL_BLOCKS_ERROR_REPORTED;
+        } else if ("villagerTradingOptimization".equals(featureName)) {
+            flag = VILLAGER_TRADING_OPTIMIZATION_ERROR_REPORTED;
         } else {
             LOGGER.warn("[Carpet Ice Addition] Compatibility issue in feature {}: {}", featureName, throwable.toString());
             return;
