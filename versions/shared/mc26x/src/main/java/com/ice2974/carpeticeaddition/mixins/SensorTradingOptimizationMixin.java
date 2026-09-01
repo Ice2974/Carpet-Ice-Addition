@@ -33,14 +33,14 @@ public abstract class SensorTradingOptimizationMixin<T extends LivingEntity> {
                     target = "Lnet/minecraft/world/entity/ai/sensing/Sensor;doTick(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/LivingEntity;)V"
             )
     )
-    private void carpetIceAddition$skipUnusedVillagerSensors(ServerLevel level, T entity, Operation<Void> original) {
+    private void carpetIceAddition$skipUnusedVillagerSensors(Sensor<T> sensor, ServerLevel level, T entity, Operation<Void> original) {
         if (entity instanceof VillagerTradingOptimizationAccess access
                 && access.carpetIceAddition$isTradingOptimizationTarget()
                 && access.carpetIceAddition$isTradingOptimizationBaked()
                 && carpetIceAddition$isUnusedVillagerSensor()) {
             return;
         }
-        original.call(level, entity);
+        original.call(sensor, level, entity);
     }
 
     private boolean carpetIceAddition$isUnusedVillagerSensor() {
