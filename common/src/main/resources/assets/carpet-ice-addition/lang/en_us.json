@@ -147,5 +147,6 @@
   "carpet.rule.lavaFluidTickDelay.desc": "Customizes the lava flow delay in game ticks. In ultrawarm dimensions, the delay is divided by three with a minimum value of 1. Setting it to \"freeze\" freezes lava flow without affecting random fire ignition.",
   "carpet.rule.beaconIgnoresObstruction.desc": "Allows beacons to function normally regardless of blocks above them",
   "carpet.rule.namedWanderingTraderPersistence.desc": "Prevents named wandering traders from naturally despawning",
-  "carpet.rule.villagerTradingOptimization.desc": "Optimizes villagers named trade by keeping only the AI behaviors required for trading, leveling up, restocking, and other essential trading functions"
+  "carpet.rule.villagerTradingOptimization.desc": "Optimizes villagers named trade by keeping only the AI behaviors required for trading, leveling up, restocking, and other essential trading functions",
+  "carpet.rule.ironGolemSpawningOptimization.desc": "Optimizes villagers named iron_golem by keeping only the behaviors required for iron golem spawning"
 }

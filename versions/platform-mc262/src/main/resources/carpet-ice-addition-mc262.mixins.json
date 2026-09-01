@@ -50,7 +50,12 @@
     "VillagerTradingOptimizationMixin",
     "BrainProviderTradingOptimizationMixin",
     "SensorTradingOptimizationMixin",
-    "EntitySetCustomNameTradingOptimizationMixin"
+    "EntitySetCustomNameTradingOptimizationMixin",
+    "BehaviorIronGolemOptimizationMixin",
+    "OneShotIronGolemOptimizationMixin",
+    "GateBehaviorIronGolemOptimizationMixin",
+    "VillagerGoalPackagesIronGolemOptimizationMixin",
+    "SetWalkTargetFromLookTargetIronGolemOptimizationMixin"
   ],
   "client": [
     "DisableIllegalTextCharacterCheckClipboardMixin"

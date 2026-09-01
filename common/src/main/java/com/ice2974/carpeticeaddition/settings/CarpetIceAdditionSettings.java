@@ -131,4 +131,7 @@ public final class CarpetIceAdditionSettings {
 
     @Rule(categories = {ICE, FEATURE, OPTIMIZATION})
     public static boolean villagerTradingOptimization = false;
+
+    @Rule(categories = {ICE, FEATURE, OPTIMIZATION})
+    public static boolean ironGolemSpawningOptimization = false;
 }

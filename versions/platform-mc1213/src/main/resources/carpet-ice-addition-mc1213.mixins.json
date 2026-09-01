@@ -48,7 +48,12 @@
     "WanderingTraderEntityMixin",
     "VillagerEntityTradingOptimizationMixin",
     "SensorTradingOptimizationMixin",
-    "EntitySetCustomNameTradingOptimizationMixin"
+    "EntitySetCustomNameTradingOptimizationMixin",
+    "MultiTickTaskIronGolemOptimizationMixin",
+    "SingleTickTaskIronGolemOptimizationMixin",
+    "CompositeTaskIronGolemOptimizationMixin",
+    "VillagerTaskListProviderIronGolemOptimizationMixin",
+    "GoToLookTargetTaskIronGolemOptimizationMixin"
   ],
   "client": [
     "DisableIllegalTextCharacterCheckClipboardMixin",

@@ -380,3 +380,14 @@ While optimized, villagers no longer panic, sleep, breed, socialize, spread goss
 - Default: `false`
 - Possible values: `false`, `true`
 - Categories: `ICE`, `FEATURE`, `OPTIMIZATION`
+
+### ironGolemSpawningOptimization
+
+Optimizes villagers named iron_golem by keeping only the behaviors required for iron golem spawning.
+
+While optimized, villagers still claim beds, sleep on schedule, keep panicking and fleeing from zombies, and keep gossiping with other villagers, so both sleep-based and zombie-scare iron golem farms keep working with vanilla spawn conditions, rates, cooldowns, and spawn position rules untouched; only unrelated behaviors such as working, playing, wandering, breeding, and holding up trade offers are skipped. Name matching compares plain text case sensitively and must equal the lowercase name `iron_golem` exactly; colors, bold, and other styling do not affect matching. After renaming, removing the name, or turning the rule off, villagers immediately recover their full vanilla AI (unrelated behaviors already running finish their current cycle naturally), and no mod-dependent data is written to the save.
+
+- Type: `boolean`
+- Default: `false`
+- Possible values: `false`, `true`
+- Categories: `ICE`, `FEATURE`, `OPTIMIZATION`
