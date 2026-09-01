@@ -305,6 +305,15 @@ Allows beacons to function normally regardless of blocks above them.
 - Possible values: `false`, `true`
 - Categories: `ICE`, `FEATURE`, `CLIENT`
 
+### namedWanderingTraderPersistence
+
+Prevents named wandering traders from naturally despawning.
+
+- Type: `boolean`
+- Default: `false`
+- Possible values: `false`, `true`
+- Categories: `ICE`, `FEATURE`
+
 ### mobsSpawnWithoutSpears `MC>=1.21.11`
 
 Prevents naturally spawned zombies, zombie villagers, husks, zombified piglins, and piglins from holding spears.

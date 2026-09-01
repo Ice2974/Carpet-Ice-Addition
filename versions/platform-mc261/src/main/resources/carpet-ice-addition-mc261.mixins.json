@@ -45,7 +45,8 @@
     "WaterFluidTickDelayMixin",
     "LavaFluidTickDelayMixin",
     "FlowingFluidFreezeMixin",
-    "BeaconBlockEntityMixin"
+    "BeaconBlockEntityMixin",
+    "WanderingTraderMixin"
   ],
   "client": [
     "DisableIllegalTextCharacterCheckClipboardMixin"

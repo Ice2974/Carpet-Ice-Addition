@@ -124,4 +124,7 @@ public final class CarpetIceAdditionSettings {
 
     @Rule(categories = {ICE, FEATURE, CLIENT})
     public static boolean beaconIgnoresObstruction = false;
+
+    @Rule(categories = {ICE, FEATURE})
+    public static boolean namedWanderingTraderPersistence = false;
 }
