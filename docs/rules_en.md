@@ -369,3 +369,14 @@ Customizes the lava flow delay in game ticks. In ultrawarm dimensions, the delay
 - Suggested values: `freeze`, `30`
 - Accepted values: `freeze` or an integer from `1` through `72000`
 - Categories: `ICE`, `FEATURE`
+
+### villagerTradingOptimization
+
+Optimizes villagers named trade by keeping only the AI behaviors required for trading, leveling up, restocking, and other essential trading functions.
+
+While optimized, villagers no longer panic, sleep, breed, socialize, spread gossip, take part in iron golem summoning, actively seek pickup items, or farm crops, but they still acquire and keep professions, walk to their workstations during the day, and restock following vanilla rules and the vanilla daily restock limit; name matching is case sensitive and must equal the lowercase name `trade` exactly. After renaming, removing the name, or turning the rule off, villagers recover their full vanilla AI through the vanilla brain rebuild path, and no mod-dependent data is written to the save.
+
+- Type: `boolean`
+- Default: `false`
+- Possible values: `false`, `true`
+- Categories: `ICE`, `FEATURE`, `OPTIMIZATION`

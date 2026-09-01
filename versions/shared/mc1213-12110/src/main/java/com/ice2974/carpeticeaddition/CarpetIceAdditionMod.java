@@ -6,6 +6,7 @@ import carpet.utils.CommandHelper;
 import com.ice2974.carpeticeaddition.rules.BotTabListNameHelper;
 import com.ice2974.carpeticeaddition.rules.CraftableCoralBlocksDataPackController;
 import com.ice2974.carpeticeaddition.rules.CraftableCoralBlocksState;
+import com.ice2974.carpeticeaddition.rules.VillagerTradingOptimizationRuleHelper;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionEndPlatformSettings;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
 import com.ice2974.carpeticeaddition.settings.CraftableCoralBlocksSettings;
@@ -95,6 +96,11 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
                 CarpetIceAdditionFluidSettings.refreshCachedValues();
                 return;
             }
+            if ("villagerTradingOptimization".equals(ruleName)) {
+                VillagerTradingOptimizationRuleHelper.rebuildMismatchedVillagers(
+                        source != null ? source.getServer() : CarpetServer.minecraft_server);
+                return;
+            }
             if (!"botTabListNamePrefix".equals(ruleName) && !"botTabListNameSuffix".equals(ruleName)) {
                 return;
             }
@@ -159,6 +165,7 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
         }
 
         CarpetIceAdditionFluidSettings.refreshCachedValues();
+        VillagerTradingOptimizationRuleHelper.rebuildMismatchedVillagers(server);
     }
 
     @Override

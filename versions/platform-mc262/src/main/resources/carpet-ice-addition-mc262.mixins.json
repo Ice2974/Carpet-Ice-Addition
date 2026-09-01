@@ -46,7 +46,11 @@
     "LavaFluidTickDelayMixin",
     "FlowingFluidFreezeMixin",
     "BeaconBlockEntityMixin",
-    "WanderingTraderMixin"
+    "WanderingTraderMixin",
+    "VillagerTradingOptimizationMixin",
+    "BrainProviderTradingOptimizationMixin",
+    "SensorTradingOptimizationMixin",
+    "EntitySetCustomNameTradingOptimizationMixin"
   ],
   "client": [
     "DisableIllegalTextCharacterCheckClipboardMixin"
