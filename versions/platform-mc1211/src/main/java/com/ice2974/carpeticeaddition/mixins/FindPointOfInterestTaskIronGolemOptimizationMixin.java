@@ -20,16 +20,19 @@ import java.util.Optional;
 import java.util.function.Predicate;
 
 /**
- * ironGolemSpawningOptimization 规则（MC 1.21.1）：FindPointOfInterestTask 工厂标记（仅找工作点变体）。
+ * ironGolemSpawningOptimization 规则（MC 1.21.1）：FindPointOfInterestTask 工厂标记（找工作点 / 找聚会点变体）。
  * FindPointOfInterestTask 是纯工厂 holder；本版本存在 4 参与 5 参两个 create 重载，
  * 其中 4 参（HOME / MEETING_POINT 调用）会委托进入 5 参方法体，因此不能只按重载定向，
- * 必须注入“最宽重载”（5 参）RETURN 并以两个 MemoryModuleType 参数引用不等作 guard：
- * 只有 JOB_SITE 变体（JOB_SITE 与 POTENTIAL_JOB_SITE 两个不同实例）命中，
- * HOME / MEETING_POINT（同一实例传两遍）永远不标记——该 guard 与原版自身的包装分支条件一致，
- * HOME / MEETING 不被标记的行为由 IronGolemVillagerOptimizerTest 单测在代码级验证。
- * 该任务被否决后，命名村民不再周期性发起找工作点的 48 格 POI 扫描与寻路；
- * 认床（HOME）与钟聚（MEETING_POINT）变体不受影响。5 参重载仅存在于 1.21.1 / 1.21.3
- * （1.21.4 起被带 BiPredicate 的 6 参重载取代，见 mc1214 / mc1215-12111 档）。
+ * 必须注入“最宽重载”（5 参）RETURN 并以 MemoryModuleType 参数判定作 guard：
+ * JOB_SITE 变体（JOB_SITE 与 POTENTIAL_JOB_SITE 两个不同实例）以引用不等命中，
+ * MEETING_POINT 变体（MEETING_POINT 同一实例传两遍）以目标 memory 与
+ * MEETING_POINT 常量引用相等命中；HOME 变体（HOME 同一实例传两遍）两个判定均不命中，
+ * 永远不标记——认床能力保持原版，HOME 已认领时该任务本就被 absent 门控闲置。
+ * 被否决的两个变体使命名村民不再周期性发起找工作点 / 找聚会点的 48 格 POI 扫描与寻路；
+ * 无钟铁塔中 MEETING_POINT 永远缺失，该变体原本每 20-40t 触发一次全量 POI 查询。
+ * HOME / MEETING 不被 jobSite 判定标记的行为由 IronGolemVillagerOptimizerTest 单测
+ * 在代码级验证。5 参重载仅存在于 1.21.1 / 1.21.3（1.21.4 起被带 BiPredicate 的
+ * 6 参重载取代，见 mc1214 / mc1215-12111 档）。
  */
 @Mixin(FindPointOfInterestTask.class)
 public abstract class FindPointOfInterestTaskIronGolemOptimizationMixin {
@@ -45,9 +48,10 @@ public abstract class FindPointOfInterestTaskIronGolemOptimizationMixin {
             boolean onlyRunIfChild,
             Optional<Byte> entityStatus,
             CallbackInfoReturnable<Task<PathAwareEntity>> cir) {
-        if (!IronGolemVillagerOptimizer.isJobSitePoiVariant(poiPosModule, potentialPoiPosModule)) {
+        if (!IronGolemVillagerOptimizer.isJobSitePoiVariant(poiPosModule, potentialPoiPosModule)
+                && !IronGolemVillagerOptimizer.isMeetingPoiVariant(poiPosModule, MemoryModuleType.MEETING_POINT)) {
             return;
         }
-        IronGolemVillagerOptimizationHooks.markTaskInstance(cir.getReturnValue(), "FindPointOfInterestTask.create(jobSite)");
+        IronGolemVillagerOptimizationHooks.markTaskInstance(cir.getReturnValue(), "FindPointOfInterestTask.create(jobSite|meetingPoint)");
     }
 }

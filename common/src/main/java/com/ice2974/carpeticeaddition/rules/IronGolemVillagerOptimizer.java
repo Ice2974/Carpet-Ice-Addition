@@ -29,4 +29,15 @@ public final class IronGolemVillagerOptimizer {
     public static boolean isJobSitePoiVariant(Object poiPosModule, Object potentialPoiPosModule) {
         return poiPosModule != potentialPoiPosModule;
     }
+
+    /**
+     * FindPointOfInterestTask / AcquirePoi 最宽重载收到的目标 memory 是否为“找聚会点”变体。
+     * 原版 MEETING_POINT 变体经由便捷重载委托进入最宽重载时，两个 MemoryModuleType 参数
+     * 均为 MEETING_POINT 同一实例，调用方以 MemoryModuleType.MEETING_POINT 常量作为
+     * 第二参数即可精确命中；HOME 变体（HOME 同一实例传两遍）不会命中。
+     * 该变体被否决后，无钟铁塔中的命名村民不再周期性发起寻找聚会点的 48 格 POI 扫描。
+     */
+    public static boolean isMeetingPoiVariant(Object poiPosModule, Object meetingPointModule) {
+        return poiPosModule == meetingPointModule;
+    }
 }

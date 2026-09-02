@@ -148,5 +148,5 @@
   "carpet.rule.beaconIgnoresObstruction.desc": "Allows beacons to function normally regardless of blocks above them",
   "carpet.rule.namedWanderingTraderPersistence.desc": "Prevents named wandering traders from naturally despawning",
   "carpet.rule.villagerTradingOptimization.desc": "Optimizes villagers named trade by keeping only the AI behaviors required for trading, leveling up, restocking, and other essential trading functions",
-  "carpet.rule.ironGolemSpawningOptimization.desc": "Optimizes villagers named iron_golem: skips unrelated behaviors such as working, wandering looks and holding up trades, and suppresses job site seeking and pathfinding to items, keeping only behaviors required for iron golem spawning"
+  "carpet.rule.ironGolemSpawningOptimization.desc": "Naming a villager iron_golem declares it is inside a finished modern scare-based iron farm: disables wandering looks, socializing, bell gathering, breeding, professions and trade displays, and suppresses job site seeking, meeting point seeking and pathfinding to items; panic triggering, scheduled sleep and the vanilla iron golem spawn algorithm are preserved, gossip-based farms are not supported; rename the villager before maintaining, moving or rearranging villagers and beds"
 }

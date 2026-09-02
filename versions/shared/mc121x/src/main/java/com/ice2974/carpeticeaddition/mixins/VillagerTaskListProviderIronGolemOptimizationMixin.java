@@ -17,15 +17,23 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 /**
  * ironGolemSpawningOptimization 规则（MC 1.21.x）：构建期标记层。
  * 在村民每次建脑（初建 / 职业变更 / 成长 / NBT 读入 / reinitializeBrain）都会重走的
- * WORK / PLAY 任务列表构建点，对顶层任务打可跳过标记；标记与规则开关、村民名称完全解耦，
- * 之后任意时刻改名或开关规则都能即时生效。
+ * WORK / PLAY / IDLE / MEET 任务列表构建点，对顶层任务打可跳过标记；标记与规则开关、
+ * 村民名称完全解耦，之后任意时刻改名或开关规则都能即时生效。
  * 优先级 99 的日程切换项（ScheduleActivityTask 的匿名 SingleTickTask）必须排除：
- * 若被否决，村民将永久停留在 WORK / PLAY，无法按日程切换到 REST 睡眠，破坏铁傀儡生成链。
- * 另标记 IDLE / MEET / PLAY 共用的 freeFollow 张望组合（createFreeFollowTask 返回的
- * RandomTask，即各活动列表中唯一的 priority 5 顶层张望组合，按工厂方法直接标记而非按优先级粗标，
- * 不会波及第三方 Brain 模组加入的其它任务）；REST / PANIC / WORK 的 busyFollow 张望组合
- * （createBusyFollowTask）不标记。仅按方法名匹配注入，兼容 1.21.3 / 1.21.4 的 VillagerProfession
- * 与 1.21.5+ 的 RegistryEntry&lt;VillagerProfession&gt; 参数差异。
+ * 若被否决，村民将永久停留在对应活动，无法按日程切换到 REST 睡眠，破坏铁傀儡生成链。
+ * IDLE / MEET 在本规则语义（现代恐吓式刷铁机）下整表禁用，不保留 gossip 链：
+ * 命名村民白天保持静止，仅经 p99 日程切换在夜间进入 REST 睡眠、或经 CORE 的
+ * PanicTask 进入 PANIC 触发铁傀儡生成；命名时已处于 MEET 的村民由保留下来的
+ * p99 日程切换自然退出，不会卡死。
+ * 另标记 REST / PANIC / WORK / PRE_RAID / RAID / HIDE 共用的 busyFollow 张望组合
+ * （createBusyFollowTask 返回的 RandomTask，纯张望行为，与生成链无关）；
+ * freeFollow（createFreeFollowTask）只被 IDLE / MEET / PLAY 三个已整表标记的列表使用，
+ * 无需单独标记。
+ * 仅按方法名匹配注入，兼容 1.21.3 的 VillagerProfession 与 1.21.5+ 的
+ * RegistryEntry&lt;VillagerProfession&gt; 参数差异；createIdleTasks / createMeetTasks /
+ * createBusyFollowTask 在 1.21.1-1.21.11 全版本保持同名（已逐版本核对）。
+ * 本标记只作用于原版 provider 返回的列表；第三方模组对 Brain 任务表的修改不在此
+ * 覆盖范围内，属于待人工确认的兼容项。
  */
 @Mixin(VillagerTaskListProvider.class)
 public abstract class VillagerTaskListProviderIronGolemOptimizationMixin {
@@ -42,9 +50,19 @@ public abstract class VillagerTaskListProviderIronGolemOptimizationMixin {
         carpetIceAddition$markSkippedTopLevelTasks(cir.getReturnValue(), "createPlayTasks");
     }
 
-    @Inject(method = "createFreeFollowTask", at = @At("RETURN"))
-    private static void carpetIceAddition$markFreeFollowTaskForIronGolemOptimization(CallbackInfoReturnable<Pair<Integer, Task<LivingEntity>>> cir) {
-        IronGolemVillagerOptimizationHooks.markTaskInstance(cir.getReturnValue().getSecond(), "createFreeFollowTask");
+    @Inject(method = "createIdleTasks", at = @At("RETURN"))
+    private static void carpetIceAddition$markIdleTasksForIronGolemOptimization(CallbackInfoReturnable<ImmutableList<Pair<Integer, ? extends Task<? super VillagerEntity>>>> cir) {
+        carpetIceAddition$markSkippedTopLevelTasks(cir.getReturnValue(), "createIdleTasks");
+    }
+
+    @Inject(method = "createMeetTasks", at = @At("RETURN"))
+    private static void carpetIceAddition$markMeetTasksForIronGolemOptimization(CallbackInfoReturnable<ImmutableList<Pair<Integer, ? extends Task<? super VillagerEntity>>>> cir) {
+        carpetIceAddition$markSkippedTopLevelTasks(cir.getReturnValue(), "createMeetTasks");
+    }
+
+    @Inject(method = "createBusyFollowTask", at = @At("RETURN"))
+    private static void carpetIceAddition$markBusyFollowTaskForIronGolemOptimization(CallbackInfoReturnable<Pair<Integer, Task<LivingEntity>>> cir) {
+        IronGolemVillagerOptimizationHooks.markTaskInstance(cir.getReturnValue().getSecond(), "createBusyFollowTask");
     }
 
     private static void carpetIceAddition$markSkippedTopLevelTasks(ImmutableList<Pair<Integer, ? extends Task<? super VillagerEntity>>> tasks, String source) {

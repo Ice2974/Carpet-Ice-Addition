@@ -51,6 +51,16 @@ class IronGolemVillagerOptimizerTest {
     }
 
     @Test
+    void meetingPoiVariantMatchesOnlyMeetingPointModule() {
+        // MEETING_POINT 变体经由最宽重载委托时，目标 memory 与 MEETING_POINT 常量为同一实例；
+        // HOME 变体的目标 memory 是 HOME 实例，不会命中
+        Object meetingPointModule = new Object();
+        assertTrue(IronGolemVillagerOptimizer.isMeetingPoiVariant(meetingPointModule, meetingPointModule));
+        Object homeModule = new Object();
+        assertFalse(IronGolemVillagerOptimizer.isMeetingPoiVariant(homeModule, meetingPointModule));
+    }
+
+    @Test
     void jobSitePoiVariantMatchesDistinctMemoryModules() {
         // JOB_SITE 变体传入 JOB_SITE 与 POTENTIAL_JOB_SITE 两个不同实例
         Object jobSiteModule = new Object();
