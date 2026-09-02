@@ -55,7 +55,16 @@
     "OneShotIronGolemOptimizationMixin",
     "GateBehaviorIronGolemOptimizationMixin",
     "VillagerGoalPackagesIronGolemOptimizationMixin",
-    "SetWalkTargetFromLookTargetIronGolemOptimizationMixin"
+    "SetWalkTargetFromLookTargetIronGolemOptimizationMixin",
+    "VillagerIronGolemOptimizationMixin",
+    "EntitySetCustomNameIronGolemOptimizationMixin",
+    "AcquirePoiIronGolemOptimizationMixin",
+    "YieldJobSiteIronGolemOptimizationMixin",
+    "AssignProfessionFromJobSiteIronGolemOptimizationMixin",
+    "ResetProfessionIronGolemOptimizationMixin",
+    "PoiCompetitorScanIronGolemOptimizationMixin",
+    "GoToWantedItemIronGolemOptimizationMixin",
+    "SetLookAndInteractIronGolemOptimizationMixin"
   ],
   "client": [
     "DisableIllegalTextCharacterCheckClipboardMixin"

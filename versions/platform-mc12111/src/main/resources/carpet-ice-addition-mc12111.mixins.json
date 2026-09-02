@@ -55,7 +55,17 @@
     "SingleTickTaskIronGolemOptimizationMixin",
     "CompositeTaskIronGolemOptimizationMixin",
     "VillagerTaskListProviderIronGolemOptimizationMixin",
-    "GoToLookTargetTaskIronGolemOptimizationMixin"
+    "GoToLookTargetTaskIronGolemOptimizationMixin",
+    "VillagerEntityIronGolemOptimizationMixin",
+    "EntitySetCustomNameIronGolemOptimizationMixin",
+    "TakeJobSiteTaskIronGolemOptimizationMixin",
+    "LoseJobOnSiteLossTaskIronGolemOptimizationMixin",
+    "WorkStationCompetitionTaskIronGolemOptimizationMixin",
+    "FindInteractionTargetTaskIronGolemOptimizationMixin",
+    "UpdateJobSiteTaskIronGolemOptimizationMixin",
+    "WalkTowardsNearestVisibleWantedItemTaskIronGolemOptimizationMixin",
+    "WalkTowardsJobSiteTaskIronGolemOptimizationMixin",
+    "FindPointOfInterestTaskIronGolemOptimizationMixin"
   ],
   "client": [
     "DisableIllegalTextCharacterCheckClipboardMixin"

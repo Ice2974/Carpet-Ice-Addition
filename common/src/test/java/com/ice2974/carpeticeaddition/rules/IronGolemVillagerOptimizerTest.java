@@ -40,4 +40,21 @@ class IronGolemVillagerOptimizerTest {
         assertFalse(IronGolemVillagerOptimizer.matchesOptimizedVillagerName("snow_golem"));
         assertFalse(IronGolemVillagerOptimizer.matchesOptimizedVillagerName("Villager"));
     }
+
+    @Test
+    void jobSitePoiVariantNeverMatchesHomeOrMeetingCallSites() {
+        // HOME / MEETING_POINT 变体经由最宽重载委托时，两个 MemoryModuleType 参数是同一实例
+        Object homeModule = new Object();
+        assertFalse(IronGolemVillagerOptimizer.isJobSitePoiVariant(homeModule, homeModule));
+        Object meetingModule = new Object();
+        assertFalse(IronGolemVillagerOptimizer.isJobSitePoiVariant(meetingModule, meetingModule));
+    }
+
+    @Test
+    void jobSitePoiVariantMatchesDistinctMemoryModules() {
+        // JOB_SITE 变体传入 JOB_SITE 与 POTENTIAL_JOB_SITE 两个不同实例
+        Object jobSiteModule = new Object();
+        Object potentialJobSiteModule = new Object();
+        assertTrue(IronGolemVillagerOptimizer.isJobSitePoiVariant(jobSiteModule, potentialJobSiteModule));
+    }
 }
