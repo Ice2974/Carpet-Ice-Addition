@@ -30,8 +30,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * getFullLookBehavior 只被 PLAY / MEET / IDLE 三个已整表标记的包使用，无需单独标记。
  * 优先级常量已对 26.1.2 / 26.2 反编译源码逐一核对（各包 p99 为
  * UpdateActivityFromSchedule、两个张望组合均为 priority 5）。
- * 本标记只作用于原版 VillagerGoalPackages 返回的列表；第三方模组对 Brain 任务表的
- * 修改不在此覆盖范围内，属于待人工确认的兼容项。
+ * 设计目标是标记 Vanilla VillagerGoalPackages 构建出的任务；第三方模组若修改同一
+ * 活动任务表，是否被连带标记取决于其实现及 Mixin 顺序，兼容性需单独确认。
  */
 @Mixin(VillagerGoalPackages.class)
 public abstract class VillagerGoalPackagesIronGolemOptimizationMixin {

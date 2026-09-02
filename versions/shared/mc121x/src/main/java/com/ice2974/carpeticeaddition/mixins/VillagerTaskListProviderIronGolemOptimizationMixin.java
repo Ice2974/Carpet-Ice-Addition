@@ -32,8 +32,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * 仅按方法名匹配注入，兼容 1.21.3 的 VillagerProfession 与 1.21.5+ 的
  * RegistryEntry&lt;VillagerProfession&gt; 参数差异；createIdleTasks / createMeetTasks /
  * createBusyFollowTask 在 1.21.1-1.21.11 全版本保持同名（已逐版本核对）。
- * 本标记只作用于原版 provider 返回的列表；第三方模组对 Brain 任务表的修改不在此
- * 覆盖范围内，属于待人工确认的兼容项。
+ * 设计目标是标记 Vanilla provider 构建出的任务；第三方模组若修改同一活动任务表，
+ * 是否被连带标记取决于其实现及 Mixin 顺序，兼容性需单独确认。
  */
 @Mixin(VillagerTaskListProvider.class)
 public abstract class VillagerTaskListProviderIronGolemOptimizationMixin {
