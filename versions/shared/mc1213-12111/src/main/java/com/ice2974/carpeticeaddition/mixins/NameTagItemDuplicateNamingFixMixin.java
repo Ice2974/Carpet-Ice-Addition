@@ -40,6 +40,8 @@ public abstract class NameTagItemDuplicateNamingFixMixin {
         if (tagCustomName != null && entity.hasCustomName()) {
             Text currentCustomName = entity.getCustomName();
             if (tagCustomName.equals(currentCustomName)) {
+                // 原版 1.21.2+ useOnEntity 成功恒返回 SUCCESS（ActionResult 重构后 SwingSource.CLIENT，服务端不补挥手）；
+                // 1.21.1 因原版服务端成功为 CONSUME 而由 platform-mc1211 单独实现，勿跨版本统一返回值。
                 cir.setReturnValue(ActionResult.SUCCESS);
             }
         }

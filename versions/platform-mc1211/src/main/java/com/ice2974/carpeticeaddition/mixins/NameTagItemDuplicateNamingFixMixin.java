@@ -40,6 +40,10 @@ public abstract class NameTagItemDuplicateNamingFixMixin {
         if (tagCustomName != null && entity.hasCustomName()) {
             Text currentCustomName = entity.getCustomName();
             if (tagCustomName.equals(currentCustomName)) {
+                // 原版 1.21.1 useOnEntity 成功时返回 ActionResult.success(isClient)，
+                // 服务端侧即 ActionResult.CONSUME；取消重复命名时保持与服务端原版语义一致，
+                // 避免 ServerPlayNetworkHandler 因 SUCCESS 的 shouldSwingHand() 补播挥手。
+                // 1.21.2+ 原版改为恒返回 SUCCESS，故 shared 档（mc1213-12111 / mc26x）返回 SUCCESS，勿跨版本统一。
                 cir.setReturnValue(ActionResult.CONSUME);
             }
         }
