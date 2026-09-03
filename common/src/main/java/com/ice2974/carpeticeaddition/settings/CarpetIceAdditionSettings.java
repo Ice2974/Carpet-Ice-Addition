@@ -134,4 +134,7 @@ public final class CarpetIceAdditionSettings {
 
     @Rule(categories = {ICE, FEATURE, OPTIMIZATION})
     public static boolean ironGolemSpawningOptimization = false;
+
+    @Rule(categories = {ICE, BUGFIX})
+    public static boolean nameTagDuplicateNamingFix = false;
 }

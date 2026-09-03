@@ -30,6 +30,7 @@
     "ItemUsagePortableInfiniteWaterMixin",
     "DisableAirborneMiningPenaltyMixin",
     "SafeScaffoldingBreakMixin",
+    "NameTagItemDuplicateNamingFixMixin",
     "PlayerListEntryTabListNameMixin",
     "ServerCommonNetworkHandlerAccessor",
     "ServerPlayNetworkHandlerMachineStatusRollbackWarningMixin",

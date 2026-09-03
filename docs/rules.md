@@ -381,6 +381,15 @@
 - 可选值: `false`, `true`
 - 分类: `ICE`, `FEATURE`, `OPTIMIZATION`
 
+### 命名牌重复命名修复 (nameTagDuplicateNamingFix)
+
+当命名牌上的名称与实体当前自定义名称相同时，阻止重复命名，避免浪费命名牌。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `BUGFIX`
+
 ### 铁傀儡生成优化 (ironGolemSpawningOptimization)
 
 将村民命名为 iron_golem 即声明其位于搭建完成的现代恐吓式刷铁机：关闭闲逛张望、社交闲聊、钟聚、繁殖、职业与交易展示等与刷铁无关的行为，并抑制寻找工作站、寻找聚会点与主动寻路捡取物品；保留恐慌触发、按日程睡眠与原版铁傀儡生成算法，不保证 gossip 型刷铁；维护、运输或重新布置村民与床前应先改名解除优化。

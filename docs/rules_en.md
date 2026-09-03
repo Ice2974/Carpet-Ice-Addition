@@ -381,6 +381,15 @@ This rule targets fixed trading halls: the workstation must be placed within rou
 - Possible values: `false`, `true`
 - Categories: `ICE`, `FEATURE`, `OPTIMIZATION`
 
+### nameTagDuplicateNamingFix
+
+Prevents a name tag from being consumed when its name is identical to the entity's current custom name.
+
+- Type: `boolean`
+- Default: `false`
+- Possible values: `false`, `true`
+- Categories: `ICE`, `BUGFIX`
+
 ### ironGolemSpawningOptimization
 
 Naming a villager iron_golem declares it is inside a finished modern scare-based iron farm: disables wandering looks, socializing, bell gathering, breeding, professions and trade displays, and suppresses job site seeking, meeting point seeking and pathfinding to items; panic triggering, scheduled sleep and the vanilla iron golem spawn algorithm are preserved, gossip-based farms are not supported; rename the villager before maintaining, moving or rearranging villagers and beds.

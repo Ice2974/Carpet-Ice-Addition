@@ -36,6 +36,7 @@
     "ServerWorldPhantomSpawnWarningMixin",
     "ServerWorldRecordWorldEventMixin",
     "SafeScaffoldingBreakMixin",
+    "NameTagItemDuplicateNamingFixMixin",
     "PlayerListEntryTabListNameMixin",
     "ServerCommonNetworkHandlerAccessor",
     "ServerPlayNetworkHandlerMachineStatusRollbackWarningMixin",
