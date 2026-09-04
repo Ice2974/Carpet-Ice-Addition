@@ -64,6 +64,13 @@
 - 依赖版本不匹配时，优先依赖 `fabric.mod.json` 的 `depends` 在启动阶段 fail-fast，不做运行期静默降级。
 - 平台模块的 mixins 配置默认保持 `required=true`，除非任务明确要求调整。
 
+## 版本注册表与构建配置
+
+- `settings.json` 是支持版本清单的唯一来源；`settings.gradle` 据此动态生成平台子项目，并断言注册表与 `versions/platform-*` 目录一致。
+- 新增 Minecraft 平台 = 在 `settings.json` 按版本升序登记 + 新建 `versions/platform-*/`（per-version `gradle.properties`、薄包装 `build.gradle`、src），不要手写 include 清单。
+- 平台版本数据（minecraft、yarn、loader、fabric-api、carpet、pack_format 等）放在 `versions/platform-*/gradle.properties`，不要向根 `gradle.properties` 回填平台前缀键。
+- 平台共通构建逻辑在根 `common.gradle`，差异由 per-version 数据键驱动；修改共通逻辑时必须同时验证两种 loom 形态（Yarn remap 与免混淆 plain）。
+
 ## 规则 / 命令 / 记录器修改
 
 新增或调整功能时，按类型同步检查：
