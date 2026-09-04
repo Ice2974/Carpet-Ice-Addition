@@ -139,6 +139,12 @@ P3-2 人工验收通过（`32d0f26`）后核查发现基线目录仍为 P3-0（`
 
 明确边界：不合并 json、不模板生成、不改 json 内容、不移动 Mixin 文件、不校验 client/main 归属数组的语义正确性（静态不可判定，由 L1-5 游戏内加载兜底）。
 
+断言 ③（mixin package Java 类 ↔ mixin json 条目双向一致）的设计约束：
+
+- **当前成立前提**：mixins 包内全部 Java 类型均作为 Mixin 注册进 json，不存在 mixin helper / utility 类型（P3-3 实施前预检 ×11 平台已确认该前提成立）。
+- **未来演进触发**：若架构演进引入 mixin helper、accessor support class、annotation wrapper 或其他非注册辅助类，则"包内全部类必须注册"的严格断言不再成立，需重新评估断言范围。候选调整方向：按注解扫描（仅 `@Mixin` / `@Accessor` 标注类型参与比对）、按命名规则过滤、按目录划分检查范围（mixins 包内再分 `impl` / `support` 子包）。
+- 调整属独立的后续变更：需同步修改任务实现与本节说明，不得在引入辅助类的同一次改动中静默放松断言。
+
 ### 5.3 自动化验证（全部通过，2026-09-04）
 
 | 验证项 | 方法 | 结果 |
@@ -150,6 +156,7 @@ P3-2 人工验收通过（`32d0f26`）后核查发现基线目录仍为 P3-0（`
 | 变异 C（不变量） | mc262 json `compatibilityLevel` 改为 JAVA_21 | 按预期 FAIL：`compatibilityLevel JAVA_21 != JAVA_25` |
 | 全量回归 | `build verifyCraftableCoralBlocksJars verifyFabricModJson verifyMixinConfigs :common:test verifyJarEquivalence`（P3-2 后基线） | 全绿，等价 11/11（任务为纯增量，产物零变化） |
 | 工作区卫生 | `git diff --check` / `git diff --cached --check` | 通过 |
+| CI 接入（P3-3 收尾） | `.github/workflows/build.yml` 命令串追加 `verifyMixinConfigs`（原有任务与顺序不变；`verifyJarEquivalence` 依赖仓库外基线，不纳入 CI） | 本地等价命令验证通过（§5.3 全量回归行） |
 
 ### 5.4 变异测试的环境伪影记录
 
