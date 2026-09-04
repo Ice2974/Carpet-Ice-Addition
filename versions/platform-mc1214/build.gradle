@@ -1,6 +1,5 @@
 plugins {
     id 'fabric-loom' version '1.13.6'
-    id 'maven-publish'
 }
 
 // 平台差异由本目录 gradle.properties 数据驱动，共通构建逻辑见根 common.gradle

@@ -27,7 +27,8 @@ def remapFamily = project.jar_task == 'remap'
 def declaredLoomId = project.loom_plugin.substring(0, project.loom_plugin.indexOf(':'))
 assert project.plugins.findPlugin(declaredLoomId) != null:
         "loom_plugin=${project.loom_plugin} 与实际应用的 loom 插件不一致（未找到插件 ${declaredLoomId}）"
-assert project.plugins.findPlugin('maven-publish') != null: '薄包装 build.gradle 必须应用 maven-publish 插件'
+// maven-publish 由共通脚本统一应用（Phase 2 收敛：薄包装不再逐份声明）
+project.pluginManager.apply('maven-publish')
 
 base {
     archivesName = "${project.archives_base_name}-${platformCode}"
