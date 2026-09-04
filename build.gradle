@@ -91,6 +91,105 @@ def verifyFabricModJson = tasks.register('verifyFabricModJson') {
             if (text.contains('${')) {
                 throw new GradleException("Unexpanded template placeholder in fabric.mod.json of ${jarFile.name} (${projectPath})")
             }
+
+            // 项目级一致性防线（Phase 2 新增），锚定 per-version 数据键：
+            // 1) fabric.mod.json 的 mixins 引用恰为登记的 mixin_config；
+            // 2) 该 mixin 配置文件实际存在于 jar；
+            // 3) depends.fabricloader == ">=loader_version"。第 3 条是本项目当前数据模型的
+            //    项目级 invariant（模板硬编码值与 per-version loader_version 恒等），
+            //    不是 Fabric Loader 的通用必然关系；未来若某平台最低运行依赖需与构建
+            //    loader 版本分离，应先调整 per-version 数据模型，再同步放宽此断言。
+            def fabricModJson = new groovy.json.JsonSlurper().parseText(text)
+            def mixinConfigName = platform.mixin_config
+            assert fabricModJson.mixins == [mixinConfigName]:
+                    "fabric.mod.json mixins ${fabricModJson.mixins} != [${mixinConfigName}] in ${jarFile.name} (${projectPath})"
+            def mixinConfigInJar = new java.util.zip.ZipFile(jarFile).withCloseable { zip ->
+                zip.getEntry(mixinConfigName) != null
+            }
+            assert mixinConfigInJar: "mixin config ${mixinConfigName} not found in ${jarFile.name} (${projectPath})"
+            def expectedLoaderDependency = ">=${platform.loader_version}"
+            assert fabricModJson.depends.fabricloader == expectedLoaderDependency:
+                    "fabric.mod.json fabricloader ${fabricModJson.depends.fabricloader} != ${expectedLoaderDependency} in ${jarFile.name} (${projectPath})"
+        }
+    }
+}
+
+// L1-6 jar 内容级等价对照（Phase 2）：与 Phase 1 迁移前（0270fc3）的全量构建快照逐平台比对。
+// 用法：.\gradlew.bat verifyJarEquivalence -PbaselineDir=<快照根目录>（含 versions/platform-*/build/libs 的目录，建议绝对路径）
+// 比对项：zip 条目清单、fabric.mod.json 解析后逐键语义、全部 *.mixins.json 字节、pack.mcmeta 的 pack_format；
+// 另核对两侧 sources jar 存在且同名。class 文件不做字节级比对（编译时间戳噪声，见 refactor-target-architecture R5）。
+def verifyJarEquivalence = tasks.register('verifyJarEquivalence') {
+    doLast {
+        def baselineDirName = project.findProperty('baselineDir')
+        if (baselineDirName == null) {
+            throw new GradleException('缺少 -PbaselineDir=<迁移前全量构建快照根目录>（指向含 versions/platform-*/build/libs 的目录，建议绝对路径）')
+        }
+        def baselineRoot = rootProject.file(baselineDirName)
+
+        platformProjects.each { projectPath ->
+            def platform = project(projectPath)
+            def outputTask = platform.tasks.findByName('remapJar') ?: platform.tasks.named('jar').get()
+            def currentJar = outputTask.archiveFile.get().asFile
+            assert currentJar.isFile(): "Missing release JAR for ${projectPath}: ${currentJar}"
+
+            def platformCode = platform.name.substring('platform-'.length())
+            def baselineJar = new File(baselineRoot, "versions/platform-${platformCode}/build/libs/${currentJar.name}")
+            assert baselineJar.isFile(): "Baseline JAR not found for ${projectPath}: ${baselineJar}"
+
+            def sourcesName = { String jarName -> "${jarName.substring(0, jarName.length() - 4)}-sources.jar" }
+            assert new File(currentJar.parentFile, sourcesName(currentJar.name)).isFile():
+                    "Missing current sources JAR for ${projectPath}"
+            assert new File(baselineJar.parentFile, sourcesName(baselineJar.name)).isFile():
+                    "Baseline sources JAR not found for ${projectPath}"
+
+            def readEntries = { File jarFile ->
+                new java.util.zip.ZipFile(jarFile).withCloseable { zip ->
+                    zip.entries().collect { entry -> entry.name } as Set<String>
+                }
+            }
+            def currentEntries = readEntries(currentJar)
+            def baselineEntries = readEntries(baselineJar)
+            def missingEntries = (baselineEntries - currentEntries).sort()
+            def extraEntries = (currentEntries - baselineEntries).sort()
+            if (missingEntries || extraEntries) {
+                throw new GradleException("Zip entry mismatch for ${currentJar.name} vs ${baselineJar.name}:\n" +
+                        "  missing in current: ${missingEntries}\n  extra in current: ${extraEntries}")
+            }
+
+            def readEntryBytes = { File jarFile, String entryName ->
+                new java.util.zip.ZipFile(jarFile).withCloseable { zip ->
+                    def entry = zip.getEntry(entryName)
+                    if (entry == null) {
+                        throw new GradleException("Entry ${entryName} not found in ${jarFile.name}")
+                    }
+                    zip.getInputStream(entry).withCloseable { it.readAllBytes() }
+                }
+            }
+            def readEntryText = { File jarFile, String entryName ->
+                new String(readEntryBytes(jarFile, entryName), java.nio.charset.StandardCharsets.UTF_8)
+            }
+
+            // fabric.mod.json：模板展开值应完全相同，解析后逐键语义一致
+            def slurper = new groovy.json.JsonSlurper()
+            def currentModJson = slurper.parseText(readEntryText(currentJar, 'fabric.mod.json'))
+            def baselineModJson = slurper.parseText(readEntryText(baselineJar, 'fabric.mod.json'))
+            assert currentModJson == baselineModJson:
+                    "fabric.mod.json semantic mismatch for ${currentJar.name} vs ${baselineJar.name}"
+
+            // 全部 mixin 配置文件逐字节一致（其内容不参与模板展开）
+            currentEntries.findAll { it.endsWith('.mixins.json') }.sort().each { entryName ->
+                assert java.util.Arrays.equals(readEntryBytes(currentJar, entryName), readEntryBytes(baselineJar, entryName)):
+                        "mixin config ${entryName} differs between ${currentJar.name} and ${baselineJar.name}"
+            }
+
+            // 珊瑚资源包 pack.mcmeta 的 pack_format 逐平台一致
+            def packMetaPath = 'resourcepacks/craftable_coral_blocks/pack.mcmeta'
+            def currentPackFormat = slurper.parseText(readEntryText(currentJar, packMetaPath)).pack.pack_format
+            def baselinePackFormat = slurper.parseText(readEntryText(baselineJar, packMetaPath)).pack.pack_format
+            assert currentPackFormat == baselinePackFormat:
+                    "pack_format mismatch for ${currentJar.name}: current=${currentPackFormat} baseline=${baselinePackFormat}"
+
+            println "L1-6 equivalence OK: ${currentJar.name}"
         }
     }
 }
@@ -104,5 +203,6 @@ gradle.projectsEvaluated {
         def jarTask = platform.tasks.findByName('remapJar') ?: platform.tasks.named('jar')
         verifyCraftableCoralBlocksJars.configure { dependsOn jarTask }
         verifyFabricModJson.configure { dependsOn jarTask }
+        verifyJarEquivalence.configure { dependsOn jarTask }
     }
 }
