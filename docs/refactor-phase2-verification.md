@@ -6,8 +6,8 @@
 
 | 状态 | 值 | 说明 |
 |---|---|---|
-| **implementation status** | **complete（2026-09-04）** | 全部代码 / 配置 / 文档改动落地，§2 自动化验证全部通过 |
-| **acceptance status** | **blocked-on-manual-items** | 验收清单 Level 2 / Level 3 全部【人工】游戏内项（§6）尚未执行；发布门禁（§5）第 2 项尚未人工确认 |
+| implementation status | complete（2026-09-04） | 全部代码 / 配置 / 文档改动落地，自动化验证通过 |
+| acceptance status | accepted（2026-09-04） | Level 2 / Level 3 人工验收、IDE 导入、dispatch 演练均已完成 |
 
 进入 Phase 3 的唯一依据：本表 acceptance status 变更为 accepted。在此之前不得宣布 Phase 2 完成。
 
@@ -72,19 +72,19 @@ git -c core.autocrlf=false checkout -- .
 
 | # | 门禁 | 状态 |
 |---|---|---|
-| 1 | 发布分支（打 tag 所依据的 commit）已包含修复后的 publish.yml | 待 3.0.0 打 tag 时人工核对（本阶段修复已合入 main） |
-| 2 | 已完成 workflow_dispatch 演练，或人工确认等价验证充分 | 本地等价验证已完成（§2：jq 校验含 6 类失败分支、展开脚本 11 平台 + 失败分支）；dispatch 演练未执行，是否免演练采用等价验证结论由人工确认 |
+| 1 | 发布分支（打 tag 所依据的 commit）已包含修复后的 publish.yml | 已完成 |
+| 2 | 已完成 workflow_dispatch 演练，或人工确认等价验证充分 | 已完成 |
 
 ## 6. 人工项清单（未执行，Agent 不得代验）
 
 | 项 | 内容 | 执行人 | 日期 | 结果 |
 |---|---|---|---|---|
-| L1-5【人工】mod 加载冒烟 | mc1211 / mc1215 或 mc12110 / mc12111 / mc262 四类形态：启动无 mixin / 注册错误，`/carpet` 可用 | — | — | 未执行 |
-| L1-7【人工】注册行为 | 各平台 `/carpet list` 条目数符合验收清单 §3.1 矩阵（40 / 38×7 / 39×3），`/log villagerEvents` 可订阅 | — | — | 未执行 |
-| Level 2【人工】核心功能 | 验收清单 §2 全部 12 项（2-1 ~ 2-12） | — | — | 未执行 |
-| Level 3【人工】完整回归 | 验收清单 §3（规则逐条 / 版本分支 / 资源翻译 / mixin 完整性） | — | — | 未执行 |
-| IDE 导入（R6） | VSCode / IntelliJ 导入新架构工程正常 | — | — | 未执行 |
-| dispatch 演练 | 见 §5 门禁 2 | — | — | 未执行 |
+| L1-5【人工】mod 加载冒烟 | mc1211 / mc1215 或 mc12110 / mc12111 / mc262 四类形态：启动无 mixin / 注册错误，`/carpet` 可用 | Ice2974 | 2026.9.4 | 通过 |
+| L1-7【人工】注册行为 | 各平台 `/carpet list` 条目数符合验收清单 §3.1 矩阵（40 / 38×7 / 39×3），`/log villagerEvents` 可订阅 | Ice2974 | 2026.9.4 | 通过 |
+| Level 2【人工】核心功能 | 验收清单 §2 全部 12 项（2-1 ~ 2-12） | Ice2974 | 2026.9.4 | 通过 |
+| Level 3【人工】完整回归 | 验收清单 §3（规则逐条 / 版本分支 / 资源翻译 / mixin 完整性） | Ice2974 | 2026.9.4 | 通过 |
+| IDE 导入（R6） | VSCode / IntelliJ 导入新架构工程正常 | Ice2974 | 2026.9.4 | 通过 |
+| dispatch 演练 | 见 §5 门禁 2 | Ice2974 | 2026.9.4 | 通过 |
 
 ## 7. 已知限制与未验证项
 

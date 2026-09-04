@@ -63,8 +63,8 @@ revert 本步单 commit 即可（git 记录为 3 个纯重命名 + 3 个删除�
 
 | 项 | 内容 | 执行人 | 日期 | 结果 |
 |---|---|---|---|---|
-| L2 定向 | mc1213 与 mc1214：验收清单 2-2 villagerTradingOptimization（认站/补货/职业生命周期）、2-3 ironGolemSpawningOptimization | — | — | 未执行 |
-| L1-5 冒烟 | mc1213、mc1214 dev 实例启动无 mixin/注册错误，`/carpet` 可用 | — | — | 未执行 |
+| L2 定向 | mc1213 与 mc1214：验收清单 2-2 villagerTradingOptimization（认站/补货/职业生命周期）、2-3 ironGolemSpawningOptimization | Ice2974 | 2026.9.4 | 通过 |
+| L1-5 冒烟 | mc1213、mc1214 dev 实例启动无 mixin/注册错误，`/carpet` 可用 | Ice2974 | 2026.9.4 | 通过 |
 
 本步未触及规则/命令/logger 语义、语言文件与文档，`docs/rules*.md`、`docs/commands*.md`、`docs/loggers*.md` 无需变更。
 
