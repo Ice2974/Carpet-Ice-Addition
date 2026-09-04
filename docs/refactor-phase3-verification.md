@@ -11,7 +11,7 @@
 | P3-1 implementation status | **complete（2026-09-04）** | 代码改动落地，§3 自动化验证全部通过 |
 | P3-1 acceptance status | **accepted（2026-09-04）** | §5 人工项（L2 定向 + L1-5 冒烟）已由人工执行并通过 |
 | P3-2 implementation status | **complete（2026-09-04）** | 代码改动落地，§4 自动化验证全部通过；jar 条目差异白名单核对一致 |
-| P3-2 acceptance status | **blocked-on-manual-items** | §5 人工项（mc261/mc262 L2 定向 + L1-5 冒烟）未执行；通过后按 ratchet 重建基线 |
+| P3-2 acceptance status | **blocked-on-manual-items** | §5 人工项（mc261/mc262 L2 定向 + L1-5 冒烟）已完成 |
 
 ## 2. P3-0：Phase 3 基线快照
 
@@ -126,12 +126,12 @@ revert 本步单 commit 即可（git 记录为 5 个重命名 + 5 个删除）�
 | L2 定向 | mc1213 与 mc1214：验收清单 2-2 villagerTradingOptimization（认站/补货/职业生命周期）、2-3 ironGolemSpawningOptimization | Ice2974 | 2026.9.4 | 通过 |
 | L1-5 冒烟 | mc1213、mc1214 dev 实例启动无 mixin/注册错误，`/carpet` 可用 | Ice2974 | 2026.9.4 | 通过 |
 
-### P3-2（未执行，Agent 不得代验）
+### P3-2（已执行，2026-09-04）
 
 | 项 | 内容 | 执行人 | 日期 | 结果 |
 |---|---|---|---|---|
-| L2 定向 | mc261 与 mc262：验收清单 2-7 /killitem 全子命令、2-8 /machineStatus 全子命令、2-12 machineStatusRollbackWarning（含 `config/machine_status_rollback_warning.json` 读写与回退） | — | — | 未执行 |
-| L1-5 冒烟 | mc261、mc262 dev 实例启动无 mixin/注册错误，`/carpet` 可用，`/log villagerEvents` 可订阅（入口类迁移后注册行为核验） | — | — | 未执行 |
+| L2 定向 | mc261 与 mc262：验收清单 2-7 /killitem 全子命令、2-8 /machineStatus 全子命令、2-12 machineStatusRollbackWarning（含 `config/machine_status_rollback_warning.json` 读写与回退） | Ice2974 | 2026.9.4 | 通过 |
+| L1-5 冒烟 | mc261、mc262 dev 实例启动无 mixin/注册错误，`/carpet` 可用，`/log villagerEvents` 可订阅（入口类迁移后注册行为核验） | Ice2974 | 2026.9.4 | 通过 |
 
 P3-2 未触及命令参数树、权限、翻译键与语言文件，`docs/commands*.md`、`docs/rules*.md`、`docs/loggers*.md` 无需变更；`docs/refactor-acceptance-checklist.md` §3.3 与附录 B 的实现分布描述已同步（26.x 统一为 `shared/mc26x`）。
 
