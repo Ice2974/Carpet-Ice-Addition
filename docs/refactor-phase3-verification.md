@@ -15,7 +15,7 @@
 | P3-3 implementation status | **complete（2026-09-04）** | `verifyMixinConfigs` 任务落地，§5 自动化验证全部通过；纯增量校验，零源码 / json / 产物变化 |
 | P3-3 acceptance status | **accepted（自动化验收）** | 无人工项；变异自测证明三类检测均有效（§5.3） |
 | P3-4 implementation status | **complete（2026-09-04）** | Bridge ×11 删除（`d904d6f`，独立 commit）+ 空档 ×2 工作区删除（git 不跟踪，无 commit，§6.6）；自动化验证全绿 |
-| P3-4 acceptance status | **blocked-on-manual-items** | §7 人工项（任一平台 L1-5 冒烟）未执行 |
+| P3-4 acceptance status | **accepted（2026-09-04）** | §7 人工项（任一平台 L1-5 冒烟）通过 |
 
 ## 2. P3-0：Phase 3 基线快照
 
@@ -255,15 +255,15 @@ P3-2 未触及命令参数树、权限、翻译键与语言文件，`docs/comman
 
 P3-3 无人工项（纯增量校验，验收清单 §3.5 的 mixin 完整性自本步起由 `verifyMixinConfigs` 自动化覆盖；client 归属数组语义仍由 L1-5 加载兜底）。
 
-### P3-4（未执行，Agent 不得代验）
+### P3-4（已执行，2026-09-04）
 
 | 项 | 内容 | 执行人 | 日期 | 结果 |
 |---|---|---|---|---|
-| L1-5 冒烟 | 任选 1 平台（建议 mc262：plain 形态 + 删除前 Bridge 与入口同目录层级）dev 实例启动无 mixin/注册错误，`/carpet` 可用——确认 Bridge 删除不影响 mod 加载 | — | — | 未执行 |
+| L1-5 冒烟 | 任选 1 平台（建议 mc262：plain 形态 + 删除前 Bridge 与入口同目录层级）dev 实例启动无 mixin/注册错误，`/carpet` 可用——确认 Bridge 删除不影响 mod 加载 | Ice2974 | 2026.9.4 | 通过 |
 
 ## 8. Phase 3 强制约束遵从记录
 
-1. 每步骤先建新基线：P3-0 已执行（§2）；P3-2 条目变更步骤已在人工验收后以 `32d0f26` 重建（§5.1）。
+1. 每步骤先建新基线：P3-0 已执行（§2）；P3-2 条目变更步骤已在人工验收后以 `32d0f26` 重建（§5.1）；P3-4 条目变更步骤的阶段基线（`d904d6f`，§6.5）按用户指令于自动化验证通过后建立（独立目录，未覆盖历史基线），人工冒烟随后补验通过（§7）。
 2. Phase 1/2 基线仅历史参考：P3-1 起全部等价判定改用 Phase 3 基线。
 3. 源码移动三要件（sourceSet 顺序等价 / jar 集合确认 / mixin 注册路径）：P3-1 见 §3.2，P3-2 见 §4.2。
 4. 禁止为减文件数合并结构不同 Mixin、用宏替代覆盖、改规则/命令/logger 行为：P3-2 仅收敛非命名差异为 0 行的重复链与入口类（2 行注释差异）；`EndPortalBlockCustomEndPlatformPositionMixin` 存在 1 行真实 API 差异，保留平台覆盖未合并。
