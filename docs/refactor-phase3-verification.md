@@ -14,6 +14,8 @@
 | P3-2 acceptance status | **accepted（2026-09-04）** | §6 人工项（mc261/mc262 L2 定向 + L1-5 冒烟）已执行并通过；P3-2 后基线已按 ratchet 以 `32d0f26` 重建（见 §5.1） |
 | P3-3 implementation status | **complete（2026-09-04）** | `verifyMixinConfigs` 任务落地，§5 自动化验证全部通过；纯增量校验，零源码 / json / 产物变化 |
 | P3-3 acceptance status | **accepted（自动化验收）** | 无人工项；变异自测证明三类检测均有效（§5.3） |
+| P3-4 implementation status | **complete（2026-09-04）** | Bridge ×11 删除（`d904d6f`，独立 commit）+ 空档 ×2 工作区删除（git 不跟踪，无 commit，§6.6）；自动化验证全绿 |
+| P3-4 acceptance status | **blocked-on-manual-items** | §7 人工项（任一平台 L1-5 冒烟）未执行 |
 
 ## 2. P3-0：Phase 3 基线快照
 
@@ -166,7 +168,74 @@ P3-2 人工验收通过（`32d0f26`）后核查发现基线目录仍为 P3-0（`
 
 revert 本步单 commit 即可（仅根 build.gradle 增量 + 本文档）。
 
-## 6. 人工项清单
+## 6. P3-4：Bridge 与空档清理
+
+### 6.1 删除内容与理由
+
+| 对象 | 内容 | 删除理由 |
+|---|---|---|
+| Bridge ×11 | `versions/platform-*/.../bridge/Mc<ver>Bridge.java`（每平台 1 个，仅含 `platformId()` 桩方法与私有构造器） | 历史迁移遗留死代码；基线 §3.3"薄桥接模式已覆盖残余差异"的描述与实测不符（实测为纯桩、零引用），经人工确认删除 |
+| 空档 ×2 | `versions/shared/mc1211-1219/`、`versions/shared/mc12110-12111/`（仅空目录骨架） | 0 文件、无任何 `shared_tiers` / `extra_resource_dirs` 引用，档位碎片化的纯残留 |
+
+### 6.2 删除前检查结果（全部通过）
+
+Bridge（对全部 11 个类逐一执行）：
+
+| 检查项 | 方法 | 结果 |
+|---|---|---|
+| Java 调用 / import | 全仓 grep `Bridge`（*.java，排除 build/bin） | 仅 11 个类自身定义匹配 |
+| 包名引用 | grep `carpeticeaddition.bridge`（定义文件外） | 0 处 |
+| 字符串 / 反射 / ServiceLoader | grep 类名与包名于全部文本文件（json/gradle/properties/yml/cmd/bat/toml/cfg） | 0 处（不存在任何字符串形态引用，反射与 ServiceLoader 无线索） |
+| mixin json | 11 份 json 条目扫描 | 0 条 |
+| resource / META-INF | resources 目录 | 无相关文件 |
+| Gradle sourceSet / 构建引用 | settings.gradle / build.gradle / common.gradle / 全部 gradle.properties | 0 处 |
+
+空档：
+
+| 检查项 | 结果 |
+|---|---|
+| 文件（tracked / untracked） | 0 / 0 |
+| `shared_tiers` / `extra_resource_dirs` 引用 | 11 平台均无 |
+| 对平台 sourceSet 顺序的影响 | 无（不在任何叠加清单内，删除后全平台构建不变式保持） |
+
+### 6.3 jar 条目差异白名单（对 32d0f26 基线，11 平台逐平台核对）
+
+每平台恰好消失 2 个条目，零新增（11 平台合计新增条目数 = 0）：
+
+```
+com/ice2974/carpeticeaddition/bridge/Mc<ver>Bridge.class   （每平台 1 个）
+com/ice2974/carpeticeaddition/bridge/                      （空目录条目，随类删除消失）
+```
+
+无功能 class、mixin class、fabric.mod.json、资源条目变化。
+
+### 6.4 自动化验证（全部通过，2026-09-04）
+
+| 验证项 | 结果 |
+|---|---|
+| `build verifyCraftableCoralBlocksJars verifyFabricModJson verifyMixinConfigs :common:test`（Bridge 删除后 + 空档删除后各跑一次） | 11 平台全绿 |
+| jar 条目差异分析 | == §6.3 白名单 |
+| `git diff --check` / `git diff --cached --check` | 通过 |
+
+### 6.5 P3-4 阶段基线（新目录，不覆盖历史基线）
+
+| 项 | 值 |
+|---|---|
+| 目录 | `D:\Project\Carpet-Ice-Addition-P3-baseline-P3-4`（仓库外） |
+| 来源 | `main` @ `d904d6f`（Bridge 删除 commit）+ 空档工作区删除，工作区干净 |
+| 内容 | 11 平台 22 个 jar（主包 + sources） |
+| 自检 | `verifyJarEquivalence -PbaselineDir=<该目录>`：11/11 通过 |
+| 历史基线处置 | `Carpet-Ice-Addition-P3-baseline`（32d0f26）保留不动，作为 P3-4 差异分析的对照 |
+
+### 6.6 空档删除无独立 commit 的原因
+
+两个空档目录 0 文件、git 完全不跟踪（`git ls-files` 为空）；git 无法记录空目录的存在与删除，因此"删除空档"只能是工作区操作（已执行，`versions/shared/` 现为 15 个有效档位），不产生 commit。fresh clone 的检出结果与本操作后的工作区天然一致，无回滚需求。
+
+### 6.7 回滚
+
+revert `d904d6f` 即可恢复 11 个 Bridge 类（空档无需回滚，见 §6.6）。
+
+## 7. 人工项清单
 
 ### P3-1（已执行，2026-09-04）
 
@@ -186,7 +255,13 @@ P3-2 未触及命令参数树、权限、翻译键与语言文件，`docs/comman
 
 P3-3 无人工项（纯增量校验，验收清单 §3.5 的 mixin 完整性自本步起由 `verifyMixinConfigs` 自动化覆盖；client 归属数组语义仍由 L1-5 加载兜底）。
 
-## 7. Phase 3 强制约束遵从记录
+### P3-4（未执行，Agent 不得代验）
+
+| 项 | 内容 | 执行人 | 日期 | 结果 |
+|---|---|---|---|---|
+| L1-5 冒烟 | 任选 1 平台（建议 mc262：plain 形态 + 删除前 Bridge 与入口同目录层级）dev 实例启动无 mixin/注册错误，`/carpet` 可用——确认 Bridge 删除不影响 mod 加载 | — | — | 未执行 |
+
+## 8. Phase 3 强制约束遵从记录
 
 1. 每步骤先建新基线：P3-0 已执行（§2）；P3-2 条目变更步骤已在人工验收后以 `32d0f26` 重建（§5.1）。
 2. Phase 1/2 基线仅历史参考：P3-1 起全部等价判定改用 Phase 3 基线。
@@ -194,3 +269,4 @@ P3-3 无人工项（纯增量校验，验收清单 §3.5 的 mixin 完整性自�
 4. 禁止为减文件数合并结构不同 Mixin、用宏替代覆盖、改规则/命令/logger 行为：P3-2 仅收敛非命名差异为 0 行的重复链与入口类（2 行注释差异）；`EndPortalBlockCustomEndPlatformPositionMixin` 存在 1 行真实 API 差异，保留平台覆盖未合并。
 5. 删除独立 commit：结构性删除（Bridge ×11、空档 ×2 等 P3-4 内容）将独立成 commit；P3-1/P3-2 的副本删除与迁移不可分割（§3.1 / §4.1）。
 6. mixin json 保留现状：P3-3 只建立校验防线，不合并、不生成、不改任何 json 内容；实施前预检确认当前 11 平台 json 与源码集 / 产物完全一致（无历史问题需处置）。
+7. 删除独立 commit：P3-4 的 Bridge ×11 删除为独立 commit（`d904d6f`）；空档 ×2 因 git 不跟踪空目录无法成 commit（§6.6），以工作区删除 + 本文档记录替代。
