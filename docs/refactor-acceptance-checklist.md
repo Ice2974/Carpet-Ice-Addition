@@ -77,8 +77,8 @@
 
 - [ ] carpetSingleplayerExitCrashFix、ctrlQStonecuttingFix：仅 mc1211 存在；其他平台不存在。
 - [ ] mobsSpawnWithoutSpears：mc12111 / mc261 / mc262 存在；1.21.1–1.21.10 不存在。
-- [ ] /killitem：1.21.6–1.21.8 使用 `shared/mc1216-1218` 独立实现，其余 1.21.x 使用 `shared/mc121x-killitem`；26.x 使用 Mc261 / Mc262 变体——三个实现分支都要冒烟。
-- [ ] /machineStatus：`shared/mc1211-1214`（1.21.1–1.21.4）与 `shared/mc1215-12111`（1.21.5–1.21.11）两个实现分支都要冒烟；26.x 变体同验。
+- [ ] /killitem：1.21.6–1.21.8 使用 `shared/mc1216-1218` 独立实现，其余 1.21.x 使用 `shared/mc121x-killitem`；26.x 使用 `shared/mc26x` 共享实现（P3-2 起，类名 KillItemCommand）——三个实现分支都要冒烟。
+- [ ] /machineStatus：`shared/mc1211-1214`（1.21.1–1.21.4）与 `shared/mc1215-12111`（1.21.5–1.21.11）两个实现分支都要冒烟；26.x 使用 `shared/mc26x` 共享实现（P3-2 起）。
 - [ ] itemFrameInvisible / itemFrameFixed：Yarn 侧 5 份分叉（mc1211 / mc1213-1214 / mc1215 / mc1216-1218 / mc1219-12111）对应版本全部冒烟（展示框隐形 / 固定交互）。
 - [ ] BookEditScreen client mixin 仅存在于 1.21.1–1.21.5 平台的 mixin json `client` 数组；1.21.6+ 与 26.x 只有 Clipboard mixin。
 - [ ] 26.x 命令实现使用 CommandSourceStack（Mojmap 签名），注册与执行正常。
@@ -159,7 +159,7 @@
 - 行为：按物品分类汇总清除 ItemEntity；每玩家 10 分钟 detail 结果缓存（保留 5 份）；结果翻页与操作按钮（反射构造 ClickEvent / HoverEvent，跨版本兼容）；黑名单与命名物品保护。
 - 持久化：世界目录 `killitem.json`（KillItemConfigManager）。
 - 权限：`CommandHelper.canUseCommand` 按 commandKillItem 值判定。
-- 实现分布：`shared/mc121x-killitem`、`shared/mc1216-1218`、`platform-mc261`（Mc261 变体）、`platform-mc262`（Mc262 变体）。
+- 实现分布：`shared/mc121x-killitem`、`shared/mc1216-1218`、`shared/mc26x`（26.x 共享，P3-2 起类名 KillItemCommand）。
 - 文档：`docs/commands.md` / `docs/commands_en.md` 的 `/killitem` 小节。
 
 ### /machineStatus（规则门 commandMachineStatus，默认 ops）
@@ -167,7 +167,7 @@
 - 语法：`add <维度> <坐标> <名称>`、`remove <名称>`、`rename <旧名> <新名>`、`update <名称>`、`move <名称> <维度> <坐标>`、`list [running|stopped|invalid|unloaded]`、`info <名称>`。
 - 行为：记录目标方块关机状态快照并比较，分类为 RUNNING / STOPPED / INVALID / UNLOADED（MachineStatusKind）。
 - 持久化：世界目录 `machine_status.json`（MachineStatusConfigManager）。
-- 实现分布：`shared/mc1211-1214`、`shared/mc1215-12111`、`platform-mc261` / `platform-mc262`（Mojmap 变体）。
+- 实现分布：`shared/mc1211-1214`、`shared/mc1215-12111`、`shared/mc26x`（26.x 共享，P3-2 起类名 MachineStatusCommand）。
 - 文档：`docs/commands.md` / `docs/commands_en.md` 的 `/machineStatus` 小节。
 
 ## 附录 C：logger 规格

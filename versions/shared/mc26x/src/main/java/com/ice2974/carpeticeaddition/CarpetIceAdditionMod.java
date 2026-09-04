@@ -3,8 +3,8 @@ package com.ice2974.carpeticeaddition;
 import carpet.CarpetExtension;
 import carpet.CarpetServer;
 import carpet.utils.CommandHelper;
-import com.ice2974.carpeticeaddition.command.KillItemCommandMc261;
-import com.ice2974.carpeticeaddition.command.MachineStatusCommandMc261;
+import com.ice2974.carpeticeaddition.command.KillItemCommand;
+import com.ice2974.carpeticeaddition.command.MachineStatusCommand;
 import com.ice2974.carpeticeaddition.rules.BotTabListNameHelper;
 import com.ice2974.carpeticeaddition.rules.CraftableCoralBlocksDataPackController;
 import com.ice2974.carpeticeaddition.rules.CraftableCoralBlocksState;
@@ -144,8 +144,8 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
 
     @Override
     public void registerCommands(CommandDispatcher<CommandSourceStack> dispatcher, CommandBuildContext commandBuildContext) {
-        KillItemCommandMc261.register(dispatcher);
-        MachineStatusCommandMc261.register(dispatcher);
+        KillItemCommand.register(dispatcher);
+        MachineStatusCommand.register(dispatcher);
     }
 
     @Override
@@ -158,7 +158,7 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
     @Override
     public void onServerLoadedWorlds(MinecraftServer server) {
         // 在世界文件完全加载后检测冲突：Carpet onServerLoaded 注入 MinecraftServer.loadLevel 的 HEAD，
-        // 此时 server.overworld() 仍为 null，26.1 检测器构造 SlotDisplayContext 需要非 null overworld，
+        // 此时 server.overworld() 仍为 null，检测器构造 SlotDisplayContext 需要非 null overworld，
         // 会在 onServerLoaded 中早返回 false 导致启动漏报。onServerLoadedWorlds 注入 loadLevel RETURN，
         // overworld 与 RecipeManager 均已就绪。integrated / dedicated server 均触发。
         try {

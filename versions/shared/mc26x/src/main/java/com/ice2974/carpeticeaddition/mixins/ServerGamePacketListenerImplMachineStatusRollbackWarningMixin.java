@@ -1,7 +1,7 @@
 package com.ice2974.carpeticeaddition.mixins;
 
 import com.ice2974.carpeticeaddition.command.MachineStatusRollbackCommandMatcher;
-import com.ice2974.carpeticeaddition.command.MachineStatusRollbackWarningHandlerMc261;
+import com.ice2974.carpeticeaddition.command.MachineStatusRollbackWarningHandler;
 import net.minecraft.network.protocol.game.ServerboundChatCommandPacket;
 import net.minecraft.network.protocol.game.ServerboundChatPacket;
 import net.minecraft.network.protocol.game.ServerboundChatCommandSignedPacket;
@@ -39,7 +39,7 @@ public abstract class ServerGamePacketListenerImplMachineStatusRollbackWarningMi
 
         var server = this.player.level().getServer();
         if (server != null) {
-            server.execute(() -> MachineStatusRollbackWarningHandlerMc261.warnIfNeeded(server, this.player, rawInput));
+            server.execute(() -> MachineStatusRollbackWarningHandler.warnIfNeeded(server, this.player, rawInput));
         }
     }
 }

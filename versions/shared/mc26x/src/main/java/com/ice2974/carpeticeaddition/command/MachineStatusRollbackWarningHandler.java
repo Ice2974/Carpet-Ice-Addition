@@ -16,10 +16,10 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class MachineStatusRollbackWarningHandlerMc261 {
-    private static final Logger LOGGER = LoggerFactory.getLogger(MachineStatusRollbackWarningHandlerMc261.class);
+public final class MachineStatusRollbackWarningHandler {
+    private static final Logger LOGGER = LoggerFactory.getLogger(MachineStatusRollbackWarningHandler.class);
 
-    private MachineStatusRollbackWarningHandlerMc261() {
+    private MachineStatusRollbackWarningHandler() {
     }
 
     public static void warnIfNeeded(MinecraftServer server, ServerPlayer player, String rawInput) {
@@ -30,8 +30,8 @@ public final class MachineStatusRollbackWarningHandlerMc261 {
             return;
         }
 
-        List<MachineRecord> runningMachines = MachineStatusCommandMc261.getMachineRecordsByStatus(server, MachineStatusKind.RUNNING);
-        List<MachineRecord> invalidMachines = MachineStatusCommandMc261.getMachineRecordsByStatus(server, MachineStatusKind.INVALID);
+        List<MachineRecord> runningMachines = MachineStatusCommand.getMachineRecordsByStatus(server, MachineStatusKind.RUNNING);
+        List<MachineRecord> invalidMachines = MachineStatusCommand.getMachineRecordsByStatus(server, MachineStatusKind.INVALID);
         if (runningMachines.isEmpty() && invalidMachines.isEmpty()) {
             LOGGER.debug("Matched rollback command '{}' from player '{}' but found no running or invalid machines.", rawInput, player.getName().getString());
             return;

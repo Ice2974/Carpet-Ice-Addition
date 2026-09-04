@@ -39,7 +39,7 @@ import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-public final class MachineStatusCommandMc262 {
+public final class MachineStatusCommand {
     private static final DynamicCommandExceptionType INVALID_IDENTIFIER = new DynamicCommandExceptionType(
             value -> tr("command.carpet-ice-addition.machine_status.error.invalid_identifier", value)
     );
@@ -59,17 +59,17 @@ public final class MachineStatusCommandMc262 {
             tr("command.carpet-ice-addition.machine_status.error.config_save_failed")
     );
 
-    private MachineStatusCommandMc262() {
+    private MachineStatusCommand() {
     }
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(Commands.literal("machineStatus")
-                .requires(MachineStatusCommandMc262::canUseMachineStatus)
+                .requires(MachineStatusCommand::canUseMachineStatus)
                 .then(Commands.literal("add")
                         .then(Commands.argument("dimension", DimensionArgument.dimension())
                                 .then(Commands.argument("pos", BlockPosArgument.blockPos())
                                         .then(Commands.argument("name", StringArgumentType.string())
-                                                .suggests(MachineStatusCommandMc262::suggestUnusedMachineNames)
+                                                .suggests(MachineStatusCommand::suggestUnusedMachineNames)
                                                 .executes(context -> addMachine(
                                                         context,
                                                         context.getArgument("dimension", Identifier.class),
@@ -78,16 +78,16 @@ public final class MachineStatusCommandMc262 {
                                                 ))))))
                 .then(Commands.literal("remove")
                         .then(Commands.argument("name", StringArgumentType.string())
-                                .suggests(MachineStatusCommandMc262::suggestMachineNames)
+                                .suggests(MachineStatusCommand::suggestMachineNames)
                                 .executes(context -> removeMachine(
                                         context,
                                         validateMachineName(StringArgumentType.getString(context, "name"))
                                 ))))
                 .then(Commands.literal("rename")
                         .then(Commands.argument("name", StringArgumentType.string())
-                                .suggests(MachineStatusCommandMc262::suggestMachineNames)
+                                .suggests(MachineStatusCommand::suggestMachineNames)
                                 .then(Commands.argument("newName", StringArgumentType.string())
-                                        .suggests(MachineStatusCommandMc262::suggestUnusedMachineNames)
+                                        .suggests(MachineStatusCommand::suggestUnusedMachineNames)
                                         .executes(context -> renameMachine(
                                                 context,
                                                 validateMachineName(StringArgumentType.getString(context, "name")),
@@ -95,14 +95,14 @@ public final class MachineStatusCommandMc262 {
                                         )))))
                 .then(Commands.literal("update")
                         .then(Commands.argument("name", StringArgumentType.string())
-                                .suggests(MachineStatusCommandMc262::suggestMachineNames)
+                                .suggests(MachineStatusCommand::suggestMachineNames)
                                 .executes(context -> updateMachine(
                                         context,
                                         validateMachineName(StringArgumentType.getString(context, "name"))
                                 ))))
                 .then(Commands.literal("move")
                         .then(Commands.argument("name", StringArgumentType.string())
-                                .suggests(MachineStatusCommandMc262::suggestMachineNames)
+                                .suggests(MachineStatusCommand::suggestMachineNames)
                                 .then(Commands.argument("dimension", DimensionArgument.dimension())
                                         .then(Commands.argument("pos", BlockPosArgument.blockPos())
                                                 .executes(context -> moveMachine(
@@ -119,7 +119,7 @@ public final class MachineStatusCommandMc262 {
                         .then(Commands.literal("unloaded").executes(context -> listMachines(context, MachineStatusKind.UNLOADED))))
                 .then(Commands.literal("info")
                         .then(Commands.argument("name", StringArgumentType.string())
-                                .suggests(MachineStatusCommandMc262::suggestMachineNames)
+                                .suggests(MachineStatusCommand::suggestMachineNames)
                                 .executes(context -> showInfo(
                                         context,
                                         validateMachineName(StringArgumentType.getString(context, "name"))
@@ -282,7 +282,7 @@ public final class MachineStatusCommandMc262 {
                 : MachineStatusStateUtil.parse(status.currentStateRaw());
         String position = formatPos(new BlockPos(record.x(), record.y(), record.z()));
 
-        context.getSource().sendSuccess(MachineStatusCommandMc262::detailHeaderLine, false);
+        context.getSource().sendSuccess(MachineStatusCommand::detailHeaderLine, false);
         context.getSource().sendSuccess(() -> fieldLine("command.carpet-ice-addition.machine_status.info.label.machine", white(record.name())), false);
         context.getSource().sendSuccess(() -> fieldLine("command.carpet-ice-addition.machine_status.info.label.status", statusTag(status.kind())), false);
         context.getSource().sendSuccess(() -> fieldLine("command.carpet-ice-addition.machine_status.info.label.dimension", white(record.dimension())), false);

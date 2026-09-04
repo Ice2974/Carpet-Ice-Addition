@@ -52,7 +52,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
 
-public final class KillItemCommandMc261 {
+public final class KillItemCommand {
     private static final double MIN_RADIUS = 1.0D;
     private static final double MAX_RADIUS = 1024.0D;
     private static final int SUMMARY_ENTRY_LIMIT = 5;
@@ -77,12 +77,12 @@ public final class KillItemCommandMc261 {
             tr("command.carpet-ice-addition.killitem.error.config_save_failed")
     );
 
-    private KillItemCommandMc261() {
+    private KillItemCommand() {
     }
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(Commands.literal("killitem")
-                .requires(KillItemCommandMc261::canUseKillItem)
+                .requires(KillItemCommand::canUseKillItem)
                 .then(Commands.literal("range")
                         .then(Commands.argument("radius", DoubleArgumentType.doubleArg(MIN_RADIUS, MAX_RADIUS))
                                 .executes(context -> executeRange(context, DoubleArgumentType.getDouble(context, "radius")))))
@@ -93,7 +93,7 @@ public final class KillItemCommandMc261 {
                                         context.getArgument("dimension", Identifier.class)
                                 ))))
                 .then(Commands.literal("all")
-                        .executes(KillItemCommandMc261::executeAll))
+                        .executes(KillItemCommand::executeAll))
                 .then(Commands.literal("detail")
                         .then(Commands.argument("resultId", StringArgumentType.word())
                                 .then(Commands.argument("page", IntegerArgumentType.integer())
@@ -104,7 +104,7 @@ public final class KillItemCommandMc261 {
                                         )))))
                 .then(Commands.literal("config")
                         .then(Commands.literal("blacklist")
-                                .executes(KillItemCommandMc261::showBlacklist)
+                                .executes(KillItemCommand::showBlacklist)
                                 .then(Commands.literal("add")
                                         .then(Commands.argument("item", StringArgumentType.greedyString())
                                                 .suggests((context, builder) -> SharedSuggestionProvider.suggestResource(
@@ -126,9 +126,9 @@ public final class KillItemCommandMc261 {
                                                         parseIdentifier(StringArgumentType.getString(context, "item"))
                                                 ))))
                                 .then(Commands.literal("clear")
-                                        .executes(KillItemCommandMc261::clearBlacklist)))
+                                        .executes(KillItemCommand::clearBlacklist)))
                         .then(Commands.literal("clearNamedItems")
-                                .executes(KillItemCommandMc261::showClearNamedItems)
+                                .executes(KillItemCommand::showClearNamedItems)
                                 .then(Commands.argument("value", BoolArgumentType.bool())
                                         .executes(context -> setClearNamedItems(
                                                 context,
@@ -193,13 +193,13 @@ public final class KillItemCommandMc261 {
     private static int showDetail(CommandContext<CommandSourceStack> context, String resultId, int page) {
         Entity entity = context.getSource().getEntity();
         if (!(entity instanceof ServerPlayer player)) {
-            context.getSource().sendSuccess(KillItemCommandMc261::expiredDetailText, false);
+            context.getSource().sendSuccess(KillItemCommand::expiredDetailText, false);
             return 0;
         }
 
         CachedKillItemResult result = getCachedResult(player.getUUID(), resultId);
         if (result == null || result.entries.isEmpty()) {
-            context.getSource().sendSuccess(KillItemCommandMc261::expiredDetailText, false);
+            context.getSource().sendSuccess(KillItemCommand::expiredDetailText, false);
             return 0;
         }
 
