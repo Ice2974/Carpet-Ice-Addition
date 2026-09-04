@@ -1,0 +1,198 @@
+// common.gradle —— 全部平台共用的构建逻辑（Phase 1 迁移，Fallen-Breath 风格）
+// 由各平台薄包装 build.gradle 在 plugins 块之后 apply from 引入。
+// 平台差异全部由 versions/platform-*/gradle.properties 数据驱动：
+//   必需键：minecraft_version / release_minecraft_range / minecraft_dependency / loader_version /
+//           fabric_version / fabric_dependency / carpet_version / carpet_dependency / carpet_repo /
+//           loom_plugin / jar_task / java_release / pack_format / mixin_config / shared_tiers
+//   可选键：yarn_mappings（免混淆平台无）/ java_toolchain（仅 26.x）/ extra_resource_dirs
+// jar_task=remap：Yarn 映射形态，依赖走 modImplementation，产物经 remapJar/remapSourcesJar 命名
+// jar_task=plain：免混淆形态，依赖走 implementation，产物经 jar/sourcesJar 命名
+
+assert project.name.startsWith('platform-'): "common.gradle 只应用于 platform-* 平台项目，当前为 ${project.name}"
+def platformCode = project.name.substring('platform-'.length())
+
+[
+        'minecraft_version', 'release_minecraft_range', 'minecraft_dependency', 'loader_version',
+        'fabric_version', 'fabric_dependency', 'carpet_version', 'carpet_dependency', 'carpet_repo',
+        'loom_plugin', 'jar_task', 'java_release', 'pack_format', 'mixin_config', 'shared_tiers'
+].each { key ->
+    assert project.hasProperty(key): "平台 ${project.path} 缺少必需属性 ${key}（应在 versions/platform-${platformCode}/gradle.properties 中定义）"
+}
+
+assert project.jar_task in ['remap', 'plain']: "jar_task 必须为 remap 或 plain，当前为 ${project.jar_task}"
+assert project.carpet_repo in ['masa', 'modrinth']: "carpet_repo 必须为 masa 或 modrinth，当前为 ${project.carpet_repo}"
+def remapFamily = project.jar_task == 'remap'
+
+// 防漂移：数据键声明的 loom 插件 id 必须与薄包装 plugins 块实际应用的插件一致
+def declaredLoomId = project.loom_plugin.substring(0, project.loom_plugin.indexOf(':'))
+assert project.plugins.findPlugin(declaredLoomId) != null:
+        "loom_plugin=${project.loom_plugin} 与实际应用的 loom 插件不一致（未找到插件 ${declaredLoomId}）"
+assert project.plugins.findPlugin('maven-publish') != null: '薄包装 build.gradle 必须应用 maven-publish 插件'
+
+base {
+    archivesName = "${project.archives_base_name}-${platformCode}"
+}
+
+dependencies {
+    implementation project(':common')
+
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    if (project.hasProperty('yarn_mappings')) {
+        mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+    }
+
+    def loaderNotation = "net.fabricmc:fabric-loader:${project.loader_version}"
+    def fabricApiNotation = "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+    def carpetNotation = project.carpet_repo == 'modrinth'
+            ? "maven.modrinth:carpet:${project.carpet_version}"
+            : "carpet:fabric-carpet:${project.carpet_version}"
+    if (remapFamily) {
+        modImplementation loaderNotation
+        modImplementation fabricApiNotation
+        modImplementation carpetNotation
+    } else {
+        implementation loaderNotation
+        implementation fabricApiNotation
+        implementation carpetNotation
+    }
+}
+
+def sharedTiers = project.shared_tiers.split(',') as List<String>
+def extraResourceTiers = project.hasProperty('extra_resource_dirs')
+        ? project.extra_resource_dirs.split(',') as List<String>
+        : []
+
+sourceSets {
+    main {
+        java {
+            sharedTiers.each { tier ->
+                srcDir rootProject.file("versions/shared/${tier}/src/main/java")
+            }
+        }
+        resources {
+            srcDir project(':common').file('src/main/resources')
+            extraResourceTiers.each { tier ->
+                srcDir rootProject.file("versions/shared/${tier}/src/main/resources")
+            }
+        }
+    }
+}
+
+processResources {
+    inputs.property 'version', project.version
+    inputs.property 'minecraft_range', project.release_minecraft_range
+    inputs.property 'minecraft_dependency', project.minecraft_dependency
+    inputs.property 'fabric_version', project.fabric_version
+    inputs.property 'fabric_dependency', project.fabric_dependency
+    inputs.property 'carpet_version', project.carpet_version
+    inputs.property 'carpet_dependency', project.carpet_dependency
+
+    filesMatching('fabric.mod.json') {
+        expand(
+                version: project.version,
+                id: project.mod_id,
+                name: project.mod_name,
+                minecraft_range: project.release_minecraft_range,
+                minecraft_dependency: project.minecraft_dependency,
+                fabric_version: project.fabric_version,
+                fabric_dependency: project.fabric_dependency,
+                carpet_version: project.carpet_version,
+                carpet_dependency: project.carpet_dependency
+        )
+    }
+}
+
+def javaRelease = project.java_release.toInteger()
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = javaRelease
+}
+
+java {
+    withSourcesJar()
+    sourceCompatibility = JavaVersion.toVersion(javaRelease)
+    targetCompatibility = JavaVersion.toVersion(javaRelease)
+    if (project.hasProperty('java_toolchain')) {
+        toolchain.languageVersion = JavaLanguageVersion.of(project.java_toolchain.toInteger())
+    }
+}
+
+tasks.named('jar') {
+    from(project(':common').sourceSets.main.output.classesDirs)
+}
+
+// 发布 jar 命名：由 release_minecraft_range 推导 label（原各平台 build.gradle 逐字搬移，仅写一份）
+// 规则：区间按 ~ 或 - 拆分升序排序；单值区间 label 为原文；
+//       两端 major.minor 相同且 patch 跨度 >= 2 时 label 为 X.Y.x，否则为 lower-upper
+def releaseMinecraftRange = project.release_minecraft_range.toString().trim()
+def compareMcVersions = { String left, String right ->
+    def leftParts = left.tokenize('.').collect { part -> part.toInteger() }
+    def rightParts = right.tokenize('.').collect { part -> part.toInteger() }
+    def maxLength = Math.max(leftParts.size(), rightParts.size())
+    for (int i = 0; i < maxLength; i++) {
+        def leftValue = i < leftParts.size() ? leftParts[i] : 0
+        def rightValue = i < rightParts.size() ? rightParts[i] : 0
+        if (leftValue != rightValue) {
+            return leftValue <=> rightValue
+        }
+    }
+    return 0
+}
+def toVersionParts = { String version ->
+    version.tokenize('.').collect { part -> part.toInteger() }
+}
+def toPatchValue = { List<Integer> parts ->
+    parts.size() >= 3 ? parts[2] : 0
+}
+def releaseRangeParts = releaseMinecraftRange.split(/\s*[~-]\s*/).toList().findAll { !it.isBlank() }
+def sortedRangeParts = releaseRangeParts.sort { a, b -> compareMcVersions(a, b) }
+def releaseMinecraftLabel
+if (sortedRangeParts.size() <= 1) {
+    releaseMinecraftLabel = releaseMinecraftRange
+} else {
+    def lower = sortedRangeParts.first()
+    def upper = sortedRangeParts.last()
+    def lowerParts = toVersionParts(lower)
+    def upperParts = toVersionParts(upper)
+    def sameMajorMinor = (
+            lowerParts.size() >= 2
+            && upperParts.size() >= 2
+            && lowerParts[0] == upperParts[0]
+            && lowerParts[1] == upperParts[1]
+    )
+    def patchSpan = Math.abs(toPatchValue(upperParts) - toPatchValue(lowerParts))
+
+    if (sameMajorMinor && patchSpan >= 2) {
+        releaseMinecraftLabel = "${lowerParts[0]}.${lowerParts[1]}.x"
+    } else {
+        releaseMinecraftLabel = "${lower}-${upper}"
+    }
+}
+def releaseJarBaseName = "Carpet-Ice-Addition-v${project.version}-mc${releaseMinecraftLabel}"
+
+if (remapFamily) {
+    tasks.named('remapJar') {
+        archiveFileName = "${releaseJarBaseName}.jar"
+    }
+
+    tasks.named('remapSourcesJar') {
+        archiveFileName = "${releaseJarBaseName}-sources.jar"
+    }
+} else {
+    tasks.named('jar') {
+        archiveFileName = "${releaseJarBaseName}.jar"
+    }
+
+    tasks.named('sourcesJar') {
+        archiveFileName = "${releaseJarBaseName}-sources.jar"
+    }
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+        }
+    }
+}
