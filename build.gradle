@@ -114,6 +114,85 @@ def verifyFabricModJson = tasks.register('verifyFabricModJson') {
     }
 }
 
+// mixin 配置一致性防线（P3-3）：11 份平台 mixin json 保留现状（不合并、不模板生成、不改内容），
+// 逐平台校验 json 与编译产物 / 合并源码集的双向一致性，防止源码重构引起条目漂移（验收清单 §3.5）：
+//   1) per-version mixin_config 声明的 json 在 src/main/resources 与 jar 内均存在且 JSON 合法；
+//   2) mixins + client 数组每个条目在 jar 内存在对应类条目（防悬空）；
+//   3) 平台合并源码集 mixins 包的全部类恰为条目并集（防漏注；mixins 包语义上只允许注册进 json 的 mixin 类）；
+//   4) package / required / compatibilityLevel（对照 per-version java_release）/ injectors.defaultRequire 项目级不变量。
+def verifyMixinConfigs = tasks.register('verifyMixinConfigs') {
+    doLast {
+        platformProjects.each { projectPath ->
+            def platform = project(projectPath)
+            def outputTask = platform.tasks.findByName('remapJar') ?: platform.tasks.named('jar').get()
+            def jarFile = outputTask.archiveFile.get().asFile
+            assert jarFile.isFile(): "Missing release JAR for ${projectPath}: ${jarFile}"
+
+            def mixinConfigName = platform.mixin_config
+            def configLabel = "${jarFile.name} (${projectPath})"
+
+            def sourceConfigFile = new File(platform.projectDir, "src/main/resources/${mixinConfigName}")
+            assert sourceConfigFile.isFile(): "mixin config source not found for ${projectPath}: ${sourceConfigFile}"
+
+            def readEntryBytes = { String entryName ->
+                new java.util.zip.ZipFile(jarFile).withCloseable { zip ->
+                    def entry = zip.getEntry(entryName)
+                    if (entry == null) {
+                        throw new GradleException("Entry ${entryName} not found in ${jarFile.name}")
+                    }
+                    zip.getInputStream(entry).readAllBytes()
+                }
+            }
+            assert readEntryBytes(mixinConfigName) != null: "mixin config ${mixinConfigName} not packaged in ${configLabel}"
+
+            def config = new groovy.json.JsonSlurper().parseText(
+                    new String(readEntryBytes(mixinConfigName), java.nio.charset.StandardCharsets.UTF_8))
+
+            def mixinsList = (config.mixins ?: []) as List<String>
+            def clientList = (config.client ?: []) as List<String>
+            def allEntries = mixinsList + clientList
+
+            assert config.package == 'com.ice2974.carpeticeaddition.mixins':
+                    "Unexpected mixin package ${config.package} in ${configLabel}"
+            assert config.required == true:
+                    "mixin config required=${config.required} in ${configLabel} (AGENTS.md: 平台 mixins 默认 required=true)"
+            assert config.compatibilityLevel == "JAVA_${platform.java_release}":
+                    "compatibilityLevel ${config.compatibilityLevel} != JAVA_${platform.java_release} in ${configLabel}"
+            assert config.injectors != null && config.injectors.defaultRequire == 1:
+                    "injectors.defaultRequire=${config.injectors?.defaultRequire} in ${configLabel}"
+            assert allEntries.size() == allEntries.toSet().size():
+                    "duplicate mixin entries in ${configLabel}"
+            assert (mixinsList as Set).intersect(clientList as Set).isEmpty():
+                    "entries listed in both mixins and client arrays in ${configLabel}"
+
+            def jarEntries = new java.util.zip.ZipFile(jarFile).withCloseable { zip ->
+                zip.entries().collect { entry -> entry.name } as Set<String>
+            }
+            def dangling = allEntries.findAll { name ->
+                !jarEntries.contains("com/ice2974/carpeticeaddition/mixins/${name}.class".toString())
+            }
+            assert dangling.isEmpty(): "dangling mixin entries (no class in jar) in ${configLabel}: ${dangling.sort()}"
+
+            def mixinPkgPath = 'com/ice2974/carpeticeaddition/mixins'
+            def sourceMixinClasses = platform.sourceSets.main.java.srcDirs.collectMany { srcDir ->
+                def pkgDir = new File(srcDir, mixinPkgPath)
+                if (pkgDir.isDirectory()) {
+                    pkgDir.listFiles({ File dir, String name -> name.endsWith('.java') } as FilenameFilter)
+                            .collect { it.name - '.java' }
+                } else {
+                    []
+                }
+            } as Set
+            def unlisted = sourceMixinClasses.findAll { name -> !allEntries.contains(name) }
+            assert unlisted.isEmpty(): "mixin classes in source set but missing from ${mixinConfigName} in ${configLabel}: ${unlisted.sort()}"
+            assert (allEntries as Set) == sourceMixinClasses:
+                    "mixin entry set != source mixin class set in ${configLabel}"
+
+            println "mixin config OK: ${configLabel} (${mixinsList.size()} mixins + ${clientList.size()} client == ${sourceMixinClasses.size()} source classes)"
+        }
+    }
+}
+
 // L1-6 jar 内容级等价对照（Phase 2）：与 Phase 1 迁移前（0270fc3）的全量构建快照逐平台比对。
 // 用法：.\gradlew.bat verifyJarEquivalence -PbaselineDir=<快照根目录>（含 versions/platform-*/build/libs 的目录，建议绝对路径）
 // 比对项：zip 条目清单、fabric.mod.json 解析后逐键语义、全部 *.mixins.json 字节、pack.mcmeta 的 pack_format；
@@ -203,6 +282,7 @@ gradle.projectsEvaluated {
         def jarTask = platform.tasks.findByName('remapJar') ?: platform.tasks.named('jar')
         verifyCraftableCoralBlocksJars.configure { dependsOn jarTask }
         verifyFabricModJson.configure { dependsOn jarTask }
+        verifyMixinConfigs.configure { dependsOn jarTask }
         verifyJarEquivalence.configure { dependsOn jarTask }
     }
 }

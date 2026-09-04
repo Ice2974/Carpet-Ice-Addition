@@ -11,7 +11,9 @@
 | P3-1 implementation status | **complete（2026-09-04）** | 代码改动落地，§3 自动化验证全部通过 |
 | P3-1 acceptance status | **accepted（2026-09-04）** | §5 人工项（L2 定向 + L1-5 冒烟）已由人工执行并通过 |
 | P3-2 implementation status | **complete（2026-09-04）** | 代码改动落地，§4 自动化验证全部通过；jar 条目差异白名单核对一致 |
-| P3-2 acceptance status | **blocked-on-manual-items** | §5 人工项（mc261/mc262 L2 定向 + L1-5 冒烟）已完成 |
+| P3-2 acceptance status | **accepted（2026-09-04）** | §6 人工项（mc261/mc262 L2 定向 + L1-5 冒烟）已执行并通过；P3-2 后基线已按 ratchet 以 `32d0f26` 重建（见 §5.1） |
+| P3-3 implementation status | **complete（2026-09-04）** | `verifyMixinConfigs` 任务落地，§5 自动化验证全部通过；纯增量校验，零源码 / json / 产物变化 |
+| P3-3 acceptance status | **accepted（自动化验收）** | 无人工项；变异自测证明三类检测均有效（§5.3） |
 
 ## 2. P3-0：Phase 3 基线快照
 
@@ -117,7 +119,47 @@ command/MachineStatusRollbackWarningHandlerMc26X.class
 
 revert 本步单 commit 即可（git 记录为 5 个重命名 + 5 个删除）。
 
-## 5. 人工项清单
+## 5. P3-3：verifyMixinConfigs 校验任务
+
+### 5.1 基线刷新（P3-2 后，先行执行）
+
+P3-2 人工验收通过（`32d0f26`）后核查发现基线目录仍为 P3-0（`7395a9e`）产物——对旧基线运行 `verifyJarEquivalence` 在 mc261/mc262 失败，差异恰为 §4.3 白名单（11 删 11 增命令类更名）。按 ratchet 约定以当前 HEAD 全量构建重建基线并自检：`verifyJarEquivalence` 11/11 通过。本轮起等价判定基线 = `32d0f26` 产物。
+
+### 5.2 任务定义（根 build.gradle，与既有验证任务并列注册并挂接 dependsOn）
+
+针对全部 11 平台逐项断言（数据源：per-version `mixin_config` / `java_release` 键 + jar 内产物 + 平台合并源码集 `sourceSets.main.java.srcDirs`）：
+
+| # | 断言 | 防护目标 |
+|---|---|---|
+| 1 | `src/main/resources/<mixin_config>` 存在、jar 内打包、JSON 合法 | 配置缺失 / 漏打包 |
+| 2 | `mixins` + `client` 每个条目在 jar 内存在对应 `mixins/<条目>.class` | 悬空条目（验收清单 §3.5 前半） |
+| 3 | 平台合并源码集 mixins 包全部类恰为条目并集（双向） | 漏注条目（§3.5 后半；mixins 包只允许注册进 json 的 mixin 类） |
+| 4 | `package` == 项目固定包、`required` == true、`compatibilityLevel` == `JAVA_<java_release>`、`injectors.defaultRequire` == 1 | 项目级不变量（基线 §1.2） |
+| 5 | 条目无重复、`mixins` 与 `client` 无交集 | 配置书写错误 |
+
+明确边界：不合并 json、不模板生成、不改 json 内容、不移动 Mixin 文件、不校验 client/main 归属数组的语义正确性（静态不可判定，由 L1-5 游戏内加载兜底）。
+
+### 5.3 自动化验证（全部通过，2026-09-04）
+
+| 验证项 | 方法 | 结果 |
+|---|---|---|
+| 实施前现状预检 | bash 三集合比对（json 条目 ↔ 源码集 mixin 类 ↔ jar 内 class）×11 平台 | 全部一致，无历史问题 |
+| 任务全绿 | `.\gradlew.bat verifyMixinConfigs` | 11/11（条目数与基线 §1.2 表逐平台一致：65+2 / 62+2 / 62+1 / 64+1 / 63+1） |
+| 变异 A（悬空） | 向 mc1211 json 临时注入 `NoSuchDanglingMixinEntry` | 按预期 FAIL：`dangling mixin entries ... [NoSuchDanglingMixinEntry]` |
+| 变异 B（漏注） | 从 mc261 json 临时删除 `AmethystNaturalGrowthMixin` 条目 | 按预期 FAIL：`mixin classes in source set but missing from ... [AmethystNaturalGrowthMixin]` |
+| 变异 C（不变量） | mc262 json `compatibilityLevel` 改为 JAVA_21 | 按预期 FAIL：`compatibilityLevel JAVA_21 != JAVA_25` |
+| 全量回归 | `build verifyCraftableCoralBlocksJars verifyFabricModJson verifyMixinConfigs :common:test verifyJarEquivalence`（P3-2 后基线） | 全绿，等价 11/11（任务为纯增量，产物零变化） |
+| 工作区卫生 | `git diff --check` / `git diff --cached --check` | 通过 |
+
+### 5.4 变异测试的环境伪影记录
+
+变异还原使用 `git checkout --` 时，`core.autocrlf=true` 将 mc1211 / mc261 / mc262 三份 mixin json 的工作区行尾 smudge 为 CRLF（原状态 LF，`git ls-files --eol` 显示 `i/lf w/crlf`），重打包后导致 `verifyJarEquivalence` 对 jar 内 json 字节比对失败——与 Phase 2 记录（refactor-phase2-verification.md §3 伪影 1）同源。处置：`git show HEAD:<path> > <path>` 直接以 index 原始字节重写（`checkout --` 对 clean 后内容一致的文件是 no-op，不可用），恢复 `w/lf` 后全量验证通过。结论：凡变异测试触碰资源文件，还原必须绕过 smudge。
+
+### 5.5 回滚
+
+revert 本步单 commit 即可（仅根 build.gradle 增量 + 本文档）。
+
+## 6. 人工项清单
 
 ### P3-1（已执行，2026-09-04）
 
@@ -135,10 +177,13 @@ revert 本步单 commit 即可（git 记录为 5 个重命名 + 5 个删除）�
 
 P3-2 未触及命令参数树、权限、翻译键与语言文件，`docs/commands*.md`、`docs/rules*.md`、`docs/loggers*.md` 无需变更；`docs/refactor-acceptance-checklist.md` §3.3 与附录 B 的实现分布描述已同步（26.x 统一为 `shared/mc26x`）。
 
-## 6. Phase 3 强制约束遵从记录
+P3-3 无人工项（纯增量校验，验收清单 §3.5 的 mixin 完整性自本步起由 `verifyMixinConfigs` 自动化覆盖；client 归属数组语义仍由 L1-5 加载兜底）。
 
-1. 每步骤先建新基线：P3-0 已执行（§2）；P3-2 为条目变更步骤，其人工验收（§5）通过后按 ratchet 以新 HEAD 重建基线。
-2. Phase 1/2 基线仅历史参考：P3-1 起全部等价判定改用 P3-0 基线。
+## 7. Phase 3 强制约束遵从记录
+
+1. 每步骤先建新基线：P3-0 已执行（§2）；P3-2 条目变更步骤已在人工验收后以 `32d0f26` 重建（§5.1）。
+2. Phase 1/2 基线仅历史参考：P3-1 起全部等价判定改用 Phase 3 基线。
 3. 源码移动三要件（sourceSet 顺序等价 / jar 集合确认 / mixin 注册路径）：P3-1 见 §3.2，P3-2 见 §4.2。
 4. 禁止为减文件数合并结构不同 Mixin、用宏替代覆盖、改规则/命令/logger 行为：P3-2 仅收敛非命名差异为 0 行的重复链与入口类（2 行注释差异）；`EndPortalBlockCustomEndPlatformPositionMixin` 存在 1 行真实 API 差异，保留平台覆盖未合并。
 5. 删除独立 commit：结构性删除（Bridge ×11、空档 ×2 等 P3-4 内容）将独立成 commit；P3-1/P3-2 的副本删除与迁移不可分割（§3.1 / §4.1）。
+6. mixin json 保留现状：P3-3 只建立校验防线，不合并、不生成、不改任何 json 内容；实施前预检确认当前 11 平台 json 与源码集 / 产物完全一致（无历史问题需处置）。
