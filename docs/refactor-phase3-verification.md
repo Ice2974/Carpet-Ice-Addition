@@ -17,7 +17,7 @@
 | P3-4 implementation status | **complete（2026-09-04）** | Bridge ×11 删除（`d904d6f`，独立 commit）+ 空档 ×2 工作区删除（git 不跟踪，无 commit，§6.6）；自动化验证全绿 |
 | P3-4 acceptance status | **accepted（2026-09-04）** | §8 人工项（任一平台 L1-5 冒烟）通过 |
 | P3-5 implementation status | **complete（2026-09-05）** | Level 3 自动化验收 + 文档同步 + 状态冻结（§7）；本轮零源码变更 |
-| P3-5 acceptance status | **blocked-on-manual-items** | 验收清单 Level 3 游戏内完整回归（§3.1–§3.5 人工部分，§8）未执行 |
+| P3-5 acceptance status | **accepted（2026-09-05，人工验收）** | 验收清单 Level 3 游戏内完整回归（§3.1–§3.5 人工部分）已执行并通过（§8）；**Phase 3 全部步骤完成**，最终基线见 §10.2 |
 
 ## 2. P3-0：Phase 3 基线快照
 
@@ -281,7 +281,7 @@ revert `d904d6f` 即可恢复 11 个 Bridge 类（空档无需回滚，见 §6.6
 | P3-2 26.x 命名链收敛 | complete | accepted（人工 L2 + L1-5） |
 | P3-3 verifyMixinConfigs | complete | accepted（自动化验收 + 变异自测） |
 | P3-4 Bridge ×11 + 空档 ×2 清理 | complete | accepted（人工 L1-5 冒烟） |
-| P3-5 收尾 | complete | **blocked-on-manual-items**（Level 3 游戏内回归，§8） |
+| P3-5 收尾 | complete | **accepted（2026-09-05）**（Level 3 游戏内回归，§8） |
 
 ### 7.4 Phase 4 / 后续评估项（不在 Phase 3 实施）
 
@@ -318,11 +318,11 @@ P3-3 无人工项（纯增量校验，验收清单 §3.5 的 mixin 完整性自�
 |---|---|---|---|---|
 | L1-5 冒烟 | 任选 1 平台（建议 mc262：plain 形态 + 删除前 Bridge 与入口同目录层级）dev 实例启动无 mixin/注册错误，`/carpet` 可用——确认 Bridge 删除不影响 mod 加载 | Ice2974 | 2026.9.4 | 通过 |
 
-### P3-5（未执行，Agent 不得代验）
+### P3-5（已执行，2026-09-05）
 
 | 项 | 内容 | 执行人 | 日期 | 结果 |
 |---|---|---|---|---|
-| Level 3 完整回归 | 验收清单 §3 人工部分：全部 11 平台 `/carpet list` 条目数对照 §3.1 矩阵（40 / 38×7 / 39×3）、§3.3 版本特定分支（LowVersion / HighVersion / killitem 三实现 / machineStatus 三实现 / itemFrame 五分叉 / client mixin 归属）、§3.2 规则逐条翻译显示、§3.4 资源与翻译行为冒烟 | — | — | 未执行 |
+| Level 3 完整回归 | 验收清单 §3 人工部分：全部 11 平台 `/carpet list` 条目数对照 §3.1 矩阵（40 / 38×7 / 39×3）、§3.3 版本特定分支（LowVersion / HighVersion / killitem 三实现 / machineStatus 三实现 / itemFrame 五分叉 / client mixin 归属）、§3.2 规则逐条翻译显示、§3.4 资源与翻译行为冒烟 | Ice2974 | 2026.9.5 | 通过 |
 
 说明：§3.5 mixin 完整性已由 `verifyMixinConfigs` 自动化覆盖（P3-3）；§3.4 的 `:common:test` 单测与 pack_format 已自动化。人工项聚焦游戏内行为回归。Phase 3 各步骤的定向 L2（2-2/2-3、2-7/2-8/2-12）已在 P3-1/P3-2 验收中覆盖，Level 3 为全量收尾。
 
@@ -344,5 +344,17 @@ P3-3 无人工项（纯增量校验，验收清单 §3.5 的 mixin 完整性自�
 - **问题**：pack_format > 81 的平台上客户端启动必现 ERROR（每次 2 条）：`Couldn't load carpet-ice-addition:craftable_coral_blocks pack metadata: Pack declares support for version newer than 81, but is missing mandatory fields min_format and max_format`（1.21.11 实例日志自 2026-09-01 起实测，非 Phase 3 回归——pack.mcmeta 在 Phase 1–3 全程字节不变）。
 - **变更**：为 5 个受影响平台（mc1219 / mc12110 = 88、mc12111 = 94、mc261 = 101、mc262 = 107）的 `resourcepacks/craftable_coral_blocks/pack.mcmeta` 增加 `"min_format":<pack_format>,"max_format":<pack_format>`，保留原 `pack_format` 字段；≤81 的 6 个平台未动。
 - **验证**：全平台构建 + 三验证任务 + common 单测全绿；`verifyJarEquivalence` 对 P3-4 基线 11/11 通过（该任务对 pack.mcmeta 仅比对解析后 pack_format 值，属已记录能力边界）；另做 jar 内字节比对——5 个变更平台 diff 恰为新增字段、6 个未动平台字节一致，条目清单无变化。
-- **待人工项**：任一受影响平台（建议 mc12111 与 mc262 两个形态）启动确认 ERROR 消失，并执行验收清单 2-1（craftableCoralBlocks 开关 + 10 配方 + 冲突锁定）。
-- **基线影响**：5 平台 jar 内 pack.mcmeta 字节变化 → 上述人工项通过后按 ratchet 以新 HEAD 重建阶段基线；P3-4 基线（`d904d6f`）保留不动。
+- **人工验证（已通过，2026-09-05）**：受影响平台启动确认 metadata ERROR 消失，验收清单 2-1（craftableCoralBlocks 开关 + 10 配方 + 冲突锁定）通过（Ice2974 执行）。
+- **基线影响**：5 平台 jar 内 pack.mcmeta 字节变化，人工验证通过后已按 ratchet 以 `af07f26` 建立最终阶段基线（§10.2）；P3-4 基线（`d904d6f`）保留不动。
+
+### 10.2 Phase 3 最终基线（状态冻结）
+
+| 项 | 值 |
+|---|---|
+| 目录 | `D:\Project\Carpet-Ice-Addition-P3-baseline-final`（仓库外） |
+| 来源 | `main` @ `af07f26`（含 §10.1 资源包 metadata 修复），工作区干净 |
+| 内容 | 11 平台 22 个 jar（主包 + sources） |
+| 自检 | `verifyJarEquivalence -PbaselineDir=<该目录>`：11/11 通过 |
+| 历史基线 | `…-P3-baseline`（`32d0f26`）与 `…-P3-baseline-P3-4`（`d904d6f`）均保留不动，作为各阶段差异分析对照 |
+
+Phase 3 至此全部完成（P3-0 ~ P3-5 implementation + acceptance 均 accepted）；后续结构优化见 §7.4（Phase 4 待评估项）。
