@@ -23,8 +23,20 @@ tasks.withType(JavaCompile).configureEach {
     options.release = 21
 }
 
+// common 编译基准与 mc1211 平台对齐：carpet 坐标取自该平台 per-version 配置（Phase 1 前为根属性 mc1211_carpet_version）
+def mc1211CarpetVersion = {
+    def props = new Properties()
+    def propsFile = rootProject.file('versions/platform-mc1211/gradle.properties')
+    propsFile.withInputStream { props.load(it) }
+    def value = props.getProperty('carpet_version')
+    if (value == null) {
+        throw new GradleException("缺少 carpet_version：${propsFile}")
+    }
+    return value
+}()
+
 dependencies {
-    compileOnly "carpet:fabric-carpet:${project.mc1211_carpet_version}"
+    compileOnly "carpet:fabric-carpet:${mc1211CarpetVersion}"
     compileOnly "com.google.code.gson:gson:2.11.0"
     compileOnly "net.fabricmc:fabric-loader:${project.loader_version}"
     compileOnly "org.slf4j:slf4j-api:2.0.17"
