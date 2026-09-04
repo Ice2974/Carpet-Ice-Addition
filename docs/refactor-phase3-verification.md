@@ -336,3 +336,13 @@ P3-3 无人工项（纯增量校验，验收清单 §3.5 的 mixin 完整性自�
 6. mixin json 保留现状：P3-3 只建立校验防线，不合并、不生成、不改任何 json 内容；实施前预检确认当前 11 平台 json 与源码集 / 产物完全一致（无历史问题需处置）。
 7. 删除独立 commit：P3-4 的 Bridge ×11 删除为独立 commit（`d904d6f`）；空档 ×2 因 git 不跟踪空目录无法成 commit（§6.6），以工作区删除 + 本文档记录替代。
 8. P3-5 不做结构变更：本轮零源码修改；发现的结构优化机会全部记入 §7.4（Phase 4 / 后续评估项），未在本轮实施。
+
+## 10. Phase 3 后独立修复记录
+
+### 10.1 资源包 metadata 兼容修复（2026-09-05，bugfix，非 P3 步骤）
+
+- **问题**：pack_format > 81 的平台上客户端启动必现 ERROR（每次 2 条）：`Couldn't load carpet-ice-addition:craftable_coral_blocks pack metadata: Pack declares support for version newer than 81, but is missing mandatory fields min_format and max_format`（1.21.11 实例日志自 2026-09-01 起实测，非 Phase 3 回归——pack.mcmeta 在 Phase 1–3 全程字节不变）。
+- **变更**：为 5 个受影响平台（mc1219 / mc12110 = 88、mc12111 = 94、mc261 = 101、mc262 = 107）的 `resourcepacks/craftable_coral_blocks/pack.mcmeta` 增加 `"min_format":<pack_format>,"max_format":<pack_format>`，保留原 `pack_format` 字段；≤81 的 6 个平台未动。
+- **验证**：全平台构建 + 三验证任务 + common 单测全绿；`verifyJarEquivalence` 对 P3-4 基线 11/11 通过（该任务对 pack.mcmeta 仅比对解析后 pack_format 值，属已记录能力边界）；另做 jar 内字节比对——5 个变更平台 diff 恰为新增字段、6 个未动平台字节一致，条目清单无变化。
+- **待人工项**：任一受影响平台（建议 mc12111 与 mc262 两个形态）启动确认 ERROR 消失，并执行验收清单 2-1（craftableCoralBlocks 开关 + 10 配方 + 冲突锁定）。
+- **基线影响**：5 平台 jar 内 pack.mcmeta 字节变化 → 上述人工项通过后按 ratchet 以新 HEAD 重建阶段基线；P3-4 基线（`d904d6f`）保留不动。
