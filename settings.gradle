@@ -1,3 +1,5 @@
+import groovy.json.JsonSlurper
+
 pluginManagement {
     repositories {
         maven { url = 'https://maven.fabricmc.net/' }
@@ -7,27 +9,23 @@ pluginManagement {
 }
 
 rootProject.name = 'carpet-ice-addition'
-include 'common'
-include 'versions:platform-mc1211'
-include 'versions:platform-mc1213'
-include 'versions:platform-mc1214'
-include 'versions:platform-mc1215'
-include 'versions:platform-mc1216'
-include 'versions:platform-mc1218'
-include 'versions:platform-mc1219'
-include 'versions:platform-mc12110'
-include 'versions:platform-mc12111'
-include 'versions:platform-mc261'
-include 'versions:platform-mc262'
 
-project(':versions:platform-mc1211').projectDir = file('versions/platform-mc1211')
-project(':versions:platform-mc1213').projectDir = file('versions/platform-mc1213')
-project(':versions:platform-mc1214').projectDir = file('versions/platform-mc1214')
-project(':versions:platform-mc1215').projectDir = file('versions/platform-mc1215')
-project(':versions:platform-mc1216').projectDir = file('versions/platform-mc1216')
-project(':versions:platform-mc1218').projectDir = file('versions/platform-mc1218')
-project(':versions:platform-mc1219').projectDir = file('versions/platform-mc1219')
-project(':versions:platform-mc12110').projectDir = file('versions/platform-mc12110')
-project(':versions:platform-mc12111').projectDir = file('versions/platform-mc12111')
-project(':versions:platform-mc261').projectDir = file('versions/platform-mc261')
-project(':versions:platform-mc262').projectDir = file('versions/platform-mc262')
+// 版本注册表：支持的平台清单的唯一来源（条目为 versions/platform-* 目录名去掉 platform- 前缀）
+def versionRegistryFile = file('settings.json')
+def versionRegistry = new JsonSlurper().parse(versionRegistryFile).versions as List<String>
+
+// 注册表与磁盘目录一致性断言，防止新增/删除平台目录后忘记更新注册表（或反之）
+// 注意按字典序比较（mc12110 < mc1219），不要求注册表按字典序书写；include 顺序跟随注册表声明顺序
+def diskVersions = file('versions')
+        .listFiles({ File dir, String name -> dir.isDirectory() && name.startsWith('platform-') } as FilenameFilter)
+        .collect { it.name.substring('platform-'.length()) }
+        .sort()
+assert !versionRegistry.isEmpty(): 'settings.json versions 不能为空'
+assert versionRegistry.sort(false) == diskVersions:
+        "settings.json versions 与 versions/platform-* 目录不一致：registry=${versionRegistry.sort(false)} disk=${diskVersions}"
+
+include 'common'
+versionRegistry.each { version ->
+    include ":versions:platform-${version}"
+    project(":versions:platform-${version}").projectDir = file("versions/platform-${version}")
+}
