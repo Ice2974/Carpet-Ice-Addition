@@ -14,7 +14,7 @@ import net.minecraft.entity.passive.VillagerEntity;
 import net.minecraft.village.VillagerProfession;
 
 /**
- * villagerTradingOptimization 规则的极简任务列表（MC 1.21.2 ~ 1.21.3，新任务名 + VillagerProfession 参数）。
+ * villagerTradingOptimization 规则的极简任务列表（MC 1.21.2 ~ 1.21.4，新任务名 + VillagerProfession 参数）。
  * 面向固定式村民交易所：CORE 保留防溺水、工作站有效性校验、无寻路的近距离工作站认领链
  * （NearbyJobSiteAcquireTask 占票写 POTENTIAL_JOB_SITE，由原版 UpdateJobSiteTask 转换为 JOB_SITE
  * 并在失业时按工作站类型赋职业）、原版失业重置 LoseJobOnSiteLossTask 与日程切换；

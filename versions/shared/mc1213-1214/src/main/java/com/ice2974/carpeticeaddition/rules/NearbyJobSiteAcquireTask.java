@@ -16,7 +16,7 @@ import net.minecraft.world.poi.PointOfInterestType;
 import java.util.function.Predicate;
 
 /**
- * 近距离工作站认领与 POTENTIAL_JOB_SITE 清理任务（MC 1.21.4，新任务名 + VillagerProfession 参数）。
+ * 近距离工作站认领与 POTENTIAL_JOB_SITE 清理任务（MC 1.21.2 ~ 1.21.4，新任务名 + VillagerProfession 参数）。
  * villagerTradingOptimization 的无寻路职业链入口，双分支结构，不以 POTENTIAL_JOB_SITE 缺失作为任务级门控：
  * - POTENTIAL_JOB_SITE 缺失且 JOB_SITE 缺失（村民失站或失业）时，按原版 FindPointOfInterestTask 的
  *   20~40 tick 随机周期，在补货判定距离（调用与 VillagerWorkTask 相同的 BlockPos.isWithinDistance(Vec3d, double)，

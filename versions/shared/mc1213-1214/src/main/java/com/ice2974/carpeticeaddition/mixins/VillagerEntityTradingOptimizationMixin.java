@@ -21,7 +21,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * villagerTradingOptimization 规则（MC 1.21.4）：
+ * villagerTradingOptimization 规则（MC 1.21.2 ~ 1.21.4）：
  * 在 initBrain 的任务列表注册点做替换——优化目标仅注册精简 CORE/WORK，
  * 其余活动注册为空列表，活动门控条件仍由原版编排写入。
  * 精简任务列表在 initBrain 开始时一次性预构建：任一异常都会让本次构建完整回退原版注册（baked=false），
