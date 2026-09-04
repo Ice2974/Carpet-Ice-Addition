@@ -13,19 +13,9 @@ allprojects {
     }
 }
 
-def platformProjects = [
-        ':versions:platform-mc1211',
-        ':versions:platform-mc1213',
-        ':versions:platform-mc1214',
-        ':versions:platform-mc1215',
-        ':versions:platform-mc1216',
-        ':versions:platform-mc1218',
-        ':versions:platform-mc1219',
-        ':versions:platform-mc12110',
-        ':versions:platform-mc12111',
-        ':versions:platform-mc261',
-        ':versions:platform-mc262'
-]
+// 平台清单来自版本注册表 settings.json（与 settings.gradle 同一数据源，消除双源漂移）
+def versionRegistry = new groovy.json.JsonSlurper().parse(file('settings.json')).versions as List<String>
+def platformProjects = versionRegistry.collect { version -> ":versions:platform-${version}" }
 
 def craftableCoralRecipePaths = [
         'coral_block_from_tube_coral_fan',
@@ -38,20 +28,6 @@ def craftableCoralRecipePaths = [
         'coral_block_from_dead_bubble_coral_fan',
         'coral_block_from_dead_fire_coral_fan',
         'coral_block_from_dead_horn_coral_fan'
-]
-
-def craftableCoralPackFormats = [
-        ':versions:platform-mc1211': 48,
-        ':versions:platform-mc1213': 57,
-        ':versions:platform-mc1214': 61,
-        ':versions:platform-mc1215': 71,
-        ':versions:platform-mc1216': 80,
-        ':versions:platform-mc1218': 81,
-        ':versions:platform-mc1219': 88,
-        ':versions:platform-mc12110': 88,
-        ':versions:platform-mc12111': 94,
-        ':versions:platform-mc261': 101,
-        ':versions:platform-mc262': 107
 ]
 
 def verifyCraftableCoralBlocksJars = tasks.register('verifyCraftableCoralBlocksJars') {
@@ -81,7 +57,8 @@ def verifyCraftableCoralBlocksJars = tasks.register('verifyCraftableCoralBlocksJ
                 def entry = zip.getEntry(packMeta)
                 new groovy.json.JsonSlurper().parse(zip.getInputStream(entry))
             }
-            assert meta.pack.pack_format == craftableCoralPackFormats[projectPath]:
+            // 期望 pack_format 来自各平台 per-version gradle.properties 的 pack_format 键（原硬编码映射的数据化搬移）
+            assert meta.pack.pack_format == platform.pack_format.toInteger():
                     "Unexpected pack_format in ${jarFile.name}: ${meta.pack.pack_format}"
         }
     }
