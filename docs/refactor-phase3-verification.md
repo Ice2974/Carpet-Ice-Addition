@@ -9,13 +9,15 @@
 | Phase 2 门禁 | **accepted（2026-09-04，人工验收）** | `refactor-phase2-verification.md` 已更新 |
 | Phase 3 基线 | 已建立（P3-0，§2） | Phase 1/2 等价基线自此仅作历史参考，不作 Phase 3 验收基准 |
 | P3-1 implementation status | **complete（2026-09-04）** | 代码改动落地，§3 自动化验证全部通过 |
-| P3-1 acceptance status | **accepted（2026-09-04）** | §5 人工项（L2 定向 + L1-5 冒烟）已由人工执行并通过 |
+| P3-1 acceptance status | **accepted（2026-09-04）** | §8 人工项（L2 定向 + L1-5 冒烟）已由人工执行并通过 |
 | P3-2 implementation status | **complete（2026-09-04）** | 代码改动落地，§4 自动化验证全部通过；jar 条目差异白名单核对一致 |
-| P3-2 acceptance status | **accepted（2026-09-04）** | §6 人工项（mc261/mc262 L2 定向 + L1-5 冒烟）已执行并通过；P3-2 后基线已按 ratchet 以 `32d0f26` 重建（见 §5.1） |
+| P3-2 acceptance status | **accepted（2026-09-04）** | §8 人工项（mc261/mc262 L2 定向 + L1-5 冒烟）已执行并通过；P3-2 后基线已按 ratchet 以 `32d0f26` 重建（见 §5.1） |
 | P3-3 implementation status | **complete（2026-09-04）** | `verifyMixinConfigs` 任务落地，§5 自动化验证全部通过；纯增量校验，零源码 / json / 产物变化 |
 | P3-3 acceptance status | **accepted（自动化验收）** | 无人工项；变异自测证明三类检测均有效（§5.3） |
 | P3-4 implementation status | **complete（2026-09-04）** | Bridge ×11 删除（`d904d6f`，独立 commit）+ 空档 ×2 工作区删除（git 不跟踪，无 commit，§6.6）；自动化验证全绿 |
-| P3-4 acceptance status | **accepted（2026-09-04）** | §7 人工项（任一平台 L1-5 冒烟）通过 |
+| P3-4 acceptance status | **accepted（2026-09-04）** | §8 人工项（任一平台 L1-5 冒烟）通过 |
+| P3-5 implementation status | **complete（2026-09-05）** | Level 3 自动化验收 + 文档同步 + 状态冻结（§7）；本轮零源码变更 |
+| P3-5 acceptance status | **blocked-on-manual-items** | 验收清单 Level 3 游戏内完整回归（§3.1–§3.5 人工部分，§8）未执行 |
 
 ## 2. P3-0：Phase 3 基线快照
 
@@ -235,7 +237,62 @@ com/ice2974/carpeticeaddition/bridge/                      （空目录条目，
 
 revert `d904d6f` 即可恢复 11 个 Bridge 类（空档无需回滚，见 §6.6）。
 
-## 7. 人工项清单
+## 7. P3-5：收尾验收与状态冻结（2026-09-05）
+
+本轮零源码变更（仅文档），不合并、不删除、不引入 preprocess / `#if` / mappings 变化。
+
+### 7.1 Level 3 自动化验收结果（全部通过）
+
+| 验收清单条目 | 方法 | 结果 |
+|---|---|---|
+| 全平台构建 + common 单测 | `build verifyCraftableCoralBlocksJars verifyFabricModJson verifyMixinConfigs :common:test` | 11 平台全绿 |
+| 版本矩阵（11 平台 jar 命名） | 当前产物清单 vs 基线 §3 表 | 11 个 jar 文件名逐字符一致（mc1.21-1.21.1 … mc26.2） |
+| fabric.mod.json 语义 | `verifyFabricModJson`（含 mixins 引用、loader 依赖断言） | 11/11 |
+| mixin 配置完整性（§3.5） | `verifyMixinConfigs`（json ↔ class ↔ 源码集双向） | 11/11（65+2 / 62+2 / 62+1×4 / 64+1 / 63+1×2） |
+| 规则注册矩阵（§3.1） | 源码 @Rule 静态核算：common 34 + LowVersion 2（仅 mc1211）+ HighVersion 1（mc12111/261/262）+ 双胞胎档 4（FluidSettings 2 + EndPlatform 1 + CraftableCoralBlocks 1） | mc1211=40、mc1213–mc12110=38（×7）、mc12111/mc261/mc262=39（×3），与 §3.1 矩阵一致 |
+| 命令注册入口 | 四种入口形态（mc1211 / mc1213-12110 档 / mc12111 / mc26x 档）`registerCommands` 均调用 `KillItemCommand.register` + `MachineStatusCommand.register` | 一致 |
+| 命令权限门 | `CommandHelper.canUseCommand(source, commandKillItem / commandMachineStatus)` 存在于各实现 | 权限逻辑未变化 |
+| 资源包（§3.4） | `verifyCraftableCoralBlocksJars`（pack_format × 10 配方） | 11/11 |
+| 翻译完整性（§3.4） | lang 键计数 vs 基线 §6.6 | zh_cn=192、en_us=151，与基线一致（Phase 3 未触碰语言文件；logger 10 键仅存于硬编码 Map 维持现状基线） |
+| 产物等价 | `verifyJarEquivalence` 对 P3-4 基线（`d904d6f`） | 11/11 零差异（当前 HEAD 与 P3-4 基线仅差文档提交） |
+
+### 7.2 Phase 3 最终统计（实测，7395a9e → 当前 HEAD）
+
+| 指标 | P3 前 | P3 后 | 变化来源 |
+|---|---|---|---|
+| `versions/` 物理 java 文件 | 276 | **257**（-19） | P3-1 -3、P3-2 -5、P3-4 -11 |
+| 唯一类名 | 164 | **147**（-17） | P3-2 消除 6 个 `Mc26X` 后缀名、P3-4 删 11 个 Bridge |
+| 多副本类名 | 72 | **71** | `ServerGamePacketListenerImplMachineStatusRollbackWarningMixin` 收敛为 mc26x 单份 |
+| 冗余物理副本 | 112 | **110** | P3-1 -3；P3-2 消重复 -2 但三个共享命令名并入使副本 +3、净 +1 |
+| shared 档位 | 17（含 2 空档） | **15** | 空档删除 |
+| mc26x 档文件 | 90 | **95** | 承载三命令 + 回档 Mixin + 入口类 |
+| mc1213-1214 档文件 | 3 | **6** | 承载三份注释等价合并类 |
+| 平台自有 java（部分） | mc261/mc262 各 7 | **各 1**（EndPortal 覆盖） | P3-2 + P3-4 |
+| mixin json | 11 份 | **11 份**（保留现状） | 新增 `verifyMixinConfigs` 防线并接入 CI |
+
+余下 ~110 份冗余副本为结构性分叉（Yarn↔Mojmap 双胞胎 + 1.21.x API 边界覆盖），Phase 3 约束下不可合并，归 Phase 4 评估（§7.4）。
+
+### 7.3 Phase 3 总状态
+
+| 步骤 | implementation | acceptance |
+|---|---|---|
+| P3-0 基线 | complete | —（基础设施） |
+| P3-1 注释等价副本合并 | complete | accepted（人工 L2 + L1-5） |
+| P3-2 26.x 命名链收敛 | complete | accepted（人工 L2 + L1-5） |
+| P3-3 verifyMixinConfigs | complete | accepted（自动化验收 + 变异自测） |
+| P3-4 Bridge ×11 + 空档 ×2 清理 | complete | accepted（人工 L1-5 冒烟） |
+| P3-5 收尾 | complete | **blocked-on-manual-items**（Level 3 游戏内回归，§8） |
+
+### 7.4 Phase 4 / 后续评估项（不在 Phase 3 实施）
+
+1. **mappings 统一（Mojmap 或其他单一命名空间）**：消除 ~45 对 Yarn↔Mojmap 双胞胎的唯一途径；约 150 个 Yarn 源文件重写 + 全量 Level 3 回归；触发判据维持目标文档 §6（双胞胎漏改事故 ≥2 次或 preprocess 收益论证需要）。
+2. **preprocess / `#if MC`**：前置 = mappings 统一 + `com.github.Fallen-Breath:preprocessor`（JitPack commit 锁定）供应链确认 + `THIRD_PARTY_NOTICES.md` 登记。适合宏化的已测定清单：1 行 mappings 差异家族（Yarn 侧 KillItemCommand 两档、VillagerDimension121、EndPortal 26.x）与少量行差异家族（PvpRuleHelper 等）；量化上限建议维持目标文档 R2（单处 ≤10 行、不改注入 descriptor）。
+3. **root src + per-version 覆盖目录收敛**：依赖 preprocess 生成源码树（Gradle sourceSet 无同 FQCN 遮蔽能力，P3 规划期已论证）；无 preprocess 时该形态文件数不降反升，不建议单独实施。
+4. **`EndPortalBlockCustomEndPlatformPositionMixin` 26.x 覆盖形态**：mc261/mc262 间 1 行真实 API 差异，可评估迁 mc26x + 平台覆盖（净文件数不变，仅形态统一），收益小，建议随 Phase 4 一并处理。
+5. **翻译三源治理**（JSON ×2 + 硬编码 Map）：现状基线缺陷（logger 10 键缺失于 JSON）维持原样，出现缺键事故时立项。
+6. **mc1211 平台资源空目录残留**（`data/` 等，Phase 2 §3 已记录）：环境事实，可选清理。
+
+## 8. 人工项清单
 
 ### P3-1（已执行，2026-09-04）
 
@@ -261,7 +318,15 @@ P3-3 无人工项（纯增量校验，验收清单 §3.5 的 mixin 完整性自�
 |---|---|---|---|---|
 | L1-5 冒烟 | 任选 1 平台（建议 mc262：plain 形态 + 删除前 Bridge 与入口同目录层级）dev 实例启动无 mixin/注册错误，`/carpet` 可用——确认 Bridge 删除不影响 mod 加载 | Ice2974 | 2026.9.4 | 通过 |
 
-## 8. Phase 3 强制约束遵从记录
+### P3-5（未执行，Agent 不得代验）
+
+| 项 | 内容 | 执行人 | 日期 | 结果 |
+|---|---|---|---|---|
+| Level 3 完整回归 | 验收清单 §3 人工部分：全部 11 平台 `/carpet list` 条目数对照 §3.1 矩阵（40 / 38×7 / 39×3）、§3.3 版本特定分支（LowVersion / HighVersion / killitem 三实现 / machineStatus 三实现 / itemFrame 五分叉 / client mixin 归属）、§3.2 规则逐条翻译显示、§3.4 资源与翻译行为冒烟 | — | — | 未执行 |
+
+说明：§3.5 mixin 完整性已由 `verifyMixinConfigs` 自动化覆盖（P3-3）；§3.4 的 `:common:test` 单测与 pack_format 已自动化。人工项聚焦游戏内行为回归。Phase 3 各步骤的定向 L2（2-2/2-3、2-7/2-8/2-12）已在 P3-1/P3-2 验收中覆盖，Level 3 为全量收尾。
+
+## 9. Phase 3 强制约束遵从记录
 
 1. 每步骤先建新基线：P3-0 已执行（§2）；P3-2 条目变更步骤已在人工验收后以 `32d0f26` 重建（§5.1）；P3-4 条目变更步骤的阶段基线（`d904d6f`，§6.5）按用户指令于自动化验证通过后建立（独立目录，未覆盖历史基线），人工冒烟随后补验通过（§7）。
 2. Phase 1/2 基线仅历史参考：P3-1 起全部等价判定改用 Phase 3 基线。
@@ -270,3 +335,4 @@ P3-3 无人工项（纯增量校验，验收清单 §3.5 的 mixin 完整性自�
 5. 删除独立 commit：结构性删除（Bridge ×11、空档 ×2 等 P3-4 内容）将独立成 commit；P3-1/P3-2 的副本删除与迁移不可分割（§3.1 / §4.1）。
 6. mixin json 保留现状：P3-3 只建立校验防线，不合并、不生成、不改任何 json 内容；实施前预检确认当前 11 平台 json 与源码集 / 产物完全一致（无历史问题需处置）。
 7. 删除独立 commit：P3-4 的 Bridge ×11 删除为独立 commit（`d904d6f`）；空档 ×2 因 git 不跟踪空目录无法成 commit（§6.6），以工作区删除 + 本文档记录替代。
+8. P3-5 不做结构变更：本轮零源码修改；发现的结构优化机会全部记入 §7.4（Phase 4 / 后续评估项），未在本轮实施。

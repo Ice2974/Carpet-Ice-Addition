@@ -56,7 +56,7 @@
 |---|---|
 | preprocess 版本图 | **可选优化工具，不是必须依赖**。前提是单一 mappings 命名空间（见 §3.2），因此只能排在 Phase 4 决策之后或与之绑定；引入前需过供应链确认（JitPack commit 锁定的第三方插件）与 `THIRD_PARTY_NOTICES.md` 登记 |
 | `#if MC` 宏 | 仅限"小差异"（几行内的条件分支）。**硬约束：大型 Mixin / 行为差异必须继续用版本覆盖文件表达**，不强行塞进宏；覆盖文件是本项目长期保留的一等公民机制 |
-| mixin json 统一管理 | 不强制收敛为一个 json。两个候选形态：方案 A——单一模板 + 占位符按版本生成（参考实现的 `/*JAVA_VERSION*/` 思路扩展）；方案 B——保持 11 份 + 新增一致性校验任务（条目类必须存在于该平台编译产物、无悬空条目）。Phase 3 决策 |
+| mixin json 统一管理 | 不强制收敛为一个 json。两个候选形态：方案 A——单一模板 + 占位符按版本生成（参考实现的 `/*JAVA_VERSION*/` 思路扩展）；方案 B——保持 11 份 + 新增一致性校验任务（条目类必须存在于该平台编译产物、无悬空条目）。**已决策（2026-09-04，P3-3）：采用方案 B**，`verifyMixinConfigs` 已落地并接入 CI（悬空 / 漏注双向 + 不变量断言，见 refactor-phase3-verification.md §5） |
 | 矩阵 CI | 延后。现有单作业构建 + publish.yml 幂等管线保留，仅把其元数据来源从根 properties 前缀改为 per-version properties |
 | 产物聚合任务 | 参考 `buildAndGather` 思路时，必须叠加（而非替换）现有 `verifyCraftableCoralBlocksJars` / `verifyFabricModJson` |
 
@@ -217,6 +217,20 @@ carpet-ice-addition/
 | 翻译治理（三源 → 单源生成） | 消灭 JSON 与硬编码 Map 缺同步 | 涉及玩家可见文本约定（AGENTS.md） | revert | 出现一次缺键事故时 |
 | 空档清理（mc1211-1219、mc12110-12111 等） | 目录卫生 | 极低 | revert | 任意时点，可作为独立小项 |
 
+### Phase 3 执行结果（2026-09-04 ~ 09-05，决策记录）
+
+| 候选 | 处置 | 依据 |
+|---|---|---|
+| preprocess 版本图 + `#if` 宏 | **未引入**（归 Phase 4 后） | 前置条件（mappings 统一 + 供应链确认）未变；适合宏化的家族已测定并存档 |
+| shared 档位收敛（17 → 覆盖目录） | **未实施**，仅删除 2 空档（17→15） | Gradle sourceSet 无同 FQCN 遮蔽能力，完整形态依赖 preprocess；无 preprocess 时文件数不降反升 |
+| Mixin 合并（Yarn 侧内部） | **限定实施**：mc1213/mc1214 三份注释等价副本入 mc1213-1214 档（P3-1）；26.x 纯命名重复链收敛入 mc26x（P3-2） | 仅合并实测非命名差异为 0 的副本；1 行 mappings 差异与结构性分叉全部保留 |
+| 入口类去重（5 → 1 + 数据） | **部分实施**：mc261/mc262 入口并入 mc26x（P3-2）；Yarn 侧维持 3 份（LowVersion/HighVersion 注册差异） | Yarn 侧合并需引入注册拆分架构，超出最小修改原则 |
+| mixin json 统一管理 | **方案 B 落地**：`verifyMixinConfigs` + CI 接入（P3-3） | 见 §2.B |
+| 翻译治理（三源 → 单源生成） | **未实施** | 维持现状基线，出现缺键事故再立项 |
+| 空档清理 | **完成**（P3-4，连同 Bridge ×11 死代码删除） | 全仓零引用实证 |
+
+净效果：`versions/` 物理 java 276 → 257、唯一类名 164 → 147、档位 17 → 15；余下冗余为结构性分叉，归 Phase 4。完整记录见 refactor-phase3-verification.md。
+
 ### Phase 4：可选的 mappings 迁移（Mojmap 统一）
 
 - 独立于 Fallen 架构迁移的独立决策；**不是任何前置条件**。
@@ -249,7 +263,7 @@ carpet-ice-addition/
 
 1. **Phase 3 / Phase 4 触发**：是否执行、何时执行（建议判据见 §6 各表）。
 2. **preprocessor 供应链**（若 Phase 3 引入）：JitPack commit 锁定第三方插件的接受度；`THIRD_PARTY_NOTICES.md` 登记内容（Fallen-Breath/preprocessor、TIS 架构来源致谢）。
-3. **mixin json 统一管理形态**：方案 A（单模板生成）vs 方案 B（多份 + 校验任务），Phase 3 决策。
+3. **mixin json 统一管理形态**：~~方案 A（单模板生成）vs 方案 B（多份 + 校验任务），Phase 3 决策~~ **已决策：方案 B（2026-09-04，见 §6 执行结果与 §2.B）**。
 4. **注册表文件名**：`settings.json`（TIS 命名）vs `minecraftVersions.json`（参考实现命名）。
 5. **旧 jar 对照基线留存位置**：建议 Phase 1 动工前本地 `gradlew build` 产物复制到仓库外目录（或 `.minecraft/` 部署实例），Release 2.13.1 资产作历史参考。
 6. **loom 插件选择的数据化形态**：`loom_plugin` 属性 + common.gradle 按 id apply（版本冻结），是否接受。
