@@ -120,10 +120,23 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          # 平台清单、mod_version、mod_name 均以仓库现有配置为单一来源
-          mapfile -t PLATFORMS < <(grep -oP "include 'versions:platform-\K[^']+" settings.gradle | sort -u)
+          # 平台清单以 settings.json（版本注册表）为唯一来源，mod_version、mod_name 以根 gradle.properties 为来源。
+          # 先在 JSON 层完成结构与类型校验（.versions 为非空数组、元素原始类型均为 string、
+          # 每项形如 mc[0-9]+、无重复），校验通过后才用 jq -r 提取为 Bash 数组；
+          # 保留注册表声明顺序，不做 sort / dedup，任何校验失败立即终止
+          if ! jq -e '
+               (.versions | type) == "array"
+               and (.versions | length) > 0
+               and all(.versions[]; (type == "string") and test("^mc[0-9]+$"))
+               and (.versions | length) == (.versions | unique | length)
+             ' settings.json > /dev/null; then
+            echo "::error::settings.json versions 校验失败：须为非空数组、元素均为 string、每项形如 mc[0-9]+、且无重复。"
+            jq empty settings.json 2>/dev/null || echo "::error::settings.json 不是合法 JSON 或不存在。"
+            exit 1
+          fi
+          mapfile -t PLATFORMS < <(jq -r '.versions[]' settings.json)
           if [ "${#PLATFORMS[@]}" -eq 0 ]; then
-            echo "::error::未能从 settings.gradle 解析出任何平台。"
+            echo "::error::未能从 settings.json 提取平台清单。"
             exit 1
           fi
           MOD_VERSION=$(sed -n 's/^mod_version=//p' gradle.properties | tr -d '\r')
@@ -195,7 +208,7 @@ jobs:
               fi
               asset_platform="${candidate_arr[0]}"
               if [ -z "${known_platforms[$asset_platform]:-}" ]; then
-                echo "::error::资产 ${file_name} 解析出的平台 ${asset_platform} 不在 settings.gradle 平台清单内。"
+                echo "::error::资产 ${file_name} 解析出的平台 ${asset_platform} 不在 settings.json 平台清单内。"
                 exit 1
               fi
               if [[ "$file_name" != "Carpet-Ice-Addition-v${MOD_VERSION}-mc"*.jar ]]; then
@@ -224,7 +237,8 @@ jobs:
             exit 1
           fi
 
-          # 展开脚本：断言 minecraft_dependency 与 release_minecraft_range 起止一致，再对 release 标签展开闭区间
+          # 展开脚本：读取 versions/platform-<平台>/gradle.properties 的 per-version 数据键，
+          # 断言 minecraft_dependency 与 release_minecraft_range 起止一致，再对 release 标签展开闭区间
           expand_script=$(mktemp)
           cat > "$expand_script" <<'PY'
           import json
@@ -233,14 +247,19 @@ jobs:
           import sys
 
           platform = sys.argv[1]
+          props_path = os.path.join("versions", f"platform-{platform}", "gradle.properties")
           props = {}
-          with open("gradle.properties", encoding="utf-8") as fh:
-              for line in fh:
-                  line = line.strip()
-                  if not line or line.startswith("#") or "=" not in line:
-                      continue
-                  key, _, value = line.partition("=")
-                  props[key.strip()] = value.strip()
+          try:
+              with open(props_path, encoding="utf-8") as fh:
+                  for line in fh:
+                      line = line.strip()
+                      if not line or line.startswith("#") or "=" not in line:
+                          continue
+                      key, _, value = line.partition("=")
+                      props[key.strip()] = value.strip()
+          except FileNotFoundError:
+              print(f"::error::{props_path} 不存在。", file=sys.stderr)
+              sys.exit(1)
 
           def fail(message):
               print(f"::error::{message}", file=sys.stderr)
@@ -257,12 +276,12 @@ jobs:
               rp += [0] * (width - len(rp))
               return (lp > rp) - (lp < rp)
 
-          dependency_key = f"{platform}_minecraft_dependency"
-          range_key = f"{platform}_release_minecraft_range"
+          dependency_key = "minecraft_dependency"
+          range_key = "release_minecraft_range"
           if dependency_key not in props:
-              fail(f"gradle.properties 缺少 {dependency_key}。")
+              fail(f"{props_path} 缺少 {dependency_key}。")
           if range_key not in props:
-              fail(f"gradle.properties 缺少 {range_key}。")
+              fail(f"{props_path} 缺少 {range_key}。")
 
           tokens = re.findall(r"(>=|<=)\s*([0-9]+(?:\.[0-9]+)*)", props[dependency_key])
           if len(tokens) != 2 or {op for op, _ in tokens} != {">=", "<="}:
