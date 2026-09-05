@@ -35,7 +35,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * 是否被连带标记取决于其实现及 Mixin 顺序，兼容性需单独确认。
  */
 @Mixin(VillagerGoalPackages.class)
-public abstract class VillagerTaskListProviderIronGolemOptimizationMixin {
+public abstract class VillagerGoalPackagesIronGolemOptimizationMixin {
 
     private static final int ACTIVITY_SCHEDULE_UPDATE_PRIORITY = 99;
 

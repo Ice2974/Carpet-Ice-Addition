@@ -21,7 +21,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * 类名与 create() 签名在 1.21.1-1.21.11 全版本稳定（已逐版本核对）。
  */
 @Mixin(SetRaidStatus.class)
-public abstract class StartRaidTaskIronGolemOptimizationMixin {
+public abstract class SetRaidStatusIronGolemOptimizationMixin {
 
     @Inject(method = "create", at = @At("RETURN"))
     private static void carpetIceAddition$markForIronGolemOptimization(CallbackInfoReturnable<BehaviorControl<LivingEntity>> cir) {

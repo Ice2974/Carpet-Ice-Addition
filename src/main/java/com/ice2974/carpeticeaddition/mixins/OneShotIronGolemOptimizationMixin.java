@@ -18,7 +18,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * final tryStarting 实现，是工厂类任务唯一的运行时识别载体。
  */
 @Mixin(OneShot.class)
-public abstract class SingleTickTaskIronGolemOptimizationMixin implements IronGolemSkipMarked {
+public abstract class OneShotIronGolemOptimizationMixin implements IronGolemSkipMarked {
 
     @Unique
     private boolean carpetIceAddition$ironGolemOptimizationSkipped;

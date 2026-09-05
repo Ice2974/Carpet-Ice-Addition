@@ -15,7 +15,7 @@ import org.spongepowered.asm.mixin.Unique;
  * 缓存只反映名称形态，与规则开关无关；不写入任何实体 NBT，卸载后无残留。
  */
 @Mixin(Villager.class)
-public abstract class VillagerEntityIronGolemOptimizationMixin implements IronGolemVillagerOptimizationAccess {
+public abstract class VillagerIronGolemOptimizationMixin implements IronGolemVillagerOptimizationAccess {
 
     @Unique
     private boolean carpetIceAddition$ironGolemNameMatch;

@@ -18,7 +18,7 @@ import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.ai.village.poi.PoiType;
 
 /**
- * ironGolemSpawningOptimization 规则（MC 1.21.1）：FindPointOfInterestTask 工厂标记（找工作点 / 找聚会点变体）。
+ * ironGolemSpawningOptimization 规则（MC 1.21.3）：FindPointOfInterestTask 工厂标记（找工作点 / 找聚会点变体）。
  * FindPointOfInterestTask 是纯工厂 holder；本版本存在 4 参与 5 参两个 create 重载，
  * 其中 4 参（HOME / MEETING_POINT 调用）会委托进入 5 参方法体，因此不能只按重载定向，
  * 必须注入“最宽重载”（5 参）RETURN 并以 MemoryModuleType 参数判定作 guard：
@@ -30,10 +30,10 @@ import net.minecraft.world.entity.ai.village.poi.PoiType;
  * 无钟铁塔中 MEETING_POINT 永远缺失，该变体原本每 20-40t 触发一次全量 POI 查询。
  * HOME / MEETING 不被 jobSite 判定标记的行为由 IronGolemVillagerOptimizerTest 单测
  * 在代码级验证。5 参重载仅存在于 1.21.1 / 1.21.3（1.21.4 起被带 BiPredicate 的
- * 6 参重载取代，见 mc1214 / mc1215-12111 档）。
+ * 6 参重载取代，见 mc1214 / mc1215-12111 档；1.21.1 副本见 platform-mc1211 档）。
  */
 @Mixin(AcquirePoi.class)
-public abstract class FindPointOfInterestTaskIronGolemOptimizationMixin {
+public abstract class AcquirePoiIronGolemOptimizationMixin {
 
     @Inject(
             method = "create(Ljava/util/function/Predicate;Lnet/minecraft/world/entity/ai/memory/MemoryModuleType;Lnet/minecraft/world/entity/ai/memory/MemoryModuleType;ZLjava/util/Optional;)Lnet/minecraft/world/entity/ai/behavior/BehaviorControl;",

@@ -17,7 +17,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * 类名与 create() 签名在 1.21.1-1.21.11 全版本稳定。
  */
 @Mixin(PoiCompetitorScan.class)
-public abstract class WorkStationCompetitionTaskIronGolemOptimizationMixin {
+public abstract class PoiCompetitorScanIronGolemOptimizationMixin {
 
     @Inject(method = "create", at = @At("RETURN"))
     private static void carpetIceAddition$markForIronGolemOptimization(CallbackInfoReturnable<BehaviorControl<Villager>> cir) {

@@ -15,7 +15,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * 1.21.3 起更名为 WalkTowardsJobSiteTask（见 mc1213-12111 档）。
  */
 @Mixin(GoToPotentialJobSite.class)
-public abstract class WalkTowardJobSiteTaskIronGolemOptimizationMixin {
+public abstract class GoToPotentialJobSiteIronGolemOptimizationMixin {
 
     @Inject(method = "<init>(F)V", at = @At("TAIL"))
     private void carpetIceAddition$markSelfForIronGolemOptimization(float speed, CallbackInfo ci) {

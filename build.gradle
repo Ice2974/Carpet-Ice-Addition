@@ -925,7 +925,7 @@ def verifyClassRenameMapping = tasks.register('verifyClassRenameMapping') {
                 def segments = rel.split('/')
                 if (rel.endsWith('.java') || rel.endsWith('.mixins.json') || f == classRenameMappingFile ||
                         textScanNameExclusions.contains(f.name) ||
-                        segments.any { it in ['build', '.gradle', '.git', 'gradle', 'docs', 'references'] } ||
+                        segments.any { (it.startsWith('.') && it != '.github') || it in ['build', 'gradle', 'docs', 'references'] } ||
                         f.length() > 4 * 1024 * 1024) {
                     return
                 }

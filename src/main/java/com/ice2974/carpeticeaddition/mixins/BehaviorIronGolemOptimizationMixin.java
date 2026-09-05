@@ -18,7 +18,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * 只否决 STOPPED 任务的启动尝试，绝不干预已 RUNNING 任务的 tick / stop。
  */
 @Mixin(Behavior.class)
-public abstract class MultiTickTaskIronGolemOptimizationMixin implements IronGolemSkipMarked {
+public abstract class BehaviorIronGolemOptimizationMixin implements IronGolemSkipMarked {
 
     @Unique
     private boolean carpetIceAddition$ironGolemOptimizationSkipped;

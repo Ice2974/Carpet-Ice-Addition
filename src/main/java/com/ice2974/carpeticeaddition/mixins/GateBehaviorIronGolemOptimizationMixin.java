@@ -19,7 +19,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * 其内部子任务（含匿名 SingleTickTask、WaitTask）随之永不启动。
  */
 @Mixin(GateBehavior.class)
-public abstract class CompositeTaskIronGolemOptimizationMixin implements IronGolemSkipMarked {
+public abstract class GateBehaviorIronGolemOptimizationMixin implements IronGolemSkipMarked {
 
     @Unique
     private boolean carpetIceAddition$ironGolemOptimizationSkipped;

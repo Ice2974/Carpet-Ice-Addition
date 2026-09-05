@@ -20,7 +20,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * Yarn 类名，1.21.3 起更名为 WalkTowardsNearestVisibleWantedItemTask（见 mc1213-12111 档）。
  */
 @Mixin(GoToWantedItem.class)
-public abstract class WalkToNearestVisibleWantedItemTaskIronGolemOptimizationMixin {
+public abstract class GoToWantedItemIronGolemOptimizationMixin {
 
     @Inject(method = "create(FZI)Lnet/minecraft/world/entity/ai/behavior/BehaviorControl;", at = @At("RETURN"))
     private static void carpetIceAddition$markForIronGolemOptimization(float speed, boolean requiresWalkTarget, int radius, CallbackInfoReturnable<BehaviorControl<LivingEntity>> cir) {

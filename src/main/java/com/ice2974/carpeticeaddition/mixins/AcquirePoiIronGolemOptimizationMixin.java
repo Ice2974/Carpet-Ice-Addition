@@ -38,7 +38,7 @@ import net.minecraft.world.entity.ai.village.poi.PoiType;
  * 本档（独立副本见 platform-mc1214 档）。
  */
 @Mixin(AcquirePoi.class)
-public abstract class FindPointOfInterestTaskIronGolemOptimizationMixin {
+public abstract class AcquirePoiIronGolemOptimizationMixin {
 
     @Inject(
             method = "create(Ljava/util/function/Predicate;Lnet/minecraft/world/entity/ai/memory/MemoryModuleType;Lnet/minecraft/world/entity/ai/memory/MemoryModuleType;ZLjava/util/Optional;Ljava/util/function/BiPredicate;)Lnet/minecraft/world/entity/ai/behavior/BehaviorControl;",
