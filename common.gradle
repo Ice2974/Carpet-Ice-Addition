@@ -83,6 +83,35 @@ sourceSets {
     }
 }
 
+// Phase 5（P5-1）preprocess 接入预留：默认关闭（无平台设置 preprocess_enabled）。
+// 开启后的语义（P5-2 起逐平台启用）：
+//   1) 应用 com.replaymod.preprocess 插件（版本图在根 build.gradle，节点按 project.name 匹配本平台）；
+//      core（platform-mc12111）java sourceSet 被插件改写为仅 [根 src/main/java]，本地 src/main/java
+//      不参与编译（dormant 副本可安全保留）；非 core 平台为 [本地 src/main/java（overwrite 层）,
+//      生成的 preprocess 输出]，本地文件按同路径替换、异路径附加。
+//   2) 插件会 setSrcDirs 重写 resources——在 afterEvaluate 显式恢复现行资源语义
+//      [本平台 src/main/resources, common src/main/resources, extra_resource_dirs 各档]；
+//      根 src 只允许 java（下方断言），生成层资源恒为空，恢复不丢失任何输入。
+//   3) shared_tiers 引用应在该平台 flip 时清空（档位文件保留 dormant，P5-7 统一删除）。
+// 时序风险（restore 晚于插件改写）由 P5-1b 行为学实验以 clean build 实证；若插件改写发生在
+// afterEvaluate 之后，需改挂 taskGraph.ready 钩子——此处保守起见同时保留结果断言。
+def preprocessEnabled = project.hasProperty('preprocess_enabled') && project.preprocess_enabled == 'true'
+if (preprocessEnabled) {
+    assert sharedTiers.every { tier -> tier.isEmpty() }:
+            "平台 ${project.path} 启用 preprocess 后 shared_tiers 必须为空（根 src + 平台 override 接管，档位引用应随 flip 撤销）"
+    project.pluginManager.apply('com.replaymod.preprocess')
+    afterEvaluate {
+        def expectedResourceDirs = ([new File(project.projectDir, 'src/main/resources'),
+                                     project(':common').file('src/main/resources')] +
+                                    extraResourceTiers.collect { tier ->
+                                        rootProject.file("versions/shared/${tier}/src/main/resources")
+                                    })
+        sourceSets.main.resources.setSrcDirs(expectedResourceDirs)
+        assert !rootProject.file('src/main/resources').isDirectory():
+                '根项目不得创建 src/main/resources（Phase 5 资源语义不变式：根 src 仅 java）'
+    }
+}
+
 processResources {
     inputs.property 'version', project.version
     inputs.property 'minecraft_range', project.release_minecraft_range

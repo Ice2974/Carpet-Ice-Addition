@@ -3,8 +3,17 @@ import groovy.json.JsonSlurper
 pluginManagement {
     repositories {
         maven { url = 'https://maven.fabricmc.net/' }
+        // Phase 5：com.replaymod.preprocess 经 JitPack 解析到 Fallen-Breath/preprocessor（commit 全 SHA 锁定，见根 gradle.properties）
+        maven { url = 'https://jitpack.io' }
         mavenCentral()
         gradlePluginPortal()
+    }
+    resolutionStrategy {
+        eachPlugin {
+            if (requested.id.id == 'com.replaymod.preprocess') {
+                useModule("com.github.Fallen-Breath:preprocessor:${requested.version}")
+            }
+        }
     }
 }
 
@@ -25,7 +34,10 @@ assert versionRegistry.sort(false) == diskVersions:
         "settings.json versions 与 versions/platform-* 目录不一致：registry=${versionRegistry.sort(false)} disk=${diskVersions}"
 
 include 'common'
+// Phase 5（P5-1）：平台为根直接子项目 :platform-mcXXXX（磁盘目录仍在 versions/platform-*/，
+// build 目录跟随 projectDir 不变）；preprocess 插件经 project.parent 取根项目的版本图扩展，
+// 嵌套路径 :versions:platform-* 的 parent 是 :versions，不兼容根 src 模型。
 versionRegistry.each { version ->
-    include ":versions:platform-${version}"
-    project(":versions:platform-${version}").projectDir = file("versions/platform-${version}")
+    include ":platform-${version}"
+    project(":platform-${version}").projectDir = file("versions/platform-${version}")
 }

@@ -1,3 +1,44 @@
+plugins {
+    // Phase 5（P5-1）：根项目承载 preprocess 版本图（根无 parent → 自动应用 RootPreprocessPlugin）。
+    // 插件 id 沿用 ReplayMod 上游命名，经 settings.gradle resolutionStrategy 解析到
+    // JitPack com.github.Fallen-Breath:preprocessor（版本 = 根 gradle.properties preprocess_version，全 SHA 锁定）。
+    id 'com.replaymod.preprocess' version "${preprocess_version}"
+}
+
+// preprocess 版本图（Phase 5）：节点名 = 真实 Gradle project name（扁平化后 :platform-mcXXXX），
+// 版本码整数与节点一一对应；主版本（core = versions/mainProject 文件内容 platform-mc12111，
+// 即 root src 的命名基准）无变换直通，其余节点沿链变换。
+// 边约定：link(高版本侧, 低版本侧, file)，mapping 文件内容 = 高版本侧命名 → 低版本侧命名（AMS 同款约定）；
+// 1.21.x remap↔remap 边依赖插件经 loom mappings 的 automatic mapping（named→intermediary→named 自动合成，
+// P5-0 实证的纯 rename 不写条目，文件保持 0 字节）；platform-mc12111↔platform-mc261 为 remap↔plain 边
+// （26.x 无 intermediary，自动链路不存在），显式 legacy mapping 承载 rename（P5-4 按机械提取填充，当前 0 字节占位）。
+preprocess {
+    strictExtraMappings.set(true)
+
+    def mc12101  = createNode('platform-mc1211', 1_21_01, '')
+    def mc12103  = createNode('platform-mc1213', 1_21_03, '')
+    def mc12104  = createNode('platform-mc1214', 1_21_04, '')
+    def mc12105  = createNode('platform-mc1215', 1_21_05, '')
+    def mc12106  = createNode('platform-mc1216', 1_21_06, '')
+    def mc12108  = createNode('platform-mc1218', 1_21_08, '')
+    def mc12109  = createNode('platform-mc1219', 1_21_09, '')
+    def mc12110  = createNode('platform-mc12110', 1_21_10, '')
+    def mc12111  = createNode('platform-mc12111', 1_21_11, '')
+    def mc260102 = createNode('platform-mc261', 26_01_02, '')
+    def mc260200 = createNode('platform-mc262', 26_02_00, '')
+
+    mc12103.link(mc12101, file('versions/mapping-mc1213-mc1211.txt'))
+    mc12104.link(mc12103, file('versions/mapping-mc1214-mc1213.txt'))
+    mc12105.link(mc12104, file('versions/mapping-mc1215-mc1214.txt'))
+    mc12106.link(mc12105, file('versions/mapping-mc1216-mc1215.txt'))
+    mc12108.link(mc12106, file('versions/mapping-mc1218-mc1216.txt'))
+    mc12109.link(mc12108, file('versions/mapping-mc1219-mc1218.txt'))
+    mc12110.link(mc12109, file('versions/mapping-mc12110-mc1219.txt'))
+    mc12111.link(mc12110, file('versions/mapping-mc12111-mc12110.txt'))
+    mc12111.link(mc260102, file('versions/mapping-mc12111-mc261.txt'))
+    mc260200.link(mc260102, file('versions/mapping-mc262-mc261.txt'))
+}
+
 allprojects {
     group = project.maven_group
     version = project.mod_version
@@ -15,7 +56,7 @@ allprojects {
 
 // 平台清单来自版本注册表 settings.json（与 settings.gradle 同一数据源，消除双源漂移）
 def versionRegistry = new groovy.json.JsonSlurper().parse(file('settings.json')).versions as List<String>
-def platformProjects = versionRegistry.collect { version -> ":versions:platform-${version}" }
+def platformProjects = versionRegistry.collect { version -> ":platform-${version}" }
 
 def craftableCoralRecipePaths = [
         'coral_block_from_tube_coral_fan',
@@ -309,8 +350,8 @@ def verifyJarEquivalence = tasks.register('verifyJarEquivalence') {
 }
 
 gradle.projectsEvaluated {
-    assert platformProjects.toSorted() == gradle.rootProject.allprojects.findAll { it.path.startsWith(':versions:platform-') }*.path.toSorted():
-            'platformProjects must stay in sync with the :versions:platform-* projects included by settings.gradle'
+    assert platformProjects.toSorted() == gradle.rootProject.allprojects.findAll { it.path.startsWith(':platform-') }*.path.toSorted():
+            'platformProjects must stay in sync with the :platform-* projects included by settings.gradle'
 
     platformProjects.each { projectPath ->
         def platform = project(projectPath)

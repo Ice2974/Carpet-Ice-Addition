@@ -3,6 +3,15 @@
 This project contains features inspired by or originally ported from third-party Carpet extensions.
 Unless otherwise stated, the current implementations have been adapted or rewritten for Carpet Ice Addition.
 
+## Fallen-Breath/preprocessor
+
+- Related build tooling preprocess multi-version source architecture (Phase 5)
+- Original project Fallen-Breath/preprocessor, a fork of ReplayMod/preprocess
+- Source https://github.com/Fallen-Breath/preprocessor (JitPack `com.github.Fallen-Breath:preprocessor`, pinned to full commit `c5abb4fb12aad2590c852c1bc6c8d5758606ec0b`)
+- License GPL-3.0
+- Notes Build-time only Gradle plugin that preprocesses the root source tree per Minecraft version (`//#if MC` macros, version graph with mapping edges). It is not compiled into, linked with, or distributed in any release artifact, and does not affect the licensing of this project's own code.
+- Notes The multi-version source architecture (root source tree + per-version overrides + preprocess version graph) is modeled after Fallen-Breath's Carpet TIS Addition project, with Carpet AMS Addition (same architecture family) used as a concrete reference during Phase 5 planning. Our version graph, mapping edges, platform layout, and verification gates are designed for Carpet Ice Addition's own 11-platform structure.
+
 ## Carpet-Fixes
 
 - Related rule `recordWorldEventFix`
