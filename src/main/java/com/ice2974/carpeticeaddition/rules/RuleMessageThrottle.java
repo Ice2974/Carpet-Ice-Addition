@@ -13,7 +13,9 @@ public final class RuleMessageThrottle {
     }
 
     public static boolean shouldSendScaffoldingWarning(ServerPlayer player) {
+        //#disable-remap player.level() 多版本双重解析，保持原文本由各版本 javac 解析（见 SafeScaffoldingBreakMixin 同注）
         long now = player.level().getGameTime();
+        //#enable-remap
         Long last = LAST_MESSAGE_TICK.get(player.getUUID());
         if (last != null && now - last < MESSAGE_INTERVAL_TICKS) {
             return false;
