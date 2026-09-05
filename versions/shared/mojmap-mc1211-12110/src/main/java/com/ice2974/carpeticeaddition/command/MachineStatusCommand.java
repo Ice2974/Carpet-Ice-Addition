@@ -21,9 +21,7 @@ import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.resources.ResourceKey;
@@ -542,8 +540,8 @@ public final class MachineStatusCommand {
     private static Component infoButton(String name) {
         Style style = Style.EMPTY
                 .withColor(ChatFormatting.AQUA)
-                .withClickEvent(new ClickEvent.RunCommand("/machineStatus info " + quoteMachineName(name)))
-                .withHoverEvent(new HoverEvent.ShowText(
+                .withClickEvent(MachineStatusTextEvents.runCommand("/machineStatus info " + quoteMachineName(name)))
+                .withHoverEvent(MachineStatusTextEvents.showText(
                         tr("command.carpet-ice-addition.machine_status.info.hover")
                 ));
         return Component.literal("[i]").setStyle(style);

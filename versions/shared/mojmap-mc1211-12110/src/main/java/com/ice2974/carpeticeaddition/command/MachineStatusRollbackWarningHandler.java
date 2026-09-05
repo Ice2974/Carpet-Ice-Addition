@@ -5,17 +5,14 @@ import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
 import com.ice2974.carpeticeaddition.translation.TranslationFormatUtil;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.minecraft.ChatFormatting;
-import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.List;
 
 public final class MachineStatusRollbackWarningHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(MachineStatusRollbackWarningHandler.class);
@@ -108,9 +105,8 @@ public final class MachineStatusRollbackWarningHandler {
     private static Component infoButton(String name) {
         Style style = Style.EMPTY
                 .withColor(ChatFormatting.AQUA)
-                .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/machineStatus info " + quoteMachineName(name)))
-                .withHoverEvent(new HoverEvent(
-                        HoverEvent.Action.SHOW_TEXT,
+                .withClickEvent(MachineStatusTextEvents.runCommand("/machineStatus info " + quoteMachineName(name)))
+                .withHoverEvent(MachineStatusTextEvents.showText(
                         Component.literal(TranslationFormatUtil.translate("command.carpet-ice-addition.machine_status.info.hover"))
                 ));
         return Component.literal("[i]").setStyle(style);
