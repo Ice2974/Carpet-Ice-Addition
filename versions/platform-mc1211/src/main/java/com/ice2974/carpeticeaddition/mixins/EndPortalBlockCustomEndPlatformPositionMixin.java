@@ -3,30 +3,30 @@ package com.ice2974.carpeticeaddition.mixins;
 import com.ice2974.carpeticeaddition.rules.CustomEndPlatformPositionHelper;
 import com.ice2974.carpeticeaddition.rules.CustomEndPlatformPositionHelper.IntPosition;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionEndPlatformSettings;
-import net.minecraft.block.EndPortalBlock;
-import net.minecraft.entity.Entity;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.TeleportTarget;
-import net.minecraft.world.World;
-import net.minecraft.world.gen.feature.EndPlatformFeature;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.Optional;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.EndPortalBlock;
+import net.minecraft.world.level.levelgen.feature.EndPlatformFeature;
+import net.minecraft.world.level.portal.DimensionTransition;
+import net.minecraft.world.phys.Vec3;
 
 @Mixin(EndPortalBlock.class)
 public abstract class EndPortalBlockCustomEndPlatformPositionMixin {
     private static final float END_PLATFORM_YAW = 270.0F;
 
-    @Inject(method = "createTeleportTarget", at = @At("HEAD"), cancellable = true)
-    private void carpetIceAddition$customEndPlatformPosition(ServerWorld world, Entity entity, BlockPos pos, CallbackInfoReturnable<TeleportTarget> cir) {
+    @Inject(method = "getPortalDestination", at = @At("HEAD"), cancellable = true)
+    private void carpetIceAddition$customEndPlatformPosition(ServerLevel world, Entity entity, BlockPos pos, CallbackInfoReturnable<DimensionTransition> cir) {
         try {
-            if (world.getRegistryKey() == World.END) {
+            if (world.dimension() == Level.END) {
                 return;
             }
 
@@ -35,7 +35,7 @@ public abstract class EndPortalBlockCustomEndPlatformPositionMixin {
                 return;
             }
 
-            ServerWorld endWorld = world.getServer().getWorld(World.END);
+            ServerLevel endWorld = world.getServer().getLevel(Level.END);
             if (endWorld == null) {
                 cir.setReturnValue(null);
                 return;
@@ -47,19 +47,19 @@ public abstract class EndPortalBlockCustomEndPlatformPositionMixin {
                 return;
             }
 
-            Vec3d arrivalPos = platformCenter.up().toBottomCenterPos();
-            EndPlatformFeature.generate(endWorld, platformCenter, true);
-            if (entity instanceof ServerPlayerEntity) {
+            Vec3 arrivalPos = platformCenter.above().getBottomCenter();
+            EndPlatformFeature.createEndPlatform(endWorld, platformCenter, true);
+            if (entity instanceof ServerPlayer) {
                 arrivalPos = arrivalPos.subtract(0.0, 1.0, 0.0);
             }
 
-            cir.setReturnValue(new TeleportTarget(
+            cir.setReturnValue(new DimensionTransition(
                     endWorld,
                     arrivalPos,
-                    entity.getVelocity(),
+                    entity.getDeltaMovement(),
                     END_PLATFORM_YAW,
-                    entity.getPitch(),
-                    TeleportTarget.SEND_TRAVEL_THROUGH_PORTAL_PACKET.then(TeleportTarget.ADD_PORTAL_CHUNK_TICKET)
+                    entity.getXRot(),
+                    DimensionTransition.PLAY_PORTAL_SOUND.then(DimensionTransition.PLACE_PORTAL_TICKET)
             ));
         } catch (Throwable throwable) {
             CustomEndPlatformPositionHelper.reportCompatibilityIssue(throwable);
@@ -70,7 +70,7 @@ public abstract class EndPortalBlockCustomEndPlatformPositionMixin {
         return new BlockPos(position.x(), position.y(), position.z());
     }
 
-    private static boolean carpetIceAddition$isPlatformAreaInBounds(ServerWorld world, BlockPos platformCenter) {
-        return world.isInBuildLimit(platformCenter.down()) && world.isInBuildLimit(platformCenter.up(2));
+    private static boolean carpetIceAddition$isPlatformAreaInBounds(ServerLevel world, BlockPos platformCenter) {
+        return world.isInWorldBounds(platformCenter.below()) && world.isInWorldBounds(platformCenter.above(2));
     }
 }

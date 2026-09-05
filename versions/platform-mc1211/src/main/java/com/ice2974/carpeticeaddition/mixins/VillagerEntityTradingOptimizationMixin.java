@@ -8,12 +8,11 @@ import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.datafixers.util.Pair;
-import net.minecraft.entity.ai.brain.task.Task;
-import net.minecraft.entity.ai.brain.task.VillagerTaskListProvider;
-import net.minecraft.entity.passive.VillagerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.text.Text;
-import net.minecraft.village.VillagerProfession;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.ai.behavior.BehaviorControl;
+import net.minecraft.world.entity.npc.Villager;
+import net.minecraft.world.entity.npc.VillagerProfession;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -28,17 +27,17 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * 不会留下半精简半原版状态。
  * 不写 NBT、不清理 Memory；规则关闭或名称变化后由原版 reinitializeBrain 恢复全量任务。
  */
-@Mixin(VillagerEntity.class)
+@Mixin(Villager.class)
 public abstract class VillagerEntityTradingOptimizationMixin implements VillagerTradingOptimizationAccess {
 
     @Unique
     private boolean carpetIceAddition$tradingOptimizationBaked;
 
     @Unique
-    private ImmutableList<Pair<Integer, ? extends Task<? super VillagerEntity>>> carpetIceAddition$trimmedCoreTasks;
+    private ImmutableList<Pair<Integer, ? extends BehaviorControl<? super Villager>>> carpetIceAddition$trimmedCoreTasks;
 
     @Unique
-    private ImmutableList<Pair<Integer, ? extends Task<? super VillagerEntity>>> carpetIceAddition$trimmedWorkTasks;
+    private ImmutableList<Pair<Integer, ? extends BehaviorControl<? super Villager>>> carpetIceAddition$trimmedWorkTasks;
 
     @Unique
     @Override
@@ -46,7 +45,7 @@ public abstract class VillagerEntityTradingOptimizationMixin implements Villager
         if (!CarpetIceAdditionSettings.villagerTradingOptimization) {
             return false;
         }
-        Text customName = ((VillagerEntity) (Object) this).getCustomName();
+        Component customName = ((Villager) (Object) this).getCustomName();
         return customName != null && CARPET_ICE_ADDITION_TRADE_NAME.equals(customName.getString());
     }
 
@@ -63,9 +62,9 @@ public abstract class VillagerEntityTradingOptimizationMixin implements Villager
     @Unique
     @Override
     public void carpetIceAddition$refreshTradingOptimizationBrain() {
-        VillagerEntity self = (VillagerEntity) (Object) this;
-        if (self.getWorld() instanceof ServerWorld serverWorld) {
-            self.reinitializeBrain(serverWorld);
+        Villager self = (Villager) (Object) this;
+        if (self.level() instanceof ServerLevel serverWorld) {
+            self.refreshBrain(serverWorld);
         }
     }
 
@@ -75,7 +74,7 @@ public abstract class VillagerEntityTradingOptimizationMixin implements Villager
      * 任何异常则两个字段保持为 null（本次构建完整回退原版）并置 baked=false。
      * 后续所有包装器只依据字段是否为 null 决定精简或原版，不再存在可失败路径。
      */
-    @Inject(method = "initBrain", at = @At("HEAD"))
+    @Inject(method = "registerBrainGoals", at = @At("HEAD"))
     private void carpetIceAddition$prepareTradingOptimizationTasks(CallbackInfo ci) {
         carpetIceAddition$trimmedCoreTasks = null;
         carpetIceAddition$trimmedWorkTasks = null;
@@ -84,7 +83,7 @@ public abstract class VillagerEntityTradingOptimizationMixin implements Villager
             return;
         }
         try {
-            VillagerProfession profession = ((VillagerEntity) (Object) this).getVillagerData().getProfession();
+            VillagerProfession profession = ((Villager) (Object) this).getVillagerData().getProfession();
             carpetIceAddition$trimmedCoreTasks = VillagerTradingOptimizationTasks.createCoreTasks(profession, 0.5F);
             carpetIceAddition$trimmedWorkTasks = VillagerTradingOptimizationTasks.createWorkTasks(0.5F);
             carpetIceAddition$markTradingOptimizationBaked(true);
@@ -97,15 +96,15 @@ public abstract class VillagerEntityTradingOptimizationMixin implements Villager
     }
 
     @WrapOperation(
-            method = "initBrain",
+            method = "registerBrainGoals",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/entity/ai/brain/task/VillagerTaskListProvider;createCoreTasks(Lnet/minecraft/village/VillagerProfession;F)Lcom/google/common/collect/ImmutableList;"
+                    target = "Lnet/minecraft/world/entity/ai/behavior/VillagerGoalPackages;getCorePackage(Lnet/minecraft/world/entity/npc/VillagerProfession;F)Lcom/google/common/collect/ImmutableList;"
             )
     )
-    private ImmutableList<Pair<Integer, ? extends Task<? super VillagerEntity>>> carpetIceAddition$trimCoreTasks(
+    private ImmutableList<Pair<Integer, ? extends BehaviorControl<? super Villager>>> carpetIceAddition$trimCoreTasks(
             VillagerProfession profession, float speed,
-            Operation<ImmutableList<Pair<Integer, ? extends Task<? super VillagerEntity>>>> original) {
+            Operation<ImmutableList<Pair<Integer, ? extends BehaviorControl<? super Villager>>>> original) {
         if (carpetIceAddition$trimmedCoreTasks == null) {
             return original.call(profession, speed);
         }
@@ -113,15 +112,15 @@ public abstract class VillagerEntityTradingOptimizationMixin implements Villager
     }
 
     @WrapOperation(
-            method = "initBrain",
+            method = "registerBrainGoals",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/entity/ai/brain/task/VillagerTaskListProvider;createWorkTasks(Lnet/minecraft/village/VillagerProfession;F)Lcom/google/common/collect/ImmutableList;"
+                    target = "Lnet/minecraft/world/entity/ai/behavior/VillagerGoalPackages;getWorkPackage(Lnet/minecraft/world/entity/npc/VillagerProfession;F)Lcom/google/common/collect/ImmutableList;"
             )
     )
-    private ImmutableList<Pair<Integer, ? extends Task<? super VillagerEntity>>> carpetIceAddition$trimWorkTasks(
+    private ImmutableList<Pair<Integer, ? extends BehaviorControl<? super Villager>>> carpetIceAddition$trimWorkTasks(
             VillagerProfession profession, float speed,
-            Operation<ImmutableList<Pair<Integer, ? extends Task<? super VillagerEntity>>>> original) {
+            Operation<ImmutableList<Pair<Integer, ? extends BehaviorControl<? super Villager>>>> original) {
         if (carpetIceAddition$trimmedWorkTasks == null) {
             return original.call(profession, speed);
         }
@@ -129,42 +128,42 @@ public abstract class VillagerEntityTradingOptimizationMixin implements Villager
     }
 
     @WrapOperation(
-            method = "initBrain",
+            method = "registerBrainGoals",
             require = 7,
             at = {
                     @At(
                             value = "INVOKE",
-                            target = "Lnet/minecraft/entity/ai/brain/task/VillagerTaskListProvider;createMeetTasks(Lnet/minecraft/village/VillagerProfession;F)Lcom/google/common/collect/ImmutableList;"
+                            target = "Lnet/minecraft/world/entity/ai/behavior/VillagerGoalPackages;getMeetPackage(Lnet/minecraft/world/entity/npc/VillagerProfession;F)Lcom/google/common/collect/ImmutableList;"
                     ),
                     @At(
                             value = "INVOKE",
-                            target = "Lnet/minecraft/entity/ai/brain/task/VillagerTaskListProvider;createRestTasks(Lnet/minecraft/village/VillagerProfession;F)Lcom/google/common/collect/ImmutableList;"
+                            target = "Lnet/minecraft/world/entity/ai/behavior/VillagerGoalPackages;getRestPackage(Lnet/minecraft/world/entity/npc/VillagerProfession;F)Lcom/google/common/collect/ImmutableList;"
                     ),
                     @At(
                             value = "INVOKE",
-                            target = "Lnet/minecraft/entity/ai/brain/task/VillagerTaskListProvider;createIdleTasks(Lnet/minecraft/village/VillagerProfession;F)Lcom/google/common/collect/ImmutableList;"
+                            target = "Lnet/minecraft/world/entity/ai/behavior/VillagerGoalPackages;getIdlePackage(Lnet/minecraft/world/entity/npc/VillagerProfession;F)Lcom/google/common/collect/ImmutableList;"
                     ),
                     @At(
                             value = "INVOKE",
-                            target = "Lnet/minecraft/entity/ai/brain/task/VillagerTaskListProvider;createPanicTasks(Lnet/minecraft/village/VillagerProfession;F)Lcom/google/common/collect/ImmutableList;"
+                            target = "Lnet/minecraft/world/entity/ai/behavior/VillagerGoalPackages;getPanicPackage(Lnet/minecraft/world/entity/npc/VillagerProfession;F)Lcom/google/common/collect/ImmutableList;"
                     ),
                     @At(
                             value = "INVOKE",
-                            target = "Lnet/minecraft/entity/ai/brain/task/VillagerTaskListProvider;createPreRaidTasks(Lnet/minecraft/village/VillagerProfession;F)Lcom/google/common/collect/ImmutableList;"
+                            target = "Lnet/minecraft/world/entity/ai/behavior/VillagerGoalPackages;getPreRaidPackage(Lnet/minecraft/world/entity/npc/VillagerProfession;F)Lcom/google/common/collect/ImmutableList;"
                     ),
                     @At(
                             value = "INVOKE",
-                            target = "Lnet/minecraft/entity/ai/brain/task/VillagerTaskListProvider;createRaidTasks(Lnet/minecraft/village/VillagerProfession;F)Lcom/google/common/collect/ImmutableList;"
+                            target = "Lnet/minecraft/world/entity/ai/behavior/VillagerGoalPackages;getRaidPackage(Lnet/minecraft/world/entity/npc/VillagerProfession;F)Lcom/google/common/collect/ImmutableList;"
                     ),
                     @At(
                             value = "INVOKE",
-                            target = "Lnet/minecraft/entity/ai/brain/task/VillagerTaskListProvider;createHideTasks(Lnet/minecraft/village/VillagerProfession;F)Lcom/google/common/collect/ImmutableList;"
+                            target = "Lnet/minecraft/world/entity/ai/behavior/VillagerGoalPackages;getHidePackage(Lnet/minecraft/world/entity/npc/VillagerProfession;F)Lcom/google/common/collect/ImmutableList;"
                     )
             }
     )
-    private ImmutableList<Pair<Integer, ? extends Task<? super VillagerEntity>>> carpetIceAddition$dropActivityTasks(
+    private ImmutableList<Pair<Integer, ? extends BehaviorControl<? super Villager>>> carpetIceAddition$dropActivityTasks(
             VillagerProfession profession, float speed,
-            Operation<ImmutableList<Pair<Integer, ? extends Task<? super VillagerEntity>>>> original) {
+            Operation<ImmutableList<Pair<Integer, ? extends BehaviorControl<? super Villager>>>> original) {
         if (carpetIceAddition$trimmedCoreTasks == null) {
             return original.call(profession, speed);
         }
@@ -172,15 +171,15 @@ public abstract class VillagerEntityTradingOptimizationMixin implements Villager
     }
 
     @WrapOperation(
-            method = "initBrain",
+            method = "registerBrainGoals",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/entity/ai/brain/task/VillagerTaskListProvider;createPlayTasks(F)Lcom/google/common/collect/ImmutableList;"
+                    target = "Lnet/minecraft/world/entity/ai/behavior/VillagerGoalPackages;getPlayPackage(F)Lcom/google/common/collect/ImmutableList;"
             )
     )
-    private ImmutableList<Pair<Integer, ? extends Task<? super VillagerEntity>>> carpetIceAddition$dropPlayTasks(
+    private ImmutableList<Pair<Integer, ? extends BehaviorControl<? super Villager>>> carpetIceAddition$dropPlayTasks(
             float speed,
-            Operation<ImmutableList<Pair<Integer, ? extends Task<? super VillagerEntity>>>> original) {
+            Operation<ImmutableList<Pair<Integer, ? extends BehaviorControl<? super Villager>>>> original) {
         if (carpetIceAddition$trimmedCoreTasks == null) {
             return original.call(speed);
         }

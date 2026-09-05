@@ -3,23 +3,23 @@ package com.ice2974.carpeticeaddition.mixins;
 import com.ice2974.carpeticeaddition.CarpetIceAdditionMod;
 import com.ice2974.carpeticeaddition.rules.LegacyPvpRuleHelper;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.entity.passive.AbstractHorseEntity;
-import net.minecraft.entity.passive.TameableEntity;
-import net.minecraft.entity.player.PlayerEntity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.UUID;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.TamableAnimal;
+import net.minecraft.world.entity.animal.horse.AbstractHorse;
+import net.minecraft.world.entity.player.Player;
 
 @Mixin(Entity.class)
 public abstract class DisablePlayerAttackingTamedMobsMixin {
 
     @Inject(
-            method = "isInvulnerableTo(Lnet/minecraft/entity/damage/DamageSource;)Z",
+            method = "isInvulnerableTo(Lnet/minecraft/world/damagesource/DamageSource;)Z",
             at = @At("HEAD"),
             cancellable = true
     )
@@ -32,7 +32,7 @@ public abstract class DisablePlayerAttackingTamedMobsMixin {
         }
 
         try {
-            if (!(damageSource.getAttacker() instanceof PlayerEntity attacker)) {
+            if (!(damageSource.getEntity() instanceof Player attacker)) {
                 return;
             }
 
@@ -50,23 +50,23 @@ public abstract class DisablePlayerAttackingTamedMobsMixin {
     }
 
     private boolean carpetIceAddition$isTamedTarget(Entity target) {
-        if (target instanceof TameableEntity tameableEntity) {
-            return tameableEntity.isTamed();
+        if (target instanceof TamableAnimal tameableEntity) {
+            return tameableEntity.isTame();
         }
-        return target instanceof AbstractHorseEntity horseEntity && horseEntity.isTame();
+        return target instanceof AbstractHorse horseEntity && horseEntity.isTamed();
     }
 
-    private boolean carpetIceAddition$isOwnedByAttacker(Entity target, PlayerEntity attacker) {
+    private boolean carpetIceAddition$isOwnedByAttacker(Entity target, Player attacker) {
         UUID ownerUuid = this.carpetIceAddition$getOwnerUuid(target);
-        return ownerUuid != null && ownerUuid.equals(attacker.getUuid());
+        return ownerUuid != null && ownerUuid.equals(attacker.getUUID());
     }
 
     private UUID carpetIceAddition$getOwnerUuid(Entity target) {
-        if (target instanceof TameableEntity tameableEntity) {
-            return tameableEntity.getOwnerUuid();
+        if (target instanceof TamableAnimal tameableEntity) {
+            return tameableEntity.getOwnerUUID();
         }
-        if (target instanceof AbstractHorseEntity horseEntity) {
-            return horseEntity.getOwnerUuid();
+        if (target instanceof AbstractHorse horseEntity) {
+            return horseEntity.getOwnerUUID();
         }
         return null;
     }

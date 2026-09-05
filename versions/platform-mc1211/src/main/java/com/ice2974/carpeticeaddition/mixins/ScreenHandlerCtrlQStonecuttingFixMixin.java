@@ -1,13 +1,13 @@
 package com.ice2974.carpeticeaddition.mixins;
 
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionLowVersionSettings;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.screen.ScreenHandler;
-import net.minecraft.screen.StonecutterScreenHandler;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.screen.slot.SlotActionType;
-import net.minecraft.util.collection.DefaultedList;
+import net.minecraft.core.NonNullList;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.ClickType;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.inventory.StonecutterMenu;
+import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -21,39 +21,39 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * 1.21.2 循环中的 canDropItems / dropCreativeStack 在逻辑服务端分别为恒真与空操作，
  * 且 1.21.1 中不存在这两个方法，故此处省略。
  */
-@Mixin(ScreenHandler.class)
+@Mixin(AbstractContainerMenu.class)
 public abstract class ScreenHandlerCtrlQStonecuttingFixMixin {
     @Shadow
     @Final
-    public DefaultedList<Slot> slots;
+    public NonNullList<Slot> slots;
 
     @Shadow
-    public abstract ItemStack getCursorStack();
+    public abstract ItemStack getCarried();
 
-    @Inject(method = "internalOnSlotClick", at = @At("HEAD"), cancellable = true)
-    private void carpetIceAddition$ctrlQStonecuttingFix(int slotIndex, int button, SlotActionType actionType,
-                                                        PlayerEntity player, CallbackInfo ci) {
+    @Inject(method = "doClick", at = @At("HEAD"), cancellable = true)
+    private void carpetIceAddition$ctrlQStonecuttingFix(int slotIndex, int button, ClickType actionType,
+                                                        Player player, CallbackInfo ci) {
         // 仅逻辑服务端执行：客户端预测保持 1.21/1.21.1 原版，纯原版客户端也能正常同步
-        if (player.getWorld().isClient()) {
+        if (player.level().isClientSide()) {
             return;
         }
         // 只接管切石机输出槽的 Ctrl+Q；其余点击（普通 Q、Shift 点击、左右键、拖拽）走原版路径
         if (!CarpetIceAdditionLowVersionSettings.ctrlQStonecuttingFix
-                || actionType != SlotActionType.THROW
+                || actionType != ClickType.THROW
                 || button != 1
                 || slotIndex != 1
-                || !this.getCursorStack().isEmpty()
-                || !((Object) this instanceof StonecutterScreenHandler)) {
+                || !this.getCarried().isEmpty()
+                || !((Object) this instanceof StonecutterMenu)) {
             return;
         }
 
         Slot slot = this.slots.get(slotIndex);
-        int j = slot.getStack().getCount();
-        ItemStack itemStack = slot.takeStackRange(j, Integer.MAX_VALUE, player);
-        player.dropItem(itemStack, true);
-        while (!itemStack.isEmpty() && ItemStack.areItemsEqual(slot.getStack(), itemStack)) {
-            itemStack = slot.takeStackRange(j, Integer.MAX_VALUE, player);
-            player.dropItem(itemStack, true);
+        int j = slot.getItem().getCount();
+        ItemStack itemStack = slot.safeTake(j, Integer.MAX_VALUE, player);
+        player.drop(itemStack, true);
+        while (!itemStack.isEmpty() && ItemStack.isSameItem(slot.getItem(), itemStack)) {
+            itemStack = slot.safeTake(j, Integer.MAX_VALUE, player);
+            player.drop(itemStack, true);
         }
         ci.cancel();
     }

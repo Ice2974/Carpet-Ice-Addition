@@ -1,12 +1,12 @@
 package com.ice2974.carpeticeaddition.mixins;
 
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionFluidSettings;
-import net.minecraft.fluid.FlowableFluid;
-import net.minecraft.fluid.Fluid;
-import net.minecraft.fluid.FluidState;
-import net.minecraft.fluid.Fluids;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.material.FlowingFluid;
+import net.minecraft.world.level.material.Fluid;
+import net.minecraft.world.level.material.FluidState;
+import net.minecraft.world.level.material.Fluids;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -27,12 +27,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  *
  * <p>1.21.1 variant: {@code onScheduledTick(World, BlockPos, FluidState)}.
  */
-@Mixin(FlowableFluid.class)
+@Mixin(FlowingFluid.class)
 public abstract class FlowableFluidFreezeMixin {
 
-    @Inject(method = "onScheduledTick", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "tick", at = @At("HEAD"), cancellable = true)
     private void carpetIceAddition$freezeFluidTick(
-            World world, BlockPos pos, FluidState state, CallbackInfo ci) {
+            Level world, BlockPos pos, FluidState state, CallbackInfo ci) {
         Fluid self = (Fluid) (Object) this;
 
         boolean isWater = self == Fluids.WATER || self == Fluids.FLOWING_WATER;
@@ -44,13 +44,13 @@ public abstract class FlowableFluidFreezeMixin {
             return;
         }
 
-        Fluid currentFluid = world.getFluidState(pos).getFluid();
+        Fluid currentFluid = world.getFluidState(pos).getType();
         boolean stillTarget = (isWater && (currentFluid == Fluids.WATER || currentFluid == Fluids.FLOWING_WATER))
                 || (isLava && (currentFluid == Fluids.LAVA || currentFluid == Fluids.FLOWING_LAVA));
 
         if (stillTarget) {
-            int keepAliveDelay = currentFluid.getTickRate(world);
-            world.scheduleFluidTick(pos, currentFluid, keepAliveDelay);
+            int keepAliveDelay = currentFluid.getTickDelay(world);
+            world.scheduleTick(pos, currentFluid, keepAliveDelay);
         }
 
         ci.cancel();

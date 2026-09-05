@@ -3,22 +3,22 @@ package com.ice2974.carpeticeaddition.mixins;
 import com.ice2974.carpeticeaddition.CarpetIceAdditionMod;
 import com.ice2974.carpeticeaddition.rules.RealPlayerHelper;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
-import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.entity.damage.DamageTypes;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.damagesource.DamageTypes;
+import net.minecraft.world.entity.player.Player;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.Desc;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-@Mixin(PlayerEntity.class)
+@Mixin(Player.class)
 public abstract class FakePlayerIgnoreThornsDamageMixin {
 
     @Inject(
             target = @Desc(
-                    value = "damage",
+                    value = "hurt",
                     args = {DamageSource.class, float.class},
                     ret = boolean.class
             ),
@@ -42,10 +42,10 @@ public abstract class FakePlayerIgnoreThornsDamageMixin {
         }
 
         try {
-            if (!source.isOf(DamageTypes.THORNS)) {
+            if (!source.is(DamageTypes.THORNS)) {
                 return;
             }
-            if (!((Object) this instanceof ServerPlayerEntity serverPlayer)) {
+            if (!((Object) this instanceof ServerPlayer serverPlayer)) {
                 return;
             }
             if (!RealPlayerHelper.isFakePlayer(serverPlayer)) {

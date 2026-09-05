@@ -1,11 +1,10 @@
 package com.ice2974.carpeticeaddition.rules;
 
 import com.ice2974.carpeticeaddition.settings.CraftableCoralBlocksSettings;
-import net.minecraft.recipe.RecipeEntry;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.util.Identifier;
-
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.crafting.RecipeHolder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -22,17 +21,17 @@ public final class CraftableCoralBlocksRecipeBookHelper {
     private CraftableCoralBlocksRecipeBookHelper() {
     }
 
-    private static List<RecipeEntry<?>> findCurrentRecipes(MinecraftServer server) {
-        Map<String, RecipeEntry<?>> byId = new HashMap<>();
-        for (RecipeEntry<?> entry : server.getRecipeManager().values()) {
-            Identifier id = entry.id();
+    private static List<RecipeHolder<?>> findCurrentRecipes(MinecraftServer server) {
+        Map<String, RecipeHolder<?>> byId = new HashMap<>();
+        for (RecipeHolder<?> entry : server.getRecipeManager().getRecipes()) {
+            ResourceLocation id = entry.id();
             if (CraftableCoralBlocksRecipes.isCoralRecipe(id.getNamespace(), id.getPath())) {
                 byId.put(id.toString(), entry);
             }
         }
-        List<RecipeEntry<?>> result = new ArrayList<>();
+        List<RecipeHolder<?>> result = new ArrayList<>();
         for (String path : CraftableCoralBlocksRecipes.RECIPE_PATHS) {
-            RecipeEntry<?> entry = byId.get(CraftableCoralBlocksRecipes.NAMESPACE + ":" + path);
+            RecipeHolder<?> entry = byId.get(CraftableCoralBlocksRecipes.NAMESPACE + ":" + path);
             if (entry != null) {
                 result.add(entry);
             }
@@ -40,20 +39,20 @@ public final class CraftableCoralBlocksRecipeBookHelper {
         return result;
     }
 
-    private static void apply(ServerPlayerEntity player, List<RecipeEntry<?>> recipes) {
+    private static void apply(ServerPlayer player, List<RecipeHolder<?>> recipes) {
         if (recipes.isEmpty()) {
             return;
         }
         if (CraftableCoralBlocksSettings.effective()) {
-            player.unlockRecipes(recipes);
+            player.awardRecipes(recipes);
         } else {
-            player.lockRecipes(recipes);
+            player.resetRecipes(recipes);
         }
     }
 
     private static void syncPlayers(MinecraftServer server) {
-        List<RecipeEntry<?>> recipes = findCurrentRecipes(server);
-        for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
+        List<RecipeHolder<?>> recipes = findCurrentRecipes(server);
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
             apply(player, recipes);
             CraftingRefresherDispatcher.refreshOpenCraftingMenu(player);
         }
@@ -63,10 +62,10 @@ public final class CraftableCoralBlocksRecipeBookHelper {
         if (server == null) {
             return;
         }
-        List<RecipeEntry<?>> recipes = findCurrentRecipes(server);
-        for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
+        List<RecipeHolder<?>> recipes = findCurrentRecipes(server);
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
             if (!recipes.isEmpty()) {
-                player.lockRecipes(recipes);
+                player.resetRecipes(recipes);
             }
             CraftingRefresherDispatcher.refreshOpenCraftingMenu(player);
         }
@@ -78,7 +77,7 @@ public final class CraftableCoralBlocksRecipeBookHelper {
         }
     }
 
-    public static void onPlayerJoin(MinecraftServer server, ServerPlayerEntity player) {
+    public static void onPlayerJoin(MinecraftServer server, ServerPlayer player) {
         if (server != null && player != null) {
             apply(player, findCurrentRecipes(server));
         }

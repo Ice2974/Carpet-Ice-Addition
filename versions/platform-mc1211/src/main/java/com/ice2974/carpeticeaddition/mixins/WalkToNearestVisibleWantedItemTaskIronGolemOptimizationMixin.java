@@ -1,11 +1,9 @@
 package com.ice2974.carpeticeaddition.mixins;
 
 import com.ice2974.carpeticeaddition.rules.IronGolemVillagerOptimizationHooks;
-
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.ai.brain.task.Task;
-import net.minecraft.entity.ai.brain.task.WalkToNearestVisibleWantedItemTask;
-
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.behavior.BehaviorControl;
+import net.minecraft.world.entity.ai.behavior.GoToWantedItem;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -21,11 +19,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * 避免命中带自定义谓词的四参重载。WalkToNearestVisibleWantedItemTask 是 1.21.1 的
  * Yarn 类名，1.21.3 起更名为 WalkTowardsNearestVisibleWantedItemTask（见 mc1213-12111 档）。
  */
-@Mixin(WalkToNearestVisibleWantedItemTask.class)
+@Mixin(GoToWantedItem.class)
 public abstract class WalkToNearestVisibleWantedItemTaskIronGolemOptimizationMixin {
 
-    @Inject(method = "create(FZI)Lnet/minecraft/entity/ai/brain/task/Task;", at = @At("RETURN"))
-    private static void carpetIceAddition$markForIronGolemOptimization(float speed, boolean requiresWalkTarget, int radius, CallbackInfoReturnable<Task<LivingEntity>> cir) {
+    @Inject(method = "create(FZI)Lnet/minecraft/world/entity/ai/behavior/BehaviorControl;", at = @At("RETURN"))
+    private static void carpetIceAddition$markForIronGolemOptimization(float speed, boolean requiresWalkTarget, int radius, CallbackInfoReturnable<BehaviorControl<LivingEntity>> cir) {
         IronGolemVillagerOptimizationHooks.markTaskInstance(cir.getReturnValue(), "WalkToNearestVisibleWantedItemTask.create");
     }
 }

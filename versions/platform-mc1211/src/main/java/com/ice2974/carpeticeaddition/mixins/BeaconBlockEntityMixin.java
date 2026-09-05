@@ -3,10 +3,10 @@ package com.ice2974.carpeticeaddition.mixins;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.entity.BeaconBlockEntity;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.BlockView;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.block.entity.BeaconBlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
@@ -17,11 +17,11 @@ public abstract class BeaconBlockEntityMixin {
             method = "tick",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/block/BlockState;getOpacity(Lnet/minecraft/world/BlockView;Lnet/minecraft/util/math/BlockPos;)I"
+                    target = "Lnet/minecraft/world/level/block/state/BlockState;getLightBlock(Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/core/BlockPos;)I"
             ),
             require = 1
     )
-    private static int carpetIceAddition$beaconIgnoresObstruction(BlockState state, BlockView world, BlockPos pos, Operation<Integer> original) {
+    private static int carpetIceAddition$beaconIgnoresObstruction(BlockState state, BlockGetter world, BlockPos pos, Operation<Integer> original) {
         if (CarpetIceAdditionSettings.beaconIgnoresObstruction) {
             return 0;
         }

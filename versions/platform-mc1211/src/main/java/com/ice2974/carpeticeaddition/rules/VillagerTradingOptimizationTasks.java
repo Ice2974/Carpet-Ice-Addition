@@ -2,16 +2,16 @@ package com.ice2974.carpeticeaddition.rules;
 
 import com.google.common.collect.ImmutableList;
 import com.mojang.datafixers.util.Pair;
-import net.minecraft.entity.ai.brain.MemoryModuleType;
-import net.minecraft.entity.ai.brain.task.ForgetCompletedPointOfInterestTask;
-import net.minecraft.entity.ai.brain.task.GoToWorkTask;
-import net.minecraft.entity.ai.brain.task.LoseJobOnSiteLossTask;
-import net.minecraft.entity.ai.brain.task.ScheduleActivityTask;
-import net.minecraft.entity.ai.brain.task.StayAboveWaterTask;
-import net.minecraft.entity.ai.brain.task.Task;
-import net.minecraft.entity.ai.brain.task.VillagerWorkTask;
-import net.minecraft.entity.passive.VillagerEntity;
-import net.minecraft.village.VillagerProfession;
+import net.minecraft.world.entity.ai.behavior.AssignProfessionFromJobSite;
+import net.minecraft.world.entity.ai.behavior.BehaviorControl;
+import net.minecraft.world.entity.ai.behavior.ResetProfession;
+import net.minecraft.world.entity.ai.behavior.Swim;
+import net.minecraft.world.entity.ai.behavior.UpdateActivityFromSchedule;
+import net.minecraft.world.entity.ai.behavior.ValidateNearbyPoi;
+import net.minecraft.world.entity.ai.behavior.WorkAtPoi;
+import net.minecraft.world.entity.ai.memory.MemoryModuleType;
+import net.minecraft.world.entity.npc.Villager;
+import net.minecraft.world.entity.npc.VillagerProfession;
 
 /**
  * villagerTradingOptimization 规则的极简任务列表（MC 1.21 ~ 1.21.1，旧任务名 + VillagerProfession 参数）。
@@ -27,22 +27,22 @@ public final class VillagerTradingOptimizationTasks {
     private VillagerTradingOptimizationTasks() {
     }
 
-    public static ImmutableList<Pair<Integer, ? extends Task<? super VillagerEntity>>> createCoreTasks(
+    public static ImmutableList<Pair<Integer, ? extends BehaviorControl<? super Villager>>> createCoreTasks(
             VillagerProfession profession, float speed) {
-        return ImmutableList.<Pair<Integer, ? extends Task<? super VillagerEntity>>>of(
-                Pair.of(0, new StayAboveWaterTask(0.8F)),
-                Pair.of(0, ForgetCompletedPointOfInterestTask.create(profession.heldWorkstation(), MemoryModuleType.JOB_SITE)),
-                Pair.of(0, ForgetCompletedPointOfInterestTask.create(profession.acquirableWorkstation(), MemoryModuleType.POTENTIAL_JOB_SITE)),
+        return ImmutableList.<Pair<Integer, ? extends BehaviorControl<? super Villager>>>of(
+                Pair.of(0, new Swim(0.8F)),
+                Pair.of(0, ValidateNearbyPoi.create(profession.heldJobSite(), MemoryModuleType.JOB_SITE)),
+                Pair.of(0, ValidateNearbyPoi.create(profession.acquirableJobSite(), MemoryModuleType.POTENTIAL_JOB_SITE)),
                 Pair.of(6, new NearbyJobSiteAcquireTask(profession)),
-                Pair.of(10, GoToWorkTask.create()),
-                Pair.of(10, LoseJobOnSiteLossTask.create()),
-                Pair.of(99, ScheduleActivityTask.create())
+                Pair.of(10, AssignProfessionFromJobSite.create()),
+                Pair.of(10, ResetProfession.create()),
+                Pair.of(99, UpdateActivityFromSchedule.create())
         );
     }
 
-    public static ImmutableList<Pair<Integer, ? extends Task<? super VillagerEntity>>> createWorkTasks(float speed) {
-        return ImmutableList.<Pair<Integer, ? extends Task<? super VillagerEntity>>>of(
-                Pair.of(5, new VillagerWorkTask())
+    public static ImmutableList<Pair<Integer, ? extends BehaviorControl<? super Villager>>> createWorkTasks(float speed) {
+        return ImmutableList.<Pair<Integer, ? extends BehaviorControl<? super Villager>>>of(
+                Pair.of(5, new WorkAtPoi())
         );
     }
 }

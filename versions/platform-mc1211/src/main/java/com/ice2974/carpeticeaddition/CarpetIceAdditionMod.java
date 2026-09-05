@@ -22,11 +22,11 @@ import com.ice2974.carpeticeaddition.command.MachineStatusConfigManager;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
 import com.mojang.brigadier.CommandDispatcher;
-import net.minecraft.command.CommandRegistryAccess;
+import net.minecraft.commands.CommandBuildContext;
+import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.util.WorldSavePath;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.storage.LevelResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -121,11 +121,11 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
     @Override public void registerLoggers() { VillagerEventsLogger121.register(); }
 
     @Override
-    public void onPlayerLoggedIn(ServerPlayerEntity player) {
+    public void onPlayerLoggedIn(ServerPlayer player) {
         try {
             // 锁定后字段已被直接压成 false，不能再以字段值作为提示门槛：只要 conflictLocked 即提示加入玩家
             if (CraftableCoralBlocksState.isConflictLocked()) {
-                player.sendMessage(net.minecraft.text.Text.literal(
+                player.sendSystemMessage(net.minecraft.network.chat.Component.literal(
                         com.ice2974.carpeticeaddition.translation.TranslationFormatUtil.translate(
                                 "carpet.rule.craftableCoralBlocks.conflict.locked")));
             }
@@ -143,15 +143,15 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
 
 
     @Override
-    public void registerCommands(CommandDispatcher<ServerCommandSource> dispatcher, CommandRegistryAccess commandBuildContext) {
+    public void registerCommands(CommandDispatcher<CommandSourceStack> dispatcher, CommandBuildContext commandBuildContext) {
         KillItemCommand.register(dispatcher);
         MachineStatusCommand.register(dispatcher);
     }
 
     @Override
     public void onServerLoaded(MinecraftServer server) {
-        KillItemConfigManager.initialize(server.getSavePath(WorldSavePath.ROOT));
-        MachineStatusConfigManager.initialize(server.getSavePath(WorldSavePath.ROOT));
+        KillItemConfigManager.initialize(server.getWorldPath(LevelResource.ROOT));
+        MachineStatusConfigManager.initialize(server.getWorldPath(LevelResource.ROOT));
         VillagerEventsRuntime121.onServerLoaded(server);
     }
 

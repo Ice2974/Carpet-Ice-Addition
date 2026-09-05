@@ -2,18 +2,16 @@ package com.ice2974.carpeticeaddition.rules;
 
 import com.google.common.collect.ImmutableMap;
 import com.mojang.datafixers.util.Pair;
-import net.minecraft.entity.ai.brain.MemoryModuleType;
-import net.minecraft.entity.ai.brain.task.MultiTickTask;
-import net.minecraft.entity.passive.VillagerEntity;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.GlobalPos;
-import net.minecraft.village.VillagerProfession;
-import net.minecraft.world.poi.PointOfInterestStorage;
-import net.minecraft.world.poi.PointOfInterestType;
-
 import java.util.function.Predicate;
+import net.minecraft.core.GlobalPos;
+import net.minecraft.core.Holder;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.ai.behavior.Behavior;
+import net.minecraft.world.entity.ai.memory.MemoryModuleType;
+import net.minecraft.world.entity.ai.village.poi.PoiManager;
+import net.minecraft.world.entity.ai.village.poi.PoiType;
+import net.minecraft.world.entity.npc.Villager;
+import net.minecraft.world.entity.npc.VillagerProfession;
 
 /**
  * 近距离工作站认领与 POTENTIAL_JOB_SITE 清理任务（MC 1.21 ~ 1.21.1，旧任务名 + VillagerProfession 参数）。
@@ -30,7 +28,7 @@ import java.util.function.Predicate;
  * 已绑定 JOB_SITE 的健康村民每次仅做两次记忆存在性检查即短路，不产生 POI 查询；
  * 节流状态仅保存在任务实例字段中，随 Brain 重建重置，不写 NBT 或其他持久化数据。
  */
-public class NearbyJobSiteAcquireTask extends MultiTickTask<VillagerEntity> {
+public class NearbyJobSiteAcquireTask extends Behavior<Villager> {
     /**
      * 与 VillagerWorkTask.MAX_DISTANCE（私有常量，值 1.73）同一数值与距离方法，
      * 保证能认领的工作站必在补货判定距离内。
@@ -42,52 +40,52 @@ public class NearbyJobSiteAcquireTask extends MultiTickTask<VillagerEntity> {
     private static final long RETRY_INTERVAL = 20L;
     private static final int RETRY_INTERVAL_JITTER = 20;
 
-    private final Predicate<RegistryEntry<PointOfInterestType>> workstationPredicate;
+    private final Predicate<Holder<PoiType>> workstationPredicate;
     private long nextCheckTime;
 
     public NearbyJobSiteAcquireTask(VillagerProfession profession) {
         super(ImmutableMap.of());
-        this.workstationPredicate = profession.acquirableWorkstation();
+        this.workstationPredicate = profession.acquirableJobSite();
     }
 
     @Override
-    protected boolean shouldRun(ServerWorld world, VillagerEntity entity) {
-        if (entity.getBrain().hasMemoryModule(MemoryModuleType.POTENTIAL_JOB_SITE)) {
+    protected boolean checkExtraStartConditions(ServerLevel world, Villager entity) {
+        if (entity.getBrain().hasMemoryValue(MemoryModuleType.POTENTIAL_JOB_SITE)) {
             this.cleanUpDisplacedPotentialSite(world, entity);
             return false;
         }
-        if (entity.isBaby() || entity.getBrain().hasMemoryModule(MemoryModuleType.JOB_SITE)) {
+        if (entity.isBaby() || entity.getBrain().hasMemoryValue(MemoryModuleType.JOB_SITE)) {
             return false;
         }
         if (this.nextCheckTime == 0L) {
-            this.nextCheckTime = world.getTime() + world.getRandom().nextInt(RETRY_INTERVAL_JITTER);
+            this.nextCheckTime = world.getGameTime() + world.getRandom().nextInt(RETRY_INTERVAL_JITTER);
             return false;
         }
-        return world.getTime() >= this.nextCheckTime;
+        return world.getGameTime() >= this.nextCheckTime;
     }
 
     @Override
-    protected void run(ServerWorld world, VillagerEntity entity, long time) {
+    protected void start(ServerLevel world, Villager entity, long time) {
         this.nextCheckTime = time + RETRY_INTERVAL + world.getRandom().nextInt(RETRY_INTERVAL_JITTER);
-        PointOfInterestStorage poiStorage = world.getPointOfInterestStorage();
-        poiStorage.getSortedTypesAndPositions(
-                        this.workstationPredicate, pos -> true, entity.getBlockPos(), 2, PointOfInterestStorage.OccupationStatus.HAS_SPACE)
+        PoiManager poiStorage = world.getPoiManager();
+        poiStorage.findAllClosestFirstWithType(
+                        this.workstationPredicate, pos -> true, entity.blockPosition(), 2, PoiManager.Occupancy.HAS_SPACE)
                 .map(Pair::getSecond)
-                .filter(pos -> pos.isWithinDistance(entity.getPos(), WORK_DISTANCE))
-                .filter(pos -> poiStorage.getPosition(this.workstationPredicate, (entry, blockPos) -> blockPos.equals(pos), pos, 1).isPresent())
+                .filter(pos -> pos.closerToCenterThan(entity.position(), WORK_DISTANCE))
+                .filter(pos -> poiStorage.take(this.workstationPredicate, (entry, blockPos) -> blockPos.equals(pos), pos, 1).isPresent())
                 .findFirst()
                 .ifPresent(pos -> entity.getBrain()
-                        .remember(MemoryModuleType.POTENTIAL_JOB_SITE, GlobalPos.create(world.getRegistryKey(), pos)));
+                        .setMemory(MemoryModuleType.POTENTIAL_JOB_SITE, GlobalPos.of(world.dimension(), pos)));
     }
 
-    private void cleanUpDisplacedPotentialSite(ServerWorld world, VillagerEntity entity) {
+    private void cleanUpDisplacedPotentialSite(ServerLevel world, Villager entity) {
         entity.getBrain()
-                .getOptionalRegisteredMemory(MemoryModuleType.POTENTIAL_JOB_SITE)
-                .filter(pos -> pos.dimension() != world.getRegistryKey()
-                        || (!pos.pos().isWithinDistance(entity.getPos(), CONVERSION_DISTANCE) && !entity.isNatural()))
+                .getMemory(MemoryModuleType.POTENTIAL_JOB_SITE)
+                .filter(pos -> pos.dimension() != world.dimension()
+                        || (!pos.pos().closerToCenterThan(entity.position(), CONVERSION_DISTANCE) && !entity.assignProfessionWhenSpawned()))
                 .ifPresent(pos -> {
-                    entity.releaseTicketFor(MemoryModuleType.POTENTIAL_JOB_SITE);
-                    entity.getBrain().forget(MemoryModuleType.POTENTIAL_JOB_SITE);
+                    entity.releasePoi(MemoryModuleType.POTENTIAL_JOB_SITE);
+                    entity.getBrain().eraseMemory(MemoryModuleType.POTENTIAL_JOB_SITE);
                 });
     }
 }

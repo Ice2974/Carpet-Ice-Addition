@@ -2,15 +2,6 @@ package com.ice2974.carpeticeaddition.mixins;
 
 import com.ice2974.carpeticeaddition.rules.IronGolemVillagerOptimizer;
 import com.ice2974.carpeticeaddition.rules.IronGolemVillagerOptimizationHooks;
-
-import net.minecraft.entity.ai.brain.MemoryModuleType;
-import net.minecraft.entity.ai.brain.task.FindPointOfInterestTask;
-import net.minecraft.entity.ai.brain.task.Task;
-import net.minecraft.entity.mob.PathAwareEntity;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.util.math.GlobalPos;
-import net.minecraft.world.poi.PointOfInterestType;
-
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -18,6 +9,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.Optional;
 import java.util.function.Predicate;
+import net.minecraft.core.GlobalPos;
+import net.minecraft.core.Holder;
+import net.minecraft.world.entity.PathfinderMob;
+import net.minecraft.world.entity.ai.behavior.AcquirePoi;
+import net.minecraft.world.entity.ai.behavior.BehaviorControl;
+import net.minecraft.world.entity.ai.memory.MemoryModuleType;
+import net.minecraft.world.entity.ai.village.poi.PoiType;
 
 /**
  * ironGolemSpawningOptimization 规则（MC 1.21.1）：FindPointOfInterestTask 工厂标记（找工作点 / 找聚会点变体）。
@@ -34,20 +32,20 @@ import java.util.function.Predicate;
  * 在代码级验证。5 参重载仅存在于 1.21.1 / 1.21.3（1.21.4 起被带 BiPredicate 的
  * 6 参重载取代，见 mc1214 / mc1215-12111 档）。
  */
-@Mixin(FindPointOfInterestTask.class)
+@Mixin(AcquirePoi.class)
 public abstract class FindPointOfInterestTaskIronGolemOptimizationMixin {
 
     @Inject(
-            method = "create(Ljava/util/function/Predicate;Lnet/minecraft/entity/ai/brain/MemoryModuleType;Lnet/minecraft/entity/ai/brain/MemoryModuleType;ZLjava/util/Optional;)Lnet/minecraft/entity/ai/brain/task/Task;",
+            method = "create(Ljava/util/function/Predicate;Lnet/minecraft/world/entity/ai/memory/MemoryModuleType;Lnet/minecraft/world/entity/ai/memory/MemoryModuleType;ZLjava/util/Optional;)Lnet/minecraft/world/entity/ai/behavior/BehaviorControl;",
             at = @At("RETURN")
     )
     private static void carpetIceAddition$markJobSiteVariantForIronGolemOptimization(
-            Predicate<RegistryEntry<PointOfInterestType>> poiTypes,
+            Predicate<Holder<PoiType>> poiTypes,
             MemoryModuleType<GlobalPos> poiPosModule,
             MemoryModuleType<GlobalPos> potentialPoiPosModule,
             boolean onlyRunIfChild,
             Optional<Byte> entityStatus,
-            CallbackInfoReturnable<Task<PathAwareEntity>> cir) {
+            CallbackInfoReturnable<BehaviorControl<PathfinderMob>> cir) {
         if (!IronGolemVillagerOptimizer.isJobSitePoiVariant(poiPosModule, potentialPoiPosModule)
                 && !IronGolemVillagerOptimizer.isMeetingPoiVariant(poiPosModule, MemoryModuleType.MEETING_POINT)) {
             return;

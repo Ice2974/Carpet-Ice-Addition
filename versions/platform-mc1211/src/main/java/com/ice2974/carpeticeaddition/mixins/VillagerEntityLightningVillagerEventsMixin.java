@@ -5,11 +5,11 @@ import com.ice2974.carpeticeaddition.villagerevents.VillagerEventSnapshot121;
 import com.ice2974.carpeticeaddition.villagerevents.VillagerEventState;
 import com.ice2974.carpeticeaddition.villagerevents.VillagerEventsCompatibility;
 import com.ice2974.carpeticeaddition.villagerevents.VillagerEventsRuntime121;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LightningBolt;
+import net.minecraft.world.entity.npc.Villager;
 import com.ice2974.carpeticeaddition.villagerevents.VillagerEventConversionScope121;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.LightningEntity;
-import net.minecraft.entity.passive.VillagerEntity;
-import net.minecraft.server.world.ServerWorld;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Invoker;
 import org.spongepowered.asm.mixin.injection.At;
@@ -18,27 +18,27 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /** 1.21.1 creates a Witch manually instead of using MobEntity.convertTo. */
-@Mixin(VillagerEntity.class)
+@Mixin(Villager.class)
 public abstract class VillagerEntityLightningVillagerEventsMixin {
-    @Invoker("releaseAllTickets")
+    @Invoker("releaseAllPois")
     abstract void carpetIceAddition$invokeReleaseAllTickets();
-    @Inject(method = "onStruckByLightning", at = @At("HEAD"))
-    private void carpetIceAddition$resetLightningState(ServerWorld world, LightningEntity lightning, CallbackInfo ci) {
+    @Inject(method = "thunderHit", at = @At("HEAD"))
+    private void carpetIceAddition$resetLightningState(ServerLevel world, LightningBolt lightning, CallbackInfo ci) {
         try { ((VillagerEventState) (Object) this).carpetIceAddition$abortConversion(); }
         catch (Throwable error) { VillagerEventsCompatibility.report("witch_conversion", error); }
     }
-    @Inject(method = "onStruckByLightning", at = @At("RETURN"))
-    private void carpetIceAddition$clearIncompleteLightningState(ServerWorld world, LightningEntity lightning, CallbackInfo ci) {
+    @Inject(method = "thunderHit", at = @At("RETURN"))
+    private void carpetIceAddition$clearIncompleteLightningState(ServerLevel world, LightningBolt lightning, CallbackInfo ci) {
         try { ((VillagerEventState) (Object) this).carpetIceAddition$abortConversion(); }
         catch (Throwable error) { VillagerEventsCompatibility.report("witch_conversion", error); }
     }
-    @Redirect(method = "onStruckByLightning", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/world/ServerWorld;spawnEntityAndPassengers(Lnet/minecraft/entity/Entity;)V"))
-    private void carpetIceAddition$observeWitchSpawn(ServerWorld world, Entity witch) {
+    @Redirect(method = "thunderHit", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerLevel;addFreshEntityWithPassengers(Lnet/minecraft/world/entity/Entity;)V"))
+    private void carpetIceAddition$observeWitchSpawn(ServerLevel world, Entity witch) {
         VillagerEventState state = null;
         boolean observing = false;
         boolean pushed = false;
         try {
-            VillagerEntity self = (VillagerEntity) (Object) this;
+            Villager self = (Villager) (Object) this;
             state = (VillagerEventState) self;
             VillagerEventSnapshot121 snapshot = VillagerEventsRuntime121.snapshot(self, null);
             state.carpetIceAddition$abortConversion();
@@ -50,13 +50,13 @@ public abstract class VillagerEntityLightningVillagerEventsMixin {
             VillagerEventsCompatibility.report("witch_conversion", error);
             if (state != null) try { state.carpetIceAddition$abortConversion(); } catch (Throwable cleanup) { VillagerEventsCompatibility.report("witch_conversion", cleanup); }
         }
-        try { world.spawnEntityAndPassengers(witch); }
+        try { world.addFreshEntityWithPassengers(witch); }
         catch (Throwable original) { if (observing) try { state.carpetIceAddition$abortConversion(); } catch (Throwable cleanup) { VillagerEventsCompatibility.report("witch_conversion", cleanup); } throw original; }
         finally { if (pushed) try { VillagerEventConversionScope121.pop(state); } catch (Throwable error) { VillagerEventsCompatibility.report("conversion_scope", error); } }
     }
 
-    @Redirect(method = "onStruckByLightning", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/passive/VillagerEntity;discard()V"))
-    private void carpetIceAddition$observeVillagerDiscard(VillagerEntity villager) {
+    @Redirect(method = "thunderHit", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/npc/Villager;discard()V"))
+    private void carpetIceAddition$observeVillagerDiscard(Villager villager) {
         VillagerEventState state = null;
         try { villager.discard(); }
         catch (Throwable original) {
@@ -76,8 +76,8 @@ public abstract class VillagerEntityLightningVillagerEventsMixin {
         finally { if (state != null) try { state.carpetIceAddition$abortConversion(); } catch (Throwable cleanup) { VillagerEventsCompatibility.report("witch_conversion", cleanup); } }
     }
 
-    @Redirect(method = "onStruckByLightning", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/passive/VillagerEntity;releaseAllTickets()V"))
-    private void carpetIceAddition$observeReleaseTickets(VillagerEntity villager) {
+    @Redirect(method = "thunderHit", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/npc/Villager;releaseAllPois()V"))
+    private void carpetIceAddition$observeReleaseTickets(Villager villager) {
         try { carpetIceAddition$invokeReleaseAllTickets(); }
         catch (Throwable original) {
             try { ((VillagerEventState) villager).carpetIceAddition$abortConversion(); }

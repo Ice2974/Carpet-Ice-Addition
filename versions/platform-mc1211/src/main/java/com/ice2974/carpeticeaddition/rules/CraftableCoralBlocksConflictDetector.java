@@ -2,17 +2,17 @@ package com.ice2974.carpeticeaddition.rules;
 
 import com.ice2974.carpeticeaddition.settings.CraftableCoralBlocksSettings;
 import com.ice2974.carpeticeaddition.translation.TranslationFormatUtil;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.recipe.Recipe;
-import net.minecraft.recipe.RecipeEntry;
-import net.minecraft.recipe.RecipeManager;
-import net.minecraft.recipe.RecipeType;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.RegistryWrapper;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.item.crafting.RecipeHolder;
+import net.minecraft.world.item.crafting.RecipeManager;
+import net.minecraft.world.item.crafting.RecipeType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,19 +36,19 @@ public final class CraftableCoralBlocksConflictDetector {
             return false;
         }
         RecipeManager manager = server.getRecipeManager();
-        RegistryWrapper.WrapperLookup lookup = server.getRegistryManager();
+        HolderLookup.Provider lookup = server.registryAccess();
         Set<String> targets = new HashSet<>(CraftableCoralBlocksRecipes.RESULT_ITEM_IDS);
-        for (RecipeEntry<?> entry : manager.values()) {
+        for (RecipeHolder<?> entry : manager.getRecipes()) {
             Recipe<?> recipe = entry.value();
             if (recipe.getType() != RecipeType.CRAFTING) {
                 continue;
             }
-            Identifier id = entry.id();
+            ResourceLocation id = entry.id();
             if (CraftableCoralBlocksRecipes.isCoralRecipe(id.getNamespace(), id.getPath())) {
                 continue;
             }
             try {
-                ItemStack result = recipe.getResult(lookup);
+                ItemStack result = recipe.getResultItem(lookup);
                 if (result == null || result.isEmpty()) {
                     continue;
                 }
@@ -56,7 +56,7 @@ public final class CraftableCoralBlocksConflictDetector {
                 if (item == null) {
                     continue;
                 }
-                Identifier resultId = Registries.ITEM.getId(item);
+                ResourceLocation resultId = BuiltInRegistries.ITEM.getKey(item);
                 if (targets.contains(resultId.toString())) {
                     return true;
                 }
@@ -109,9 +109,9 @@ public final class CraftableCoralBlocksConflictDetector {
     private static void broadcast(MinecraftServer server, String key) {
         String text = TranslationFormatUtil.translate(key);
         LOGGER.warn("[Carpet Ice Addition] {}", text);
-        if (server.getPlayerManager() != null) {
-            Text msg = Text.literal(text);
-            server.getPlayerManager().broadcast(msg, false);
+        if (server.getPlayerList() != null) {
+            Component msg = Component.literal(text);
+            server.getPlayerList().broadcastSystemMessage(msg, false);
         }
     }
 
