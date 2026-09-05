@@ -21,13 +21,16 @@
 | P6-4 | 205e59d | 杂项族 9 对：PiglinEntity/ZombieEntity MobsSpawnWithoutSpears→去 Entity、FlowableFluidFreeze→FlowingFluidFreeze、LavaFluid/WaterFluid TickRate→TickDelay、CraftingScreenHandler→CraftingMenu（CraftableCoralBlocks）、ServerPlayNetworkHandler→ServerGamePacketListenerImpl（两条）、ItemUsage→ItemUtils（PortableInfiniteWater）；mc1211 override×2；9 份 JSON 同步（spears 两条仅 mc12111）；mapping +9。 |
 | P6-5 | 9c9ae11 | BlockItem 原子 consolidation：根两份变体合并为单一 `BlockItemEasyWaterloggedBlockPlacementMixin`（外层 `//#if MC<260000`，蒸发判定一行 `//#if MC>=12111` 宏分支，`EnvironmentAttributes` import 随门控内联）；删除 `…Mc12111Mixin`；mc12111 JSON 条目切换；mapping +1（累计 35）。该对 channel A（core 平台 sources jar 载原始 main 态文本，门控结构差异）不等价为预期，由 channel B 证明——B 通道为此增强：SourceFile 与 LineNumberTable 属编译期调试元数据（consolidation 引入门控注释行导致行号表漂移），两侧统一剔除后比较结构与指令；selfTest 增补行号漂移场景。 |
 | P6-6 | dd8c314 | villagerevents 6 对去版本后缀（逐对 diff 确认职责一致后执行）：VillagerEventsLogger121/26、VillagerEventsRuntime121/26、VillagerEventSnapshot121/26、VillagerIdentity121/26、TextRenderer121/26、VillagerEventState26→VillagerEventState；根 5 文件 + mc261/mc262 各 6 文件 + mc1211/1213/1214 Identity override；引用同步（根与 mc1211 的 Mod / 事件 mixin、mc26x Mod / mixin）；villagerevents 不在 mixin JSON，无 JSON 变更；mapping +11（累计 46）。`VillagerDeathSide121` / `VillagerDimension121` / `VillagerEventConversionScope121` 为 1.21.x 独有单例（无 26.x 对应物，不在审批的 6 对范围内），名称保留。 |
-| P6-7 | （本 commit） | 文档同步：验收清单附录 A / §3.3 / 附录 C 现势化、target-architecture §3.1 示例与 Phase 6 执行结果、baseline §6.3/§6.4 注记；本记录；全仓旧名扫描。 |
+| P6-7 | daa1c15 | 文档同步：验收清单附录 A / §3.3 / 附录 C 现势化、target-architecture §3.1 示例与 Phase 6 执行结果、baseline §6.3/§6.4 注记；本记录；全仓旧名扫描。 |
+| P6-R1 | 362f18d | review 修正：补齐遗漏的 golem 族第 16 对——root 1.21.3–1.21.11 实现 `WalkTowardsNearestVisibleWantedItemTaskIronGolemOptimizationMixin` → `GoToWantedItemIronGolemOptimizationMixin`（`@Mixin` target 本就是 Mojmap `GoToWantedItem`，与 mc26x / mc1211 命名对齐；门控 `MC>=12103 && MC<260000`，不影响 mc1211 / mc26x）；8 份 1.21.x mixin JSON（mc1213–mc12111）同步；mapping +1（累计 47）。`IronGolemVillagerOptimizationHooks.markTaskInstance` 的 `"WalkTowardsNearestVisibleWantedItemTask.create"` 行为性标签与 javadoc 中 Yarn 历史说明经源码实证不含 mixin 类名引用，按原样保留。 |
+| P6-R2/R3/R4 | cebfc87 | review 修正：`verifyJarEquivalence` 内容级证明从 renamed-pair 扩展到全部项目 class partner（byte-identical → channel A sources 规范化 → channel B classfile 规范化兜底，覆盖 FQCN 未变但引用了 renamed class 的项目类与 `$` 内部类）；普通 non-class 资源按路径字节级严格比较（fabric.mod.json / *.mixins.json / 珊瑚资源包 pack.mcmeta 专项语义检查除外）；channel B 由单对 `SimpleRemapper` 升级为 full-mapping 前缀 `Remapper`（`$` 内部类前缀传播）；`selfTestRenameEquivalence` 补强（unchanged-FQCN 正负样例、普通资源差异、映射碰撞、mixin 配置 mapping 改写、缺失 / 错误 mapping 负例）；channel B 注释与实现对齐（剔除 SourceFile + LineNumberTable）。 |
 
 ## 2. 等价验证新口径（P6-1 起）
 
 - **baseline 双布局**：`-PbaselineDir` 同时支持 `versions/platform-*/build/libs`（P4 系快照）与 `platform-*/build/libs`（P5 系 flat 快照）；baseline 永久只读。
 - **条目集合**：`com/ice2974/**.class` 条目按显式 mapping 做 bijective 对齐（期望条目数 != baseline 条目数即映射碰撞失败）；其余条目严格同名。sources jar 做 mapping 感知双向覆盖检查（门控空文件被同路径 override 吸收时允许合并，条目数不做强相等）。
-- **renamed-pair 证明**：channel A = baseline/new sources jar 对应 `.java` 的源码规范化等价（Java 源分段器切分 code / lineComment / blockComment / string / char / textBlock，仅 code 段整词改写 mapping 中的类名，其余逐字符比较；首个差异位置与上下文随失败输出）；channel B = Gradle 发行版自带 asm（`asm-9.8` / `asm-commons-9.8`，零新增依赖）`SimpleRemapper` + `ClassRemapper` 规范化 internal name、统一剔除 SourceFile / LineNumberTable 后重建字节做严格比较（字符串字面量不被重映射，literal 差异即失败）。A/B 均不可用或均不等价 → 失败（fail closed）。
+- **内容级 class partner 证明（P6-R2 起，替代原 renamed-pair 口径）**：全部 `com/ice2974/**.class` 的 baseline→current 对位项（未改名同名对位 / 已改名按 mapping 对位）都必须给出内容级证明——覆盖 FQCN 未变但内部引用了 renamed class 的项目类，以及 `$` 内部类。证明链：classfile 字节一致（rename 未波及时的最强证明）→ channel A = baseline/new sources jar 对应 `.java` 的源码规范化等价（Java 源分段器切分 code / lineComment / blockComment / string / char / textBlock，仅 code 段整词改写 mapping 中的类名，其余逐字符比较；首个差异位置与上下文随失败输出）→ channel B = Gradle 发行版自带 asm（`asm-9.8` / `asm-commons-9.8`，零新增依赖）full-mapping 前缀 `Remapper` + `ClassRemapper` 规范化 internal name（含 `$` 内部类传播）、统一剔除 SourceFile / LineNumberTable 编译期调试元数据后重建字节做严格比较（字符串字面量不被重映射，literal 差异即失败）。sources 缺失（如 `$` 内部类）或 A 不等价时由 B 兜底；三条路都走不通 → 失败（fail closed）。
+- **普通资源严格比较（P6-R2 起）**：fabric.mod.json（解析后逐键语义）、*.mixins.json（mapping 感知解析等价）、珊瑚资源包 pack.mcmeta（pack_format 专项）之外，路径相同的 non-class 条目必须字节级一致；rename 不是资源内容差异的豁免理由。
 - **mixins.json**：优先字节级一致；字节不一致时按 mapping 做解析级等价（数组顺序保留，mapping 外差异失败）。
 - **intermediary refs**（P4-1 防线保留）：renamed class 与 baseline 对位条目比较引用集合；plain 形态（26.x）空集通过，renamed-pair 语义由 channel A/B 承担。
 - **verifyClassRenameMapping**：mapping 语法 / old 重复 / old==new / 简名交叠 / 链式映射断言；old 源文件与类型声明必须已不存在、new 源文件与类型声明必须存在；mixin 配置不得引用 old 简名；active .java 的 code 段 / 字面量段出现 old 简名失败（注释段仅报告，历史说明允许）；gradle / CI / 资源文本出现 old 简名或 FQCN 失败；docs / references / README / AGENTS / 构建输出排除在扫描外。
@@ -39,9 +42,9 @@
 | `git diff --check` | 干净 |
 | `gradlew build`（11 平台全量编译 + jar + `:common:test`） | 通过 |
 | `verifyCraftableCoralBlocksJars` / `verifyFabricModJson` / `verifyMixinConfigs` | 11/11 通过 |
-| `verifyClassRenameMapping` | 通过（mapping 终态 46 条） |
-| `selfTestRenameEquivalence` | 通过（channel A fail-closed 语义 + channel B 行号漂移场景） |
-| `verifyJarEquivalence -PbaselineDir=D:/Project/Carpet-Ice-Addition-P5-baseline-final` | 11/11 通过；renamed-pair 全部经 channel A 源码规范化等价证明（除 P6-5 BlockItem 对经 channel B classfile 规范化等价证明）；P6-6 起 mc26x 平台 rename 亦全部 channel A 证明 |
+| `verifyClassRenameMapping` | 通过（mapping 终态 47 条，P6-R1 起） |
+| `selfTestRenameEquivalence` | 通过（channel A fail-closed 语义 + unchanged-FQCN 正负样例 + 普通资源 / 映射碰撞 / mixin 配置 / 缺失与错误 mapping 负例 + channel B 行号漂移与 `$` 内部类前缀场景） |
+| `verifyJarEquivalence -PbaselineDir=D:/Project/Carpet-Ice-Addition-P5-baseline-final` | 11/11 通过；P6 各 commit：renamed-pair 全部经 channel A 源码规范化等价证明（除 P6-5 BlockItem 对经 channel B classfile 规范化等价证明）；P6-R 复验（clean build）：全部项目 class partner 内容级证明（逐平台 total 151–161，byteIdentical 114–138，channel A 含 unchanged-FQCN 2–5 个，channel B 2–4 个——BlockItem unchanged-FQCN 内容变化与 `$` 内部类）；普通资源 33–35 条目字节一致 |
 
 P6-2 期间的负向验证：先执行改名、后补 mapping 前的差异必然使条目集合检查失败（missing/extra 条目逐条列出），确认无 wildcard 放行；`.minecraft` 本地运行时目录曾被文本扫描误读（非源码），已加入扫描排除。
 
@@ -49,14 +52,23 @@ P6-2 期间的负向验证：先执行改名、后补 mapping 前的差异必然
 
 原则：改名不改变任何注入目标与行为，验证重点为「全平台 Mixin bootstrap 正常 + 各改名 mixin 所属规则行为不回归」。
 
-- **全量测试平台（4 个）**：mc1211（override 最多 + LowVersion + mc1211 专属改名：AssignProfessionFromJobSite / GoToPotentialJobSite / GoToWantedItem / AcquirePoi 形态）、mc1218（1.21.x 中位、仅根 src 形态）、mc12111（core 原位编译 + HighVersion + BlockItem 统一类 + spears）、mc261（plain 形态 + 26.x override 改名 + villagerevents 统一）；mc262 在 mc261 通过后仅做启动 + Mixin bootstrap + 规则数量矩阵冒烟（与 mc261 同为 plain 且源码仅 EndPortal 差异）。
+> **P6-R1 重置声明（2026-09-05）**：review 修正补齐了 GoToWantedItem FQCN rename（root 类改名 + mc1213–mc12111 共 8 份 mixin JSON 条目改名，mapping 46→47）。此前如存在任何 Level 3 局部执行结果，一律不得继承到验收结论；须以本节最终方案完整执行的结果为准。
+
+- **全量测试平台（4 个）**：mc1211（override 最多 + LowVersion + mc1211 专属改名：AssignProfessionFromJobSite / GoToPotentialJobSite / GoToWantedItem / AcquirePoi 形态）、mc1218（1.21.x 中位、仅根 src 形态，GoToWantedItem root 新名生效）、mc12111（core 原位编译 + HighVersion + BlockItem 统一类 + spears）、mc261（plain 形态 + 26.x override 改名 + villagerevents 统一）；mc262 在 mc261 通过后仅做启动 + Mixin bootstrap + 规则数量矩阵冒烟（与 mc261 同为 plain 且源码仅 EndPortal 差异）。
 - **启动项**：每个平台 dedicated server 启动无 mixin 错误（`required=true` + `defaultRequire=1` 使任何改名遗漏在启动期 fail-fast）；`/carpet list` 规则数量符合清单 §3.1 矩阵。
 - **改名 mixin 代表性场景（按族抽验，依据：同族改名共享同一验证面）**：
-  - golem 族（13 类）：`ironGolemSpawningOptimization` 开启后村民标记 / 铁傀儡生成跳过路径生效，重点 mc1211（三个 1211 专属形态）与 mc261（Behavior / OneShot / GateBehavior 新名生效）。
+  - golem 族（root 14 类）：`ironGolemSpawningOptimization` 开启后村民标记 / 铁傀儡生成跳过路径生效，重点 mc1211（1211 专属形态 override）、mc1213+（GoToWantedItem root 新名，P6-R1 补齐）与 mc261（Behavior / OneShot / GateBehavior 新名生效）。
   - 实体名族：`itemFrameInvisible` / `itemFrameFixed`（展示框隐形与固定）、`namedWanderingTraderPersistence`（流动商贩持久化）、`neutralPhantoms` + `phantomSpawnWarning`（幻翼仇恨与警告）、`villagerTradingOptimization`（交易所村民认领工作站）、四个 villager-events / conversion mixin（`villagerEvents` logger 死亡 / 僵尸化 / 女巫化输出）。
   - 杂项族：`easyWaterloggedBlockPlacement`（水桶副手放置含水方块；岩浆 / 高温维度判定分档——mc12111 走 WATER_EVAPORATES、1.21.x 走 ultraWarm、26.x 走 26.x override）、`waterFluidTickDelay` / `lavaFluidTickDelay`（freeze 与数值两态）、`craftableCoralBlocks`（合成界面刷新）、`portableInfiniteWater`、`mobsSpawnWithoutSpears`（mc12111 / mc26x）、`machineStatusRollbackWarning`（回档警告）、`disableIllegalTextCharacterCheck`（网络处理器分支）。
   - villagerevents 族（P6-6 全部平台受影响）：mc1211 / mc12111 / mc261 三档 `/log villagerEvents` 订阅输出、语言翻译回退、无订阅者高频短路。
 - **client 侧**：mc1211 + mc261 各启动一次集成客户端（书编辑 / 剪贴板非法字符、TAB 列表名）确认 client mixin 正常；本项目玩家可见文本均为服务端 literal，改名不涉及翻译键。
+- **验收标准**：全部平台 dedicated server 启动无 Mixin 错误且 `/carpet list` 规则数量符合清单 §3.1 矩阵；§4 各代表场景行为与 Phase 5 记录一致；client 场景正常。全部通过后按 §5 步骤建立 P6-baseline-final，Phase 6 方可标记验收完成。
+
+## 6. Review 修正与行尾记录（2026-09-05）
+
+- 审查发现的两个实质问题均已修正：① golem 族遗漏第 16 对（root `WalkTowardsNearestVisibleWantedItemTask…` 未随 P6-2 统一），P6-R1 补齐（362f18d）；② `verifyJarEquivalence` 内容级证明仅覆盖 renamed pair，P6-R2/R3/R4 扩展到全部项目 class partner + 普通资源字节级比较（cebfc87），并同步补强验证器自测与 channel B 注释（实现剔除 SourceFile + LineNumberTable，注释已与实现一致）。
+- 行尾历史问题：P6-1 曾将 `build.gradle` 整体从 CRLF 转换为 LF，作为历史 review issue 记录在案；本轮未做 CRLF 恢复（避免制造整文件行尾 diff），文件保持当前 LF 现状，新增行均为 LF。
+- mapping 终态 47 条；全仓 active 功能性位置已无 `WalkTowardsNearestVisibleWantedItemTaskIronGolemOptimizationMixin` 残留（历史文档保留旧名属既定约定）。
 
 ## 5. 待人工确认项
 
