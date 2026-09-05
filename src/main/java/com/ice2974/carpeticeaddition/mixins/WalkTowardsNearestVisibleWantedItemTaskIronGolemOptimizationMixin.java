@@ -1,4 +1,5 @@
-//#if MC>=12103
+//#if MC>=12103 && MC<260000
+
 package com.ice2974.carpeticeaddition.mixins;
 
 import com.ice2974.carpeticeaddition.rules.IronGolemVillagerOptimizationHooks;

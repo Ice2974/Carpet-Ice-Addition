@@ -1,3 +1,4 @@
+//#if MC<260000
 package com.ice2974.carpeticeaddition.mixins;
 
 import com.ice2974.carpeticeaddition.rules.CraftableCoralCraftingRefresher;
@@ -28,3 +29,4 @@ public abstract class CraftingScreenHandlerCraftableCoralBlocksMixin implements 
         }
     }
 }
+//#endif

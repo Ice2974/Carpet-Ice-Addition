@@ -1,3 +1,4 @@
+//#if MC<260000
 package com.ice2974.carpeticeaddition.mixins;
 
 import com.ice2974.carpeticeaddition.rules.FluidTickDelayUtil;
@@ -52,3 +53,4 @@ public abstract class LavaFluidTickRateMixin {
         cir.setReturnValue(FluidTickDelayUtil.getLavaDelay(CarpetIceAdditionFluidSettings.lavaDelay, ultrawarm));
     }
 }
+//#endif

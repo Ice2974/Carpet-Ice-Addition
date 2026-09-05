@@ -24,7 +24,11 @@ public abstract class BeaconProperToolFixMixin {
 
         try {
             ItemStack self = (ItemStack) (Object) this;
+//#if MC<260000
             if (state.is(Blocks.BEACON) && self.is(ItemTags.PICKAXES)) {
+//#else
+//$$            if (state.getBlock() == Blocks.BEACON && self.is(ItemTags.PICKAXES)) {
+//#endif
                 float stoneSpeed = self.getDestroySpeed(Blocks.STONE.defaultBlockState());
                 return Math.max(original, stoneSpeed);
             }

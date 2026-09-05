@@ -1,3 +1,4 @@
+//#if MC<260000
 package com.ice2974.carpeticeaddition.mixins;
 
 import com.ice2974.carpeticeaddition.rules.ItemFrameInteractionHelper;
@@ -168,3 +169,4 @@ public abstract class ItemFrameEntityMixin {
         world.addFreshEntity(itemEntity);
     }
 }
+//#endif

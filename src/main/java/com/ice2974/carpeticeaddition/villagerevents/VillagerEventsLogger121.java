@@ -1,3 +1,4 @@
+//#if MC<260000
 package com.ice2974.carpeticeaddition.villagerevents;
 
 import carpet.logging.Logger;
@@ -27,3 +28,4 @@ public final class VillagerEventsLogger121 {
         logger.log(option -> ("all".equals(option) || event.equals(option)) ? new Component[]{message} : null);
     }
 }
+//#endif

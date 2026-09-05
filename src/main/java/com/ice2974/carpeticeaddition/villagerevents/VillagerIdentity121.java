@@ -1,3 +1,4 @@
+//#if MC<260000
 package com.ice2974.carpeticeaddition.villagerevents;
 
 import carpet.CarpetSettings;
@@ -38,3 +39,4 @@ final class VillagerIdentity121 {
         return chinese ? Component.literal("“").append(name).append("”（").append(value).append("）") : Component.literal("\"").append(name).append("\" (").append(value).append(")");
     }
 }
+//#endif

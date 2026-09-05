@@ -1,3 +1,4 @@
+//#if MC<260000
 package com.ice2974.carpeticeaddition.villagerevents;
 
 /** State is mixed into the source villager; it is never kept in a global conversion variable. */
@@ -13,3 +14,4 @@ public interface VillagerEventState {
     void carpetIceAddition$abortConversion();
     void carpetIceAddition$clearVillagerEventState();
 }
+//#endif

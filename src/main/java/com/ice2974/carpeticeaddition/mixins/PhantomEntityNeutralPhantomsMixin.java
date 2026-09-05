@@ -1,3 +1,4 @@
+//#if MC<260000
 package com.ice2974.carpeticeaddition.mixins;
 
 import com.ice2974.carpeticeaddition.CarpetIceAdditionMod;
@@ -167,3 +168,4 @@ public abstract class PhantomEntityNeutralPhantomsMixin implements NeutralPhanto
         this.carpetIceAddition$neutralPhantomsTargetEntityId = -1;
     }
 }
+//#endif

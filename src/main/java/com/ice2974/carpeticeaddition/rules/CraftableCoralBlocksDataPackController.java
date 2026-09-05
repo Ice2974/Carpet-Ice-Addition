@@ -84,12 +84,18 @@ public final class CraftableCoralBlocksDataPackController {
     }
 
     public static void onPlayerJoin(MinecraftServer minecraftServer, ServerPlayer player) {
+//#if MC<260000
         if (minecraftServer == null) {
             return;
         }
         if (!ready) {
             return;
         }
+//#else
+//$$        if (minecraftServer == null || player == null || !ready) {
+//$$            return;
+//$$        }
+//#endif
         CraftableCoralBlocksRecipeBookHelper.onPlayerJoin(minecraftServer, player);
     }
 

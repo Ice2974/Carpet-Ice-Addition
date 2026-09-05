@@ -1,3 +1,4 @@
+//#if MC<260000
 package com.ice2974.carpeticeaddition.mixins;
 
 import com.ice2974.carpeticeaddition.rules.IronGolemVillagerOptimizationHooks;
@@ -23,3 +24,4 @@ public abstract class LoseJobOnSiteLossTaskIronGolemOptimizationMixin {
         IronGolemVillagerOptimizationHooks.markTaskInstance(cir.getReturnValue(), "LoseJobOnSiteLossTask.create");
     }
 }
+//#endif

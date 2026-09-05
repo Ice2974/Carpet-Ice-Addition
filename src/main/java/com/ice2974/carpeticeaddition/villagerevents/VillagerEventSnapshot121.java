@@ -1,3 +1,4 @@
+//#if MC<260000
 package com.ice2974.carpeticeaddition.villagerevents;
 
 import net.minecraft.network.chat.Component;
@@ -10,3 +11,4 @@ public record VillagerEventSnapshot121(long sequence, String dimensionId, int x,
         deathMessage = deathMessage == null ? null : deathMessage.copy();
     }
 }
+//#endif

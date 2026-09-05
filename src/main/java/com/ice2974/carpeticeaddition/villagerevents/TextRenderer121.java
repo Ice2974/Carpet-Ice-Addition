@@ -1,3 +1,4 @@
+//#if MC<260000
 package com.ice2974.carpeticeaddition.villagerevents;
 
 import java.util.Map;
@@ -78,3 +79,4 @@ final class TextRenderer121 {
         return result;
     }
 }
+//#endif

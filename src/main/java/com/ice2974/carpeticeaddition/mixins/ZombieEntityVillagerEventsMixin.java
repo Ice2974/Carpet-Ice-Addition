@@ -1,3 +1,4 @@
+//#if MC<260000
 package com.ice2974.carpeticeaddition.mixins;
 
 import com.ice2974.carpeticeaddition.villagerevents.VillagerEventSnapshot121;
@@ -45,3 +46,4 @@ public abstract class ZombieEntityVillagerEventsMixin {
         }
     }
 }
+//#endif

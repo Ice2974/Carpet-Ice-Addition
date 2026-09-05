@@ -1,3 +1,4 @@
+//#if MC<260000
 package com.ice2974.carpeticeaddition.mixins;
 
 import com.google.common.collect.ImmutableList;
@@ -72,3 +73,4 @@ public abstract class VillagerTaskListProviderIronGolemOptimizationMixin {
         }
     }
 }
+//#endif

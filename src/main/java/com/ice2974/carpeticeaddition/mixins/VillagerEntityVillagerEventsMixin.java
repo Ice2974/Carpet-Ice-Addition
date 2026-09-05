@@ -1,3 +1,4 @@
+//#if MC<260000
 package com.ice2974.carpeticeaddition.mixins;
 
 import com.ice2974.carpeticeaddition.villagerevents.VillagerDeathSide121;
@@ -92,3 +93,4 @@ public abstract class VillagerEntityVillagerEventsMixin implements VillagerEvent
         carpetIceAddition$convertedDuringDeath = false;
     }
 }
+//#endif

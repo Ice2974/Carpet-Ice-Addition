@@ -1,3 +1,4 @@
+//#if MC<260000
 package com.ice2974.carpeticeaddition.villagerevents;
 
 import java.util.ArrayDeque;
@@ -31,3 +32,4 @@ public final class VillagerEventConversionScope121 {
         private Frame(VillagerEventState sourceState, Entity expectedRootWitch) { this.sourceState = sourceState; this.expectedRootWitch = expectedRootWitch; }
     }
 }
+//#endif

@@ -1,3 +1,4 @@
+//#if MC<260000
 package com.ice2974.carpeticeaddition.mixins;
 
 import com.ice2974.carpeticeaddition.command.MachineStatusRollbackCommandMatcher;
@@ -51,3 +52,4 @@ public abstract class ServerPlayNetworkHandlerMachineStatusRollbackWarningMixin 
         server.execute(() -> MachineStatusRollbackWarningHandler.warnIfNeeded(server, this.player, rawInput));
     }
 }
+//#endif

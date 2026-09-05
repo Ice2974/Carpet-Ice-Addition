@@ -1,3 +1,4 @@
+//#if MC<260000
 package com.ice2974.carpeticeaddition.villagerevents;
 
 import carpet.CarpetSettings;
@@ -126,3 +127,4 @@ public final class VillagerEventsRuntime121 {
         @Override public void close() { closed = true; language.close(); }
     }
 }
+//#endif

@@ -1,3 +1,4 @@
+//#if MC<260000
 package com.ice2974.carpeticeaddition.mixins;
 
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionFluidSettings;
@@ -57,3 +58,4 @@ public abstract class FlowableFluidFreezeMixin {
         ci.cancel();
     }
 }
+//#endif

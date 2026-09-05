@@ -48,7 +48,11 @@ public abstract class CrafterBlockMixin {
                 return;
             }
 
+//#if MC<260000
             ItemStack result = recipe.get().value().assemble(input, world.registryAccess());
+//#else
+//$$            ItemStack result = recipe.get().value().assemble(input);
+//#endif
             if (result.isEmpty()) {
                 return;
             }

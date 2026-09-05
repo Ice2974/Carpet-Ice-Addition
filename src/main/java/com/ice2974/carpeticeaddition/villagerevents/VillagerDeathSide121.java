@@ -1,3 +1,4 @@
+//#if MC<260000
 package com.ice2974.carpeticeaddition.villagerevents;
 
 import net.minecraft.server.level.ServerLevel;
@@ -11,3 +12,4 @@ public final class VillagerDeathSide121 {
         return villager.level() instanceof ServerLevel world ? world : null;
     }
 }
+//#endif

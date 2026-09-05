@@ -2,6 +2,9 @@ package com.ice2974.carpeticeaddition.rules;
 
 import java.util.Set;
 import net.minecraft.world.entity.ai.behavior.LookAndFollowTradingPlayerSink;
+//#if MC>=260000
+//$$import net.minecraft.world.entity.ai.behavior.GoToPotentialJobSite;
+//#endif
 
 /**
  * ironGolemSpawningOptimization 规则按具体类否决的村民行为集合（MC 1.21.x，Yarn 名）。
@@ -20,6 +23,9 @@ public final class IronGolemVillagerSkipClasses {
      */
     public static final Set<Class<?>> SKIP_CLASSES = Set.of(
             LookAndFollowTradingPlayerSink.class
+//#if MC>=260000
+//$$            , GoToPotentialJobSite.class
+//#endif
     );
 
     private IronGolemVillagerSkipClasses() {

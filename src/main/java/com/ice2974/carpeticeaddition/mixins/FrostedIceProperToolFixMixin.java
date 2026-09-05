@@ -30,7 +30,11 @@ public abstract class FrostedIceProperToolFixMixin {
         }
 
         try {
+//#if MC<260000
             if (state.is(Blocks.FROSTED_ICE) && stack.is(ItemTags.PICKAXES)) {
+//#else
+//$$            if (state.getBlock() == Blocks.FROSTED_ICE && stack.is(ItemTags.PICKAXES)) {
+//#endif
                 cir.setReturnValue(((Item) (Object) this).getDestroySpeed(stack, Blocks.ICE.defaultBlockState()));
             }
         } catch (Throwable throwable) {

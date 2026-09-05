@@ -1,3 +1,4 @@
+//#if MC<260000
 package com.ice2974.carpeticeaddition.mixins;
 
 import com.ice2974.carpeticeaddition.rules.IronGolemSkipMarked;
@@ -40,3 +41,4 @@ public abstract class CompositeTaskIronGolemOptimizationMixin implements IronGol
         }
     }
 }
+//#endif

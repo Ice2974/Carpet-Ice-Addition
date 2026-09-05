@@ -1,3 +1,4 @@
+//#if MC<260000
 package com.ice2974.carpeticeaddition.mixins;
 
 import com.ice2974.carpeticeaddition.villagerevents.VillagerEventState;
@@ -38,3 +39,4 @@ public abstract class MobEntityVillagerConversionMixin {
         } catch (Throwable error) { VillagerEventsCompatibility.report("conversion_discard", error); }
     }
 }
+//#endif
