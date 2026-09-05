@@ -4,7 +4,7 @@
 >
 > 参考实例：本地 `references/Carpet-AMS-Addition-master`（只读，不修改）是 Carpet TIS Addition（Fallen-Breath）多版本架构的同构实现，本文第 1 章以其为解剖对象。
 >
-> **最终目标（2026-09-05 锁定）：完整迁移到 Fallen-Breath 风格源码架构**——根 src 主源码树 + per-version override + preprocess `#if MC` 版本图 + 单一 Mojmap 命名空间。Phase 4（Mojmap 统一）完成后**不等于**完整迁移完成；剩余收敛相为 Phase 5（§6），其 preprocess 前置受供应链门禁约束，**门禁无法通过时整体状态标记 blocked 并等待人工决策，不是可永久跳过的可选优化**。
+> **最终目标（2026-09-05 锁定）：完整迁移到 Fallen-Breath 风格源码架构**——根 src 主源码树 + per-version override + preprocess `#if MC` 版本图 + 单一 Mojmap 命名空间。Phase 4（Mojmap 统一）完成后**不等于**完整迁移完成；剩余收敛相为 Phase 5（§6）——**已于 2026-09-05 执行并验收（执行结果见 §6 Phase 5 执行结果，验证记录见 [refactor-phase5-verification.md](refactor-phase5-verification.md)）**，完整迁移达成。
 
 ## 0. 总约束（全部阶段适用）
 
@@ -172,7 +172,7 @@ carpet-ice-addition/
 | java_release | 21 或 25 |
 | pack_format | 48 … 107 |
 | mixin_config | carpet-ice-addition-mc1211.mixins.json |
-| shared_tiers | 有序列表，逐字来自基线 §1.3（如 `mc121x,mc1211-12110,mc121x-killitem,mc1211-1218,mc1211-1215,mc1211-1214`） |
+| shared_tiers | 有序列表，逐字来自基线 §1.3（如 `mc121x,mc1211-12110,mc121x-killitem,mc1211-1218,mc1211-1215,mc1211-1214`）。**（Phase 1 形态；Phase 5 起该键已随 Java 档位机制移除，见 §6 Phase 5 执行结果）** |
 | extra_resource_dirs | common 之外追加的资源目录（1.21.x 除 mc1211 为 `shared/mc1213-12111/src/main/resources`；其余为空） |
 
 原则：**每个字段值都能在现有构建脚本 / 根 properties 中逐字找到出处**；不允许在迁移中"顺手修正"任何值（含已知的 `mod_version` vs `version` 引用不一致——那是 Phase 1 之后单独的清理项）。
@@ -240,12 +240,20 @@ carpet-ice-addition/
 - 原成本量级预估"约 150 个 Yarn 源文件重写 + 全量 Level 3 回归"与实际相符（loom `migrateMappings` 自动迁移 + 人工修复两类系统性缺口）。
 - 执行记录与验收见 [refactor-phase4-verification.md](refactor-phase4-verification.md)；净效果：11 平台统一 Mojmap 源码命名空间（9 个 1.21.x remap 平台经 `officialMojangMappings()`（layered）；mc261/mc262 为免混淆 plain 形态，不配置 mappings），Yarn 依赖彻底移除，零差异双胞胎（13 组入全平台档 `mojmap-unified` + 3 组档位内归一）与命令家族/入口类定向去重落地。
 
-### Phase 5：preprocess 版本图 + 根 src + per-version override 收敛（最终目标收敛相，独立立项）
+### Phase 5：preprocess 版本图 + 根 src + per-version override 收敛——**已完成（2026-09-05）**
 
 - 范围：引入 `com.github.Fallen-Breath:preprocessor`（JitPack commit 锁定）版本图与 `#if MC` 宏；源码树从 shared 档位收敛为根 src（面向最新版本）+ `versions/<v>/src` 覆盖文件；结构性分叉保留覆盖文件形态。
-- **前置门禁**：preprocessor 供应链确认 + `THIRD_PARTY_NOTICES.md` 登记（Fallen-Breath/preprocessor、TIS 架构来源致谢）。**门禁无法通过时，「完整迁移」整体状态标记 blocked 并等待人工决策——最终目标已锁定，该步骤不是可永久跳过的可选优化。**
+- ~~**前置门禁**：preprocessor 供应链确认 + `THIRD_PARTY_NOTICES.md` 登记……门禁无法通过时整体状态 blocked~~ **已通过**（P5-1 落地：JitPack `com.github.Fallen-Breath:preprocessor` 锁定 commit `c5abb4fb12…` + `THIRD_PARTY_NOTICES.md` 登记）。
 - 素材沉淀：`mojmap-unified` 档为根 src 雏形；1-3 行差异家族（P4-0 报告清单）为宏候选；1.21.11 的 24 文件 Mojmap 名漂移档为 override 主要对象。
 - 宏使用硬约束沿用 §2.B（`#if` 宏）：大型 Mixin / 行为差异必须继续用覆盖文件表达；单处 ≤10 行、不改注入 descriptor。
+
+**Phase 5 执行结果（2026-09-05，分支 `phase5-preprocess`，完整记录见 [refactor-phase5-verification.md](refactor-phase5-verification.md)）**：
+
+- **架构形态**：Gradle 子项目扁平化为根直接子项目 `:platform-mcXXXX`（磁盘目录仍在 `versions/platform-*`）；`versions/mainProject` = `platform-mc12111`（core 原位编译根 src，本地 src 不参与 sourceSet）；根 `build.gradle` 持有版本图（11 节点 + 10 条链边 + `strictExtraMappings=true`）。
+- **源码组织**：根 src 105 文件（1.21.11「main 态」+ `//#if MC` 宏 + `//$$` 非主流注释态）；per-version override 承担结构性分叉（mc1211 29 份、mc1213 / mc1214 各 10 份、mc1215 3 份、mc1216 / mc1218 各 1 份、mc261 / mc262 各 51 份，26.x 名称分叉族双份复制）；`versions/shared/` 仅保留纯资源档 `mc1213-12111`（Java 档与 `shared_tiers` 机制已于 P5-7 删除）。
+- **mapping 策略实证**：1.21.x remap↔remap 9 条边全部 0 字节（automatic mapping 经 loom 双侧树自动合成承担全部 Mojmap rename）；仅 remap↔plain 的 mc12111↔mc261 边需要显式 legacy mapping（AMS 短式 2 行）；`//#disable-remap` 用于裸方法名歧义与 `player.level()` 同名多版本双重解析两族。
+- **等价验证**：每次 flip 均全量 build + 4 verify + `verifyJarEquivalence` 对 P4-baseline-final 11/11 零适配零忽略；全仓 clean 冷重建通过；Level 3 人工回归通过（2026-09-05）。
+- **Phase 6 展望（未立项）**：项目自有类名统一（1.21.x 旧 FQCN 家族 ↔ 26.x 新 FQCN 家族，如 ItemFrameEntityMixin/ItemFrameMixin）。Phase 5 刻意不做以保持 jar 条目集与 P4 基线逐字节一致；届时需同步扩展 `verifyJarEquivalence` 的条目集比较口径与各平台 mixin json。
 
 ## 7. 风险登记册
 
@@ -268,15 +276,15 @@ carpet-ice-addition/
 | 仅 Phase 1 + 2（构建统一即止） | 消灭 11 份克隆 + 版本数据归位 + 注册表驱动 | ~~天然合法停点~~ 已被执行并超越 |
 | + Phase 3 | preprocess / 档位收敛 / Mixin 合并等源码体系优化 | **已完成**（2026-09-05，按项独立决策执行，见 §6 执行结果） |
 | + Phase 4 | mappings 统一 → 消除 Yarn↔Mojmap 双胞胎 | ~~仅当双胞胎维护成本失控~~ **已完成**（2026-09-05，最终目标锁定后启动，见 §6 Phase 4） |
-| + Phase 5 | preprocess 版本图 + 根 src + per-version override 收敛 | 最终目标收敛相；受供应链门禁约束，门禁不通过则完整迁移状态 **blocked** 等待人工决策 |
+| + Phase 5 | preprocess 版本图 + 根 src + per-version override 收敛 | ~~最终目标收敛相；受供应链门禁约束，门禁不通过则完整迁移状态 **blocked** 等待人工决策~~ **已完成**（2026-09-05，分支 `phase5-preprocess`，见 §6 Phase 5 执行结果） |
 
 ## 9. 待人工确认项汇总
 
 1. ~~**Phase 3 / Phase 4 触发**：是否执行、何时执行（建议判据见 §6 各表）。~~ **已关闭**：Phase 3（2026-09-04~09-05）与 Phase 4（2026-09-05）均已执行并验收。
-2. **preprocessor 供应链（Phase 5 门禁）**：JitPack commit 锁定第三方插件的接受度；`THIRD_PARTY_NOTICES.md` 登记内容（Fallen-Breath/preprocessor、TIS 架构来源致谢）。**门禁结论必须显式记录：通过则进入 Phase 5；不通过则"完整迁移"整体状态标记 blocked 并等待人工决策，不得视为永久跳过。**
+2. ~~**preprocessor 供应链（Phase 5 门禁）**：JitPack commit 锁定第三方插件的接受度；`THIRD_PARTY_NOTICES.md` 登记内容（Fallen-Breath/preprocessor、TIS 架构来源致谢）。门禁结论必须显式记录……~~ **已关闭**：门禁通过（P5-1 落地全 SHA commit 锁定 + `THIRD_PARTY_NOTICES.md` 登记），Phase 5 已执行并验收（2026-09-05）。
 3. **mixin json 统一管理形态**：~~方案 A（单模板生成）vs 方案 B（多份 + 校验任务），Phase 3 决策~~ **已决策：方案 B（2026-09-04，见 §6 执行结果与 §2.B）**。
 4. **注册表文件名**：`settings.json`（TIS 命名）vs `minecraftVersions.json`（参考实现命名）。
 5. **旧 jar 对照基线留存位置**：建议 Phase 1 动工前本地 `gradlew build` 产物复制到仓库外目录（或 `.minecraft/` 部署实例），Release 2.13.1 资产作历史参考。
 6. **loom 插件选择的数据化形态**：`loom_plugin` 属性 + common.gradle 按 id apply（版本冻结），是否接受。
 7. **publish.yml 联动**（R9）：settings.gradle 改造后其平台解析段需要同步调整（仅解析方式，不改行为），是否纳入 Phase 1 范围一并处理。
-8. **AGENTS.md 同步**：Phase 1 落地后，`AGENTS.md` 中涉及 settings.gradle / shared 档位 / gradle.properties 的协作规则需同步改写（本轮不动，列为 Phase 1 收尾待办）。
+8. ~~**AGENTS.md 同步**：Phase 1 落地后，`AGENTS.md` 中涉及 settings.gradle / shared 档位 / gradle.properties 的协作规则需同步改写（本轮不动，列为 Phase 1 收尾待办）。~~ **已关闭**（2026-09-05，Phase 5 收尾 P5-8a 一并改写为根 src + preprocess 版本图 + per-version override 架构口径）。

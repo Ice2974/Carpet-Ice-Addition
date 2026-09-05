@@ -30,7 +30,7 @@
 - [ ] **L1-2 jar 生成与命名**：11 个平台 jar 齐全，文件名与基线 §3 表一致（mod_version 变更时仅版本段变化；label 部分逐字符一致）。
 - [ ] **L1-3 fabric.mod.json 语义**：逐平台与基线 §1.2 / §5 比对——`depends`（minecraft / fabric-api / carpet / fabricloader）、`version`、`id`、`name`、`license`、`environment`、entrypoints、`mixins` 引用全部一致；无未展开 `${`、无 BOM、JSON 合法（`verifyFabricModJson` 覆盖后半部分，前半部分需人工或脚本比对）。
 - [ ] **L1-4 mixin 配置行为**：每平台 mixin json 的文件名、package、compatibilityLevel、`mixins` / `client` 条目数与基线 §1.2 一致；`defaultRequire=1` 下游戏加载成功即隐式证明所有条目类存在（配合 L1-5）。
-- [ ] **L1-5 【人工】mod 加载冒烟**：dev 实例（`runServer` 或 `.minecraft/deploy.cmd` 部署）启动无 mixin / 注册错误；`/carpet` 打开规则列表；`/killitem`、`/machineStatus` 命令树存在且权限符合默认 `ops`。建议至少覆盖 4 类形态各 1 版本：mc1211（Yarn+remap+LowVersion）、mc1215 或 mc12110（Yarn 中位）、mc12111（HighVersion）、mc262（免混淆 + Java 25）。
+- [ ] **L1-5 【人工】mod 加载冒烟**：dev 实例（`runServer` 或 `.minecraft/deploy.cmd` 部署）启动无 mixin / 注册错误；`/carpet` 打开规则列表；`/killitem`、`/machineStatus` 命令树存在且权限符合默认 `ops`。建议至少覆盖 4 类形态各 1 版本：mc1211（remap + LowVersion + override 最多）、mc1215 或 mc12110（1.21.x 中位）、mc12111（HighVersion + core 原位编译根 src）、mc262（免混淆 + Java 25）。
 - [ ] **L1-6 jar 内容级等价对照（Phase 1 专项，自动化）**：与动工前构建快照逐平台比对——
   - zip 条目清单一致（class 文件路径与数量、resourcepacks/、assets/）；
   - fabric.mod.json 解析后逐键语义一致（允许因构建时间产生的字段差异为零——模板展开值应完全相同）；
@@ -41,7 +41,7 @@
 
 ## 2. Level 2 核心功能验证（代表集）
 
-选择原则：覆盖每种实现形态——Yarn↔Mojmap 双胞胎规则、6 份分叉规则、字符串参数规则、命令门规则、资源包规则、client mixin、logger。抽样版本建议：mc1211、mc1215、mc12111、mc261、mc262（覆盖全部形态分支）。
+选择原则：覆盖每种实现形态——1.21.x↔26.x 双胞胎规则、多路分叉规则、字符串参数规则、命令门规则、资源包规则、client mixin、logger。抽样版本建议：mc1211、mc1215、mc12111、mc261、mc262（覆盖全部形态分支）。
 
 全部条目均【人工】（游戏内操作）：
 
@@ -77,11 +77,11 @@
 
 - [ ] carpetSingleplayerExitCrashFix、ctrlQStonecuttingFix：仅 mc1211 存在；其他平台不存在。
 - [ ] mobsSpawnWithoutSpears：mc12111 / mc261 / mc262 存在；1.21.1–1.21.10 不存在。
-- [ ] /killitem：1.21.6–1.21.8 使用 `shared/mc1216-1218` 独立实现，其余 1.21.x 使用 `shared/mc121x-killitem`；26.x 使用 `shared/mc26x` 共享实现（P3-2 起，类名 KillItemCommand）——三个实现分支都要冒烟。
-- [ ] /machineStatus：`shared/mc1211-1214`（1.21.1–1.21.4）与 `shared/mc1215-12111`（1.21.5–1.21.11）两个实现分支都要冒烟；26.x 使用 `shared/mc26x` 共享实现（P3-2 起）。
-- [ ] itemFrameInvisible / itemFrameFixed：Yarn 侧 5 份分叉（mc1211 / mc1213-1214 / mc1215 / mc1216-1218 / mc1219-12111）对应版本全部冒烟（展示框隐形 / 固定交互）。
+- [ ] /killitem：Phase 5 起为两个实现分支——根 src 单一实现（1.21.1–1.21.11，helper 间接宏覆盖跨版本差异）与 `platform-mc261` / `platform-mc262` 各自 override（26.x 形态）——两个分支都要冒烟。
+- [ ] /machineStatus：同 /killitem 的两分支形态（根 src 实现承担 1.21.x 跨版本差异宏；mc261 / mc262 override 承担 26.x 形态）——两个分支都要冒烟。
+- [ ] itemFrameInvisible / itemFrameFixed：根 src `ItemFrameEntityMixin`（mc1216–mc12111 生效形态）+ `platform-mc1211` / `platform-mc1213` / `platform-mc1214` / `platform-mc1215` override 变体；26.x 为各平台 src 的 `ItemFrameMixin`（1.21.x↔26.x 名称分叉族，Phase 6 统一）——对应版本全部冒烟（展示框隐形 / 固定交互）。
 - [ ] BookEditScreen client mixin 仅存在于 1.21.1–1.21.5 平台的 mixin json `client` 数组；1.21.6+ 与 26.x 只有 Clipboard mixin。
-- [ ] 26.x 命令实现使用 CommandSourceStack（Mojmap 签名），注册与执行正常。
+- [ ] 26.x 命令实现（平台 override）与 1.21.x 根 src 实现同为 CommandSourceStack（Mojmap 命名空间，Phase 4 统一），注册与执行正常。
 - [ ] mc1211 平台 jar 内包含其自有的 10 个珊瑚配方副本；mc1213–mc12111 由 shared/mc1213-12111 提供；mc261 / mc262 各自携带（`verifyCraftableCoralBlocksJars` 已覆盖计数，此处为行为冒烟）。
 
 ### 3.4 资源与翻译
@@ -103,7 +103,7 @@
 
 ## 附录 A：规则总表（41 条）
 
-说明：分类缩写——F=FEATURE，B=BUGFIX，S=SURVIVAL，C=CLIENT，CMD=COMMAND，BOT=BOT，O=OPTIMIZATION（全部另含 ICE，表中省略）。"份数"指该 mixin/实现的 .java 物理分叉拷贝数。翻译键：中文 `carpet.rule.<内部名>.name` + `.desc`，英文仅 `.desc`（全表通用，不再逐行注明）。
+说明：分类缩写——F=FEATURE，B=BUGFIX，S=SURVIVAL，C=CLIENT，CMD=COMMAND，BOT=BOT，O=OPTIMIZATION（全部另含 ICE，表中省略）。"份数"指该 mixin/实现的 .java 物理分叉拷贝数（**P4 基线口径**；Phase 5 起物理分叉收敛为「根 src 宏 + per-version override」，实际分布以根 `src/main/java` 与 `versions/platform-*/src/main/java` 为准；表中 Yarn / Mojmap 双子标签亦为家族命名习惯，现全部为 Mojmap 命名空间）。翻译键：中文 `carpet.rule.<内部名>.name` + `.desc`，英文仅 `.desc`（全表通用，不再逐行注明）。
 
 | 内部名 | 默认值 / options | 分类 | 可用平台 | 实现要点 | client |
 |---|---|---|---|---|---|
@@ -159,7 +159,7 @@
 - 行为：按物品分类汇总清除 ItemEntity；每玩家 10 分钟 detail 结果缓存（保留 5 份）；结果翻页与操作按钮（反射构造 ClickEvent / HoverEvent，跨版本兼容）；黑名单与命名物品保护。
 - 持久化：世界目录 `killitem.json`（KillItemConfigManager）。
 - 权限：`CommandHelper.canUseCommand` 按 commandKillItem 值判定。
-- 实现分布：`shared/mc121x-killitem`、`shared/mc1216-1218`、`shared/mc26x`（26.x 共享，P3-2 起类名 KillItemCommand）。
+- 实现分布：根 src（1.21.1–1.21.11，Phase 5 起）；`platform-mc261` / `platform-mc262` override（26.x 形态）。
 - 文档：`docs/commands.md` / `docs/commands_en.md` 的 `/killitem` 小节。
 
 ### /machineStatus（规则门 commandMachineStatus，默认 ops）
@@ -167,7 +167,7 @@
 - 语法：`add <维度> <坐标> <名称>`、`remove <名称>`、`rename <旧名> <新名>`、`update <名称>`、`move <名称> <维度> <坐标>`、`list [running|stopped|invalid|unloaded]`、`info <名称>`。
 - 行为：记录目标方块关机状态快照并比较，分类为 RUNNING / STOPPED / INVALID / UNLOADED（MachineStatusKind）。
 - 持久化：世界目录 `machine_status.json`（MachineStatusConfigManager）。
-- 实现分布：`shared/mc1211-1214`、`shared/mc1215-12111`、`shared/mc26x`（26.x 共享，P3-2 起类名 MachineStatusCommand）。
+- 实现分布：根 src（1.21.1–1.21.11，Phase 5 起）；`platform-mc261` / `platform-mc262` override（26.x 形态）。
 - 文档：`docs/commands.md` / `docs/commands_en.md` 的 `/machineStatus` 小节。
 
 ## 附录 C：logger 规格

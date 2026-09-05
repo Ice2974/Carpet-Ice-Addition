@@ -1,6 +1,6 @@
 # Phase 5 验证记录：Fallen-Breath 风格源码架构收敛（preprocess 版本图 + 根 src + per-version override）
 
-> 状态：**P5-0 完成（2026-09-05）**，P5-1 起待实施。
+> 状态：**Phase 5 全部完成并冻结（2026-09-05）**——P5-0～P5-8 逐段记录见 §1-§12；Level 3 人工回归通过；dormant 删除完成（§12.1）；基线快照 `D:\Project\Carpet-Ice-Addition-P5-baseline-final` 建立（§12.2）。
 > 计划基线：Phase 5 实施计划 v3（已经人工审查通过），关键决策见 §0。
 > 工作区：`D:\Project\Carpet-Ice-Addition-P5-workspace\inventory\`（脚本与产物，不入仓库）。
 
@@ -235,6 +235,42 @@ loom 缓存 tiny 实证**同 intermediary 纯改名**（§4）：
   在 P5-6 前已证明不参与任何平台编译（shared_tiers 全空 + 全仓冷重建 + 等价 11/11）。
 - 待人工确认项更新：§7-1（注入字符串宏豁免）实际未启用——所有 descriptor 差异族按默认走 override 落地
   （DisableIllegalTextCharacterCheck 6 平台复制等），无需豁免裁决；§7-4 WardenEntity 26 边以 override 落地。
+
+### 12.1 P5-7 dormant 删除（commit `21bbd78`，2026-09-05）
+
+- 删除对象（全部满足 §0.2 删除纪律，Level 3 前已证明不参与任何平台编译）：
+  - `versions/shared/` 19 个 Java 档（mojmap-\* 17 档 + mc26x，合计 227 文件）与 4 个无引用空骨架档；
+  - `platform-mc12111/src/main/java` 8 个 dormant 副本（P5-2 起 core 编译集 = 根 src，本地目录不参与 sourceSet）；
+  - `common.gradle` 移除 `shared_tiers` Java 档叠加机制（含 preprocess 前的 shared_tiers 断言），保留
+    `extra_resource_dirs` 资源档机制与 preprocess 接入；11 平台 `gradle.properties` 删除 `shared_tiers` 空键与 flip 注释。
+- 保留：纯资源档 `versions/shared/mc1213-12111`（10 个珊瑚配方，8 平台 `extra_resource_dirs` 仍在役；
+  `git ls-files` 复核 versions/shared 仅剩该档）。
+- 净变化：247 文件、+27 / −18750 行。
+- 删后验证：`clean` 全量 build + verifyCraftableCoralBlocksJars + verifyFabricModJson + verifyMixinConfigs +
+  verifyJarEquivalence（P4-baseline-final）全绿——mixin config 11 / intermediary refs 11 / L1-6 equivalence 11
+  （33 OK）；`:common:test` 通过（构建缓存命中，输入未变）；`git diff --check` 干净。
+
+### 12.2 P5-8 文档冻结 + P5-baseline-final 快照（2026-09-05）
+
+- `refactor-target-architecture.md`：Phase 5 标记完成——头部目标声明改为「完整迁移达成」；§6 新增
+  「Phase 5 执行结果」（扁平化 `:platform-mcXXXX`、main=1.21.11、根 src 105 文件与 override 分布、
+  mapping 策略实证、Phase 6 类名统一展望）；§5.2 `shared_tiers` 行加移除注记；§8 备选对比与
+  §9 待确认项 2 / 8 关闭。
+- `refactor-acceptance-checklist.md`：陈旧引用修正——L1-5 与 §2 前言去 Yarn 口径；§3.3 与附录 B 的
+  /killitem、/machineStatus、itemFrame 实现分布改为「根 src + mc261 / mc262 override」现实；
+  附录 A 说明注明「份数」为 P4 基线口径。L1-1 验证命令无变化（符合计划预期）。
+- `AGENTS.md`：目录边界改写（根 src 主源码树 / versions/shared 纯资源化 / platform-\* override 职责）；
+  「shared 与跨版本规则」整节改写为「根源码树与跨版本规则」（main 态纪律、宏上限、override 语义、
+  mapping 管理、新增平台流程、`parallel=false` 原因）；版本注册表段更新（扁平化、Mojmap layered remap
+  口径、版本图接线）；规则同步表与全平台验证范围同步。
+- 基线快照：`D:\Project\Carpet-Ice-Addition-P5-baseline-final` 建立（11 runtime + 11 sources jar，
+  与 P4-baseline-final 同构），jar 取自 P5-7 删后验证构建；作为后续阶段（Phase 6 类名统一等）的对照锚点。
+- Phase 5 终态对计划 §11 最终验收标准：①11 平台全部经「根 src + 版本图变换 + 平台 override」编译、
+  子项目为根直接子项目；②versions/shared 仅剩纯资源档、shared_tiers 机制与全部 dormant 副本移除；
+  ③verifyJarEquivalence 对 P4-baseline-final 11/11 零适配零忽略（verifyMixinConfigs 产物化改造经旧体系
+  一致性证明，§10）；④全部 verify + `:common:test` 绿（CI 待合并后由 GitHub Actions 覆盖）；⑤Level 3
+  通过并记录（§12）；⑥THIRD_PARTY_NOTICES 登记完整（P5-1）；⑦文档冻结（本节）；⑧P5-baseline-final
+  快照建立（本节）。
 
 ---
 

@@ -19,9 +19,10 @@
 
 ## 目录边界
 
-- `common/`：规则定义、翻译、公共配置管理，以及不依赖具体 Minecraft / Yarn / Mojmap 签名差异的工具逻辑。
-- `versions/shared/`：平台源码复用目录，不是独立 Gradle 子项目，不直接产出 jar；只能由平台模块通过 `sourceSets` 显式引入。
-- `versions/platform-*`：平台专属 Mixin、版本桥接、兼容层，以及无法稳定放入 `common/` 或 `versions/shared/` 的实现。
+- `common/`：规则定义、翻译、公共配置管理，以及不依赖具体 Minecraft 版本签名差异的工具逻辑。
+- `src/main/java`（仓库根）：主源码树——面向 mainProject（platform-mc12111）的「main 态」源码 + `//#if MC` 预处理宏，经 preprocess 版本图变换为各平台编译输入；只允许 java，不放 resources。
+- `versions/shared/`：纯资源档目录（珊瑚配方资源包），不是独立 Gradle 子项目，不直接产出 jar；只能由平台模块通过 `extra_resource_dirs` 数据键引入，不再承载 Java 源码。
+- `versions/platform-*`：per-version override 源码（同路径整文件替换根 src 变换输出 / 异路径附加）、平台资源（mixin json、fabric.mod.json、资源包副本）与 per-version `gradle.properties`。
 - `docs/`：规则、命令、记录器、开发说明、发布说明等项目资料。
 - `THIRD_PARTY_NOTICES.md`：第三方来源、许可证、致谢、移植 / 参考 / 重写说明的维护文件；不替代 `LICENSE`，也不作为项目功能状态来源。
 - `references/`：本地参考资料目录，不作为项目事实来源，不修改其中内容。
@@ -51,25 +52,25 @@
 - `compatibilityLevel`（`JAVA_21` / `JAVA_25`）随平台版本变化，不视为固定标识，不要为统一而强行对齐。
 - 规则分类内部名 `CarpetIceAddition` 与翻译键 `carpet.category.CarpetIceAddition` 绑定，修改一处必须同步另一处及语言文件。
 
-## shared 与跨版本规则
+## 根源码树与跨版本规则
 
-- 严禁把整个 `versions/shared/` 加入 `settings.gradle`。
-- 只有多个平台已验证完全一致的实现才能迁入 shared。
-- Mixin 迁入 shared 前，必须确认目标类、目标方法、注入点和 descriptor 全部一致；非 Mixin 辅助类也要确认对应平台源码完全一致。
-- 若多个 shared 档位存在同名类，每个平台必须只引入一份所需的同 FQCN Java 源码；不得依赖不同 source root 下的相对路径差异配合全局 exclude 来选择实现。
-- Java source root 必须停在标准的 src/main/java；禁止把 com/... package 目录直接注册为 source root。
-- 不要为了减少目录数量强行合并 shared 档位；只要签名或注入点断裂，就保留在平台模块或拆分新 shared 档位。
-- 新增 Minecraft 版本时，必须检查该版本使用通用实现还是版本专用实现。
-- 跨小版本差异优先通过平台模块、版本专属 Mixin 或平台适配类处理，不优先使用运行期字符串版本号判断来偷渡兼容。
+- 源码架构（Phase 5 起）：根 `src/main/java` 主源码树（mainProject = platform-mc12111）+ 根 `build.gradle` preprocess 版本图（插件 `com.replaymod.preprocess` 经 JitPack 全 SHA 锁定解析到 Fallen-Breath/preprocessor）+ `versions/platform-*/src/main/java` per-version override；`versions/shared/` 只承载纯资源档。
+- 根 src 必须保持「main 态」：纯文本可直接按 1.21.11 编译；所有非 1.21.11 内容必须以 `//$$ ` 前缀的注释态出现在条件分支内；预处理指令行（`//#if` / `//#elseif` / `//#else` / `//#endif` / `//#disable-remap` 等）不加 `$$` 前缀。
+- 宏只用于单处 ≤10 行、不改 Mixin 注入 descriptor 的小差异；结构性分叉（注入目标结构 / 方法签名 / AI 拓扑 / `@At` 字符串差异）必须用平台 override 文件表达，不强行塞进宏。
+- override 语义：非 core 平台的本地 `src/main/java` 按同路径整文件替换根 src 变换输出、异路径附加；override 文件直接编译，不参与宏求值与边重映射，内部不使用预处理指令；core（platform-mc12111）没有 override 层，本地 src 不参与编译。
+- 版本图边 mapping 文件（`versions/mapping-<a>-<b>.txt`）只在 automatic mapping 无法表达时添加条目（外部库 rename、成员移动、remap↔plain 边）；1.21.x remap 边通常保持 0 字节。修改 mapping 后必须全量编译验证受影响平台。
+- 严禁把根 src 或 `versions/shared/` 注册为独立 Gradle 子项目；Java source root 必须停在标准的 src/main/java，禁止把 com/... package 目录直接注册为 source root。
+- 跨小版本差异优先通过宏、平台 override 或版本图 mapping 表达，不优先使用运行期字符串版本号判断来偷渡兼容。
 - 依赖版本不匹配时，优先依赖 `fabric.mod.json` 的 `depends` 在启动阶段 fail-fast，不做运行期静默降级。
 - 平台模块的 mixins 配置默认保持 `required=true`，除非任务明确要求调整。
+- `org.gradle.parallel=false` 是 preprocess 体系下 Gradle 9 跨项目解析独占锁问题的既有解，未经全量验证不要改回 `true`。
 
 ## 版本注册表与构建配置
 
-- `settings.json` 是支持版本清单的唯一来源；`settings.gradle` 据此动态生成平台子项目，并断言注册表与 `versions/platform-*` 目录一致。
-- 新增 Minecraft 平台 = 在 `settings.json` 按版本升序登记 + 新建 `versions/platform-*/`（per-version `gradle.properties`、薄包装 `build.gradle`、src），不要手写 include 清单。
-- 平台版本数据（minecraft、yarn、loader、fabric-api、carpet、pack_format 等）放在 `versions/platform-*/gradle.properties`，不要向根 `gradle.properties` 回填平台前缀键。
-- 平台共通构建逻辑在根 `common.gradle`，差异由 per-version 数据键驱动；修改共通逻辑时必须同时验证两种 loom 形态（Yarn remap 与免混淆 plain）。
+- `settings.json` 是支持版本清单的唯一来源；`settings.gradle` 据此动态生成平台子项目（根直接子项目 `:platform-mcXXXX`，磁盘目录仍为 `versions/platform-*`），并断言注册表与 `versions/platform-*` 目录一致。
+- 新增 Minecraft 平台 = 在 `settings.json` 按版本升序登记 + 新建 `versions/platform-*/`（per-version `gradle.properties`、薄包装 `build.gradle`、src）+ 根 `build.gradle` 版本图 `createNode` 登记节点并与相邻版本 `link`（含新建对应 `versions/mapping-*.txt`），不要手写 include 清单。
+- 平台版本数据（minecraft、loader、fabric-api、carpet、pack_format、preprocess_enabled 等）放在 `versions/platform-*/gradle.properties`，不要向根 `gradle.properties` 回填平台前缀键。
+- 平台共通构建逻辑在根 `common.gradle`，差异由 per-version 数据键驱动；修改共通逻辑时必须同时验证两种 loom 形态（Mojmap layered remap 与免混淆 plain）。
 
 ## 规则 / 命令 / 记录器修改
 
@@ -77,7 +78,7 @@
 
 | 类型 | 至少检查 | 必须同步文档 |
 | - | - | - |
-| 规则 | 规则定义类、翻译提供类、中英文语言文件、相关 Mixin / Helper / 配置类、受影响平台入口类、mixin json、sourceSets | `docs/rules.md`、`docs/rules_en.md` |
+| 规则 | 规则定义类、翻译提供类、中英文语言文件、相关 Mixin / Helper / 配置类、入口类（根 src 注册宏边界）、mixin json、受影响平台 override | `docs/rules.md`、`docs/rules_en.md` |
 | 命令 | 命令注册入口、命令实现类、权限判断、命令树刷新逻辑、反馈/错误文本、配置持久化逻辑 | `docs/commands.md`、`docs/commands_en.md` |
 | 记录器 | `registerLoggers()` 接入点、logger 注册/显示/辅助类、事件触发点、Mixin、HUD 更新入口、内部名、默认 option、可选 options、订阅状态快速判断 | `docs/loggers.md`、`docs/loggers_en.md` |
 
@@ -131,7 +132,7 @@
 
 - 只修改 Markdown 文档时，至少运行 `git diff --check`。
 - 修改源码、资源、构建脚本、Mixin、平台入口或 sourceSets 时，先运行 `git diff --check`，再运行受影响模块的 `compileJava`。
-- 涉及 `common/`、`versions/shared/` 或跨平台公共逻辑时，优先验证所有当前支持平台的编译。
+- 涉及 `common/`、根 `src/`、`versions/shared/` 或跨平台公共逻辑时，优先验证所有当前支持平台的编译。
 - 如果因环境限制无法运行验证命令，需要在回复中明确说明未验证内容、原因和风险。
 - 不要把未运行的游戏内测试、多人测试或启动测试写成已通过。
 
