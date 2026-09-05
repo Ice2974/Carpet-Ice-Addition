@@ -222,10 +222,17 @@ loom 缓存 tiny 实证**同 intermediary 纯改名**（§4）：
 
 ### 11.3 遗留与移交
 
-- **P5-6（Level 3 人工回归）**：按计划 §10 矩阵由 Ice2974 执行（全部 11 平台；重点边界 mc1211/mc1214-1215/
-  mc1215-1216/mc1218-1219/mc12111/mc261/mc262；规则注册矩阵 40/38×7/39×3——特别覆盖入口类宏；
-  /killitem、/machineStatus、machineStatusRollbackWarning；高风险 Mixin 逐平台）。
-- P5-7（删 dormant，单独 commit）与 P5-8（文档冻结 + P5-baseline-final 快照）在 Level 3 通过后执行。
+- ~~P5-6（Level 3 人工回归）~~ **已于 2026-09-05 由人工验证完成**（Ice2974 确认通过），P5-7/P5-8 放行。
+- P5-7（删 dormant，单独 commit）与 P5-8（文档冻结 + P5-baseline-final 快照）随后执行，记录见 §12。
+
+## 12. P5-6 人工回归与收尾（2026-09-05）
+
+- **P5-6 Level 3 人工回归：通过**（人工确认）。覆盖范围按计划 §10 矩阵：全部 11 平台加载与规则注册矩阵
+  （40 / 38×7 / 39×3，含入口类 High/Low 注册宏边界）、/killitem 与 /machineStatus 命令族、
+  machineStatusRollbackWarning、边界平台（mc1211 / mc1214-1215 / mc1215-1216 / mc1218-1219 /
+  mc12111 / mc261 / mc262）高风险 Mixin 行为。
+- 门禁放行：满足删除纪律（§0.2-2）——全部 dormant 副本（19 个 Java 档、platform-mc12111 的 8 文件）
+  在 P5-6 前已证明不参与任何平台编译（shared_tiers 全空 + 全仓冷重建 + 等价 11/11）。
 - 待人工确认项更新：§7-1（注入字符串宏豁免）实际未启用——所有 descriptor 差异族按默认走 override 落地
   （DisableIllegalTextCharacterCheck 6 平台复制等），无需豁免裁决；§7-4 WardenEntity 26 边以 override 落地。
 
