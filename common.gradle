@@ -3,8 +3,8 @@
 // 平台差异全部由 versions/platform-*/gradle.properties 数据驱动：
 //   必需键：minecraft_version / release_minecraft_range / minecraft_dependency / loader_version /
 //           fabric_version / fabric_dependency / carpet_version / carpet_dependency / carpet_repo /
-//           loom_plugin / jar_task / java_release / pack_format / mixin_config / shared_tiers
-//   可选键：java_toolchain（仅 26.x）/ extra_resource_dirs
+//           loom_plugin / jar_task / java_release / pack_format / mixin_config
+//   可选键：java_toolchain（仅 26.x）/ extra_resource_dirs / preprocess_enabled（Phase 5，默认应置 true）
 // jar_task=remap：officialMojangMappings 形态（Phase 4 统一），依赖走 modImplementation，产物经 remapJar/remapSourcesJar 命名
 // jar_task=plain：免混淆形态（26.x），依赖走 implementation，产物经 jar/sourcesJar 命名
 
@@ -14,7 +14,7 @@ def platformCode = project.name.substring('platform-'.length())
 [
         'minecraft_version', 'release_minecraft_range', 'minecraft_dependency', 'loader_version',
         'fabric_version', 'fabric_dependency', 'carpet_version', 'carpet_dependency', 'carpet_repo',
-        'loom_plugin', 'jar_task', 'java_release', 'pack_format', 'mixin_config', 'shared_tiers'
+        'loom_plugin', 'jar_task', 'java_release', 'pack_format', 'mixin_config'
 ].each { key ->
     assert project.hasProperty(key): "平台 ${project.path} 缺少必需属性 ${key}（应在 versions/platform-${platformCode}/gradle.properties 中定义）"
 }
@@ -62,18 +62,14 @@ dependencies {
     }
 }
 
-def sharedTiers = project.shared_tiers.split(',') as List<String>
+// Phase 5（P5-7）：Java 档位叠加机制（shared_tiers）已随 preprocess 体系收敛移除——
+// 全部平台经根 src + 版本图变换 + 平台 override 编译；versions/shared 仅保留纯资源档（extra_resource_dirs）。
 def extraResourceTiers = project.hasProperty('extra_resource_dirs')
         ? project.extra_resource_dirs.split(',') as List<String>
         : []
 
 sourceSets {
     main {
-        java {
-            sharedTiers.each { tier ->
-                srcDir rootProject.file("versions/shared/${tier}/src/main/java")
-            }
-        }
         resources {
             srcDir project(':common').file('src/main/resources')
             extraResourceTiers.each { tier ->
@@ -83,22 +79,18 @@ sourceSets {
     }
 }
 
-// Phase 5（P5-1）preprocess 接入预留：默认关闭（无平台设置 preprocess_enabled）。
-// 开启后的语义（P5-2 起逐平台启用）：
+// Phase 5 preprocess 接入（P5-2 起全部平台启用；preprocess_enabled 保留为应急回滚开关，置 false
+// 需同时恢复版本对位的源码组织，仅建议在根 src 体系回退场景使用）：
 //   1) 应用 com.replaymod.preprocess 插件（版本图在根 build.gradle，节点按 project.name 匹配本平台）；
 //      core（platform-mc12111）java sourceSet 被插件改写为仅 [根 src/main/java]，本地 src/main/java
-//      不参与编译（dormant 副本可安全保留）；非 core 平台为 [本地 src/main/java（overwrite 层）,
-//      生成的 preprocess 输出]，本地文件按同路径替换、异路径附加。
+//      不参与编译；非 core 平台为 [本地 src/main/java（overwrite 层）, 生成的 preprocess 输出]，
+//      本地文件按同路径替换、异路径附加，且不经宏处理/不经重映射、直接编译。
 //   2) 插件会 setSrcDirs 重写 resources——在 afterEvaluate 显式恢复现行资源语义
 //      [本平台 src/main/resources, common src/main/resources, extra_resource_dirs 各档]；
 //      根 src 只允许 java（下方断言），生成层资源恒为空，恢复不丢失任何输入。
-//   3) shared_tiers 引用应在该平台 flip 时清空（档位文件保留 dormant，P5-7 统一删除）。
-// 时序风险（restore 晚于插件改写）由 P5-1b 行为学实验以 clean build 实证；若插件改写发生在
-// afterEvaluate 之后，需改挂 taskGraph.ready 钩子——此处保守起见同时保留结果断言。
+// 时序（restore 晚于插件改写）已经 P5-1b 行为学实验与全仓冷重建实证。
 def preprocessEnabled = project.hasProperty('preprocess_enabled') && project.preprocess_enabled == 'true'
 if (preprocessEnabled) {
-    assert sharedTiers.every { tier -> tier.isEmpty() }:
-            "平台 ${project.path} 启用 preprocess 后 shared_tiers 必须为空（根 src + 平台 override 接管，档位引用应随 flip 撤销）"
     project.pluginManager.apply('com.replaymod.preprocess')
     afterEvaluate {
         def expectedResourceDirs = ([new File(project.projectDir, 'src/main/resources'),
