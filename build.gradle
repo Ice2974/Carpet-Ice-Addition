@@ -215,21 +215,22 @@ def verifyMixinConfigs = tasks.register('verifyMixinConfigs') {
             assert dangling.isEmpty(): "dangling mixin entries (no class in jar) in ${configLabel}: ${dangling.sort()}"
 
             def mixinPkgPath = 'com/ice2974/carpeticeaddition/mixins'
-            def sourceMixinClasses = platform.sourceSets.main.java.srcDirs.collectMany { srcDir ->
-                def pkgDir = new File(srcDir, mixinPkgPath)
-                if (pkgDir.isDirectory()) {
-                    pkgDir.listFiles({ File dir, String name -> name.endsWith('.java') } as FilenameFilter)
-                            .collect { it.name - '.java' }
-                } else {
-                    []
-                }
+            // P5-1c：反向枚举对象从「源码集 .java 文件」改为「jar 内 mixins 包实际产物 class」
+            // （top-level，排除 $ 内部类）。理由：preprocess 整文件 guard 的空输出 .java 会留在
+            // 生成目录（全部行为 //$$ 注释，无类型声明、不产 class），按源文件枚举会误报漏注；
+            // 以实际编译/发布产物做双向校验不弱于旧口径（旧体系下源文件与产物一一对应，
+            // 改造后旧体系 11 平台校验结果与改造前逐平台一致，见 docs/refactor-phase5-verification.md）。
+            def compiledMixinClasses = jarEntries.findAll { name ->
+                name.startsWith("${mixinPkgPath}/") && name.endsWith('.class') && !name.contains('$')
+            }.collect { name ->
+                name.substring("${mixinPkgPath}/".length(), name.length() - '.class'.length())
             } as Set
-            def unlisted = sourceMixinClasses.findAll { name -> !allEntries.contains(name) }
+            def unlisted = compiledMixinClasses.findAll { name -> !allEntries.contains(name) }
             assert unlisted.isEmpty(): "mixin classes in source set but missing from ${mixinConfigName} in ${configLabel}: ${unlisted.sort()}"
-            assert (allEntries as Set) == sourceMixinClasses:
+            assert (allEntries as Set) == compiledMixinClasses:
                     "mixin entry set != source mixin class set in ${configLabel}"
 
-            println "mixin config OK: ${configLabel} (${mixinsList.size()} mixins + ${clientList.size()} client == ${sourceMixinClasses.size()} source classes)"
+            println "mixin config OK: ${configLabel} (${mixinsList.size()} mixins + ${clientList.size()} client == ${compiledMixinClasses.size()} source classes)"
         }
     }
 }
