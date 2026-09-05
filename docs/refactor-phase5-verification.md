@@ -175,7 +175,7 @@ loom 缓存 tiny 实证**同 intermediary 纯改名**（§4）：
 | (e) 字符串字面量 | **推翻 P5-0 §3.4 假设**：preprocessor 的源重映射器**会重映射 mixin 注解字符串**（实证：mc12110 生成源码中 `@Redirect target` 类路径 `npc/villager/Villager` 自动变为 `npc/Villager`）。裸方法名在上游侧遇多重载时报歧义错（`convertTo` 双重载），解法 = 行级 `//#disable-remap`（该行原样输出，两版本方法名相同时输出文本与旧档位一致）或补全 descriptor。@At 字符串族的 override 需求收窄至「descriptor 真变（方法增删参）」者 |
 | (f) automatic mapping | ✓ remap↔remap 边经 loom OMM 完全生效：1.21.11 批量 rename（Villager/Zombie/WanderingTrader/GameRules/ResourceLocation→Identifier/AbstractHorse 包移动族）零手工条目，生成源码正确换名并编译 |
 | (g) strictExtraMappings | ✓ `=true` + 0 字节 1.21.x 边正常（strict 路径无抱怨） |
-| (h) cleanupUnnecessaryMappings | ⏸ 未实测（需真实 mapping 内容，留 P5-4 附带观察） |
+| (h) cleanupUnnecessaryMappings | N/A / 未使用：P5-4 最终采用人工维护的 2 行最小 legacy mapping（displayClientMessage→sendSystemMessage、getDayTime→getOverworldClockTime），未调用 cleanupUnnecessaryMappings；该兼容性实验不再构成 Phase 5 验收门禁 |
 | (i) clean build 依赖顺序 | ✓ `clean` 后从零构建（无 build/preprocessed 缓存）全绿；verifyMixinConfigs 以编译产物枚举后对翻转平台正确 |
 | (j) core 项目行为 | ✓ 本地 src/main/java 完全不参与 sourceSet（lab 中 dormant 8 文件保留、无重复类错误、断言③不计入）；core 资源经恢复逻辑正常打包 |
 | (k) mainProject | ✓ `../mainProject` 解析 + 内容 `platform-mc12111` 匹配成功（core 被正确识别，无节点查找错误） |

@@ -11,7 +11,8 @@ plugins {
 // 边约定：link(高版本侧, 低版本侧, file)，mapping 文件内容 = 高版本侧命名 → 低版本侧命名（AMS 同款约定）；
 // 1.21.x remap↔remap 边依赖插件经 loom mappings 的 automatic mapping（named→intermediary→named 自动合成，
 // P5-0 实证的纯 rename 不写条目，文件保持 0 字节）；platform-mc12111↔platform-mc261 为 remap↔plain 边
-// （26.x 无 intermediary，自动链路不存在），显式 legacy mapping 承载 rename（P5-4 按机械提取填充，当前 0 字节占位）。
+// （26.x 无 intermediary，自动链路不存在），显式 legacy mapping 承载 rename（P5-4 已按机械提取+编译复核
+// 定稿：仅 2 条最小 legacy mapping——displayClientMessage→sendSystemMessage、getDayTime→getOverworldClockTime）。
 preprocess {
     strictExtraMappings.set(true)
 
