@@ -64,8 +64,12 @@ public abstract class PhantomEntityNeutralPhantomsMixin implements NeutralPhanto
                 }
                 return;
             }
+//#if MC>=12111
             boolean forgiveDeadPlayers = Boolean.TRUE.equals(
                     serverWorld.getGameRules().get(GameRules.FORGIVE_DEAD_PLAYERS));
+//#else
+//$$            boolean forgiveDeadPlayers = serverWorld.getGameRules().getBoolean(GameRules.RULE_FORGIVE_DEAD_PLAYERS);
+//#endif
 
             LivingEntity target = this.getTarget();
             if (target instanceof ServerPlayer targetPlayer

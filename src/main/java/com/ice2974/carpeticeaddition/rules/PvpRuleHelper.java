@@ -8,6 +8,11 @@ public final class PvpRuleHelper {
     }
 
     public static boolean isPvpEnabled(ServerLevel world) {
+//#if MC>=12111
         return world.getGameRules().get(GameRules.PVP);
+//#else
+//$$        return world.getGameRules().getBoolean(GameRules.RULE_PVP);
+//#endif
+
     }
 }

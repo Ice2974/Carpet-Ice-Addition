@@ -107,8 +107,13 @@ public final class MachineStatusRollbackWarningHandler {
     private static Component infoButton(String name) {
         Style style = Style.EMPTY
                 .withColor(ChatFormatting.AQUA)
+//#if MC>=12111
                 .withClickEvent(new ClickEvent.RunCommand("/machineStatus info " + quoteMachineName(name)))
                 .withHoverEvent(new HoverEvent.ShowText(
+//#else
+//$$                .withClickEvent(MachineStatusTextEvents.runCommand("/machineStatus info " + quoteMachineName(name)))
+//$$                .withHoverEvent(MachineStatusTextEvents.showText(
+//#endif
                         Component.literal(TranslationFormatUtil.translate("command.carpet-ice-addition.machine_status.info.hover"))
                 ));
         return Component.literal("[i]").setStyle(style);

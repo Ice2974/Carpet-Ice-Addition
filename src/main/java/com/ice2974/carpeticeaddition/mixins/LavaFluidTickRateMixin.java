@@ -2,8 +2,10 @@ package com.ice2974.carpeticeaddition.mixins;
 
 import com.ice2974.carpeticeaddition.rules.FluidTickDelayUtil;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionFluidSettings;
+//#if MC>=12111
 import net.minecraft.world.attribute.EnvironmentAttributeReader;
 import net.minecraft.world.attribute.EnvironmentAttributes;
+//#endif
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
@@ -40,9 +42,13 @@ public abstract class LavaFluidTickRateMixin {
         if (CarpetIceAdditionFluidSettings.lavaFrozen) {
             return;
         }
+//#if MC>=12111
         EnvironmentAttributeReader access = world.environmentAttributes();
         Boolean fastLava = access.getDimensionValue(EnvironmentAttributes.FAST_LAVA);
         boolean ultrawarm = fastLava != null && fastLava;
+//#else
+//$$        boolean ultrawarm = world.dimensionType().ultraWarm();
+//#endif
         cir.setReturnValue(FluidTickDelayUtil.getLavaDelay(CarpetIceAdditionFluidSettings.lavaDelay, ultrawarm));
     }
 }

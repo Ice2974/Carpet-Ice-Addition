@@ -153,7 +153,12 @@ public final class KillItemCommand {
                 center.y + radius,
                 center.z + radius
         );
+//#if MC>=12111
         ServerLevel world = (ServerLevel) player.level();
+//#else
+//$$        ServerLevel world = PlayerWorlds.serverLevel(player);
+//#endif
+
         ClearResult result = clearInBox(world, box, itemEntity -> itemEntity.distanceToSqr(center) <= radiusSquared, config);
         String formattedRadius = formatRadius(radius);
         sendClearResult(

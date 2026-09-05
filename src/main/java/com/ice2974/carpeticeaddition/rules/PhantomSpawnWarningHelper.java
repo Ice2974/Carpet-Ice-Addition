@@ -77,7 +77,12 @@ public final class PhantomSpawnWarningHelper {
     }
 
     private static boolean isDoInsomniaEnabled(ServerLevel world) {
+//#if MC>=12111
         return Boolean.TRUE.equals(world.getGameRules().get(GameRules.SPAWN_PHANTOMS));
+//#else
+//$$        return world.getGameRules().getBoolean(GameRules.RULE_DOINSOMNIA);
+//#endif
+
     }
 
     private static boolean isServerAccelerated(ServerLevel world) {

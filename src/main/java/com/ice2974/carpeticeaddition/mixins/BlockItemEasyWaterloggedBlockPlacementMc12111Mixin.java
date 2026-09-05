@@ -1,3 +1,4 @@
+//#if MC>=12111
 package com.ice2974.carpeticeaddition.mixins;
 
 import com.ice2974.carpeticeaddition.CarpetIceAdditionMod;
@@ -68,3 +69,5 @@ public abstract class BlockItemEasyWaterloggedBlockPlacementMc12111Mixin {
         CARPET_ICE_ADDITION$PLACEMENT_CONTEXT.remove();
     }
 }
+
+//#endif

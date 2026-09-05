@@ -8,7 +8,11 @@ import com.ice2974.carpeticeaddition.rules.CraftableCoralBlocksDataPackControlle
 import com.ice2974.carpeticeaddition.rules.CraftableCoralBlocksState;
 import com.ice2974.carpeticeaddition.rules.VillagerTradingOptimizationRuleHelper;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionEndPlatformSettings;
+//#if MC>=12111
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionHighVersionSettings;
+//#elseif MC<12103
+//$$import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionLowVersionSettings;
+//#endif
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
 import com.ice2974.carpeticeaddition.settings.CraftableCoralBlocksSettings;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionFluidSettings;
@@ -56,7 +60,11 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
     public void onGameStarted() {
         CarpetServer.settingsManager.parseSettingsClass(CarpetIceAdditionSettings.class);
         CarpetServer.settingsManager.parseSettingsClass(CarpetIceAdditionEndPlatformSettings.class);
+//#if MC>=12111
         CarpetServer.settingsManager.parseSettingsClass(CarpetIceAdditionHighVersionSettings.class);
+//#elseif MC<12103
+//$$        CarpetServer.settingsManager.parseSettingsClass(CarpetIceAdditionLowVersionSettings.class);
+//#endif
         CarpetServer.settingsManager.parseSettingsClass(CraftableCoralBlocksSettings.class);
         CarpetServer.settingsManager.parseSettingsClass(CarpetIceAdditionFluidSettings.class);
         CarpetServer.settingsManager.registerRuleObserver((source, rule, userInput) -> {
