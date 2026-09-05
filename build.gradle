@@ -514,24 +514,44 @@ def loadAsmCanonicalizer = { String pkg, ClassLoader loader ->
         import ${pkg}.commons.SimpleRemapper
 
         class RenameClassfileCanonicalizer {
-            // internal name 重映射 + SourceFile（self-name 元数据）剔除；字符串字面量不被重映射。
+            // internal name 重映射 + 编译期调试元数据剔除（SourceFile / LineNumberTable）；
+            // 字符串字面量不被重映射。B 通道比较对象是结构与指令：SourceFile 为 self-name 元数据，
+            // LineNumberTable 随源码行号布局变化（如 consolidation 引入门控注释行），
+            // 二者均非语义载体，两侧统一剔除后做严格字节比较。
             static byte[] canonicalize(byte[] classBytes, Map<String, String> internalRenames) {
+                def api = Opcodes.ASM9
                 def writer = new ClassWriter(0)
-                def stripSource = new ClassVisitor(Opcodes.ASM9, writer) {
+                def stripDebug = new ClassVisitor(api, writer) {
                     @Override
                     void visitSource(String source, String debug) {
                     }
+
+                    @Override
+                    org.objectweb.asm.MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
+                        def mv = super.visitMethod(access, name, descriptor, signature, exceptions)
+                        if (mv == null) {
+                            return null
+                        }
+                        return new org.objectweb.asm.MethodVisitor(api, mv) {
+                            @Override
+                            void visitLineNumber(int line, org.objectweb.asm.Label label) {
+                            }
+                        }
+                    }
                 }
-                new ClassReader(classBytes).accept(new ClassRemapper(stripSource, new SimpleRemapper(internalRenames)), 0)
+                new ClassReader(classBytes).accept(new ClassRemapper(stripDebug, new SimpleRemapper(internalRenames)), 0)
                 return writer.toByteArray()
             }
 
-            static byte[] buildSampleClass(String internalName, String sourceFile, String literal) {
+            static byte[] buildSampleClass(String internalName, String sourceFile, String literal, int lineNo) {
                 def writer = new ClassWriter(0)
                 writer.visit(Opcodes.V17, Opcodes.ACC_PUBLIC | Opcodes.ACC_SUPER, internalName, null, 'java/lang/Object', null)
                 writer.visitSource(sourceFile, null)
                 def mv = writer.visitMethod(Opcodes.ACC_PUBLIC, 'hello', '()Ljava/lang/String;', null, null)
                 mv.visitCode()
+                def label = new org.objectweb.asm.Label()
+                mv.visitLabel(label)
+                mv.visitLineNumber(lineNo, label)
                 mv.visitLdcInsn(literal)
                 mv.visitInsn(Opcodes.ARETURN)
                 mv.visitMaxs(1, 1)
@@ -545,8 +565,8 @@ def loadAsmCanonicalizer = { String pkg, ClassLoader loader ->
             canonicalize: { byte[] bytes, Map renames ->
                 org.codehaus.groovy.runtime.InvokerHelper.invokeStaticMethod(parsed, 'canonicalize', [bytes, renames] as Object[])
             },
-            buildSample : { String internalName, String sourceFile, String literal ->
-                org.codehaus.groovy.runtime.InvokerHelper.invokeStaticMethod(parsed, 'buildSampleClass', [internalName, sourceFile, literal] as Object[])
+            buildSample : { String internalName, String sourceFile, String literal, int lineNo ->
+                org.codehaus.groovy.runtime.InvokerHelper.invokeStaticMethod(parsed, 'buildSampleClass', [internalName, sourceFile, literal, lineNo] as Object[])
             }
     ]
     asmCanonicalizerCache[cacheKey] = result
@@ -1021,14 +1041,15 @@ def selfTestRenameEquivalence = tasks.register('selfTestRenameEquivalence') {
             println 'selfTest: channel B 探测不可用（构建环境无既有 asm），跳过 classfile 自测'
         } else {
             def canonicalizer = loadAsmCanonicalizer(asm.pkg, asm.loader)
-            def oldClass = canonicalizer.buildSample('p/Old', 'Old.java', 'hello world')
-            def newClass = canonicalizer.buildSample('p/New', 'New.java', 'hello world')
+            // 行号故意不同：模拟 consolidation 引入门控注释行导致的 LineNumberTable 漂移（P6-5 场景）
+            def oldClass = canonicalizer.buildSample('p/Old', 'Old.java', 'hello world', 42)
+            def newClass = canonicalizer.buildSample('p/New', 'New.java', 'hello world', 99)
             def internalRenames = ['p/Old': 'p/New']
             assert java.util.Arrays.equals(
                     canonicalizer.canonicalize(oldClass, internalRenames),
                     canonicalizer.canonicalize(newClass, [:])):
                     'selfTest: channel B 干净 rename 应通过'
-            def literalMutated = canonicalizer.buildSample('p/New', 'New.java', 'hello mutated')
+            def literalMutated = canonicalizer.buildSample('p/New', 'New.java', 'hello mutated', 99)
             assert !java.util.Arrays.equals(
                     canonicalizer.canonicalize(oldClass, internalRenames),
                     canonicalizer.canonicalize(literalMutated, [:])):

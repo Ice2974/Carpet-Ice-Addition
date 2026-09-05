@@ -30,7 +30,7 @@
     "WardenAngerManagerMixin",
     "WardenEntityMixin",
     "EndPortalBlockCustomEndPlatformPositionMixin",
-    "BlockItemEasyWaterloggedBlockPlacementMc12111Mixin",
+    "BlockItemEasyWaterloggedBlockPlacementMixin",
     "ItemUtilsPortableInfiniteWaterMixin",
     "DisableAirborneMiningPenaltyMixin",
     "TrialSpawnerDataMixin",
