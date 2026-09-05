@@ -1,18 +1,16 @@
-//#if MC<260000
 package com.ice2974.carpeticeaddition.mixins;
 
 import com.ice2974.carpeticeaddition.CarpetIceAdditionMod;
 import com.ice2974.carpeticeaddition.rules.NeutralPhantomsRetaliationTracker;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
 import java.util.UUID;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.monster.Phantom;
-import net.minecraft.world.level.gamerules.GameRules;
-import net.minecraft.world.level.storage.ValueInput;
-import net.minecraft.world.level.storage.ValueOutput;
+import net.minecraft.world.level.GameRules;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -21,7 +19,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(Mob.class)
-public abstract class PhantomEntityNeutralPhantomsMixin implements NeutralPhantomsRetaliationTracker {
+public abstract class PhantomNeutralPhantomsMixin implements NeutralPhantomsRetaliationTracker {
     @Unique
     private static final String CARPET_ICE_ADDITION$NEUTRAL_PHANTOMS_TARGET_UUID_KEY =
             "carpet_ice_addition.neutral_phantoms_target_uuid";
@@ -65,12 +63,7 @@ public abstract class PhantomEntityNeutralPhantomsMixin implements NeutralPhanto
                 }
                 return;
             }
-//#if MC>=12111
-            boolean forgiveDeadPlayers = Boolean.TRUE.equals(
-                    serverWorld.getGameRules().get(GameRules.FORGIVE_DEAD_PLAYERS));
-//#else
-//$$            boolean forgiveDeadPlayers = serverWorld.getGameRules().getBoolean(GameRules.RULE_FORGIVE_DEAD_PLAYERS);
-//#endif
+            boolean forgiveDeadPlayers = serverWorld.getGameRules().getBoolean(GameRules.RULE_FORGIVE_DEAD_PLAYERS);
 
             LivingEntity target = this.getTarget();
             if (target instanceof ServerPlayer targetPlayer
@@ -129,34 +122,36 @@ public abstract class PhantomEntityNeutralPhantomsMixin implements NeutralPhanto
     }
 
     @Inject(method = "addAdditionalSaveData", at = @At("TAIL"))
-    private void carpetIceAddition$writeNeutralPhantomsRetaliation(ValueOutput view, CallbackInfo ci) {
+    private void carpetIceAddition$writeNeutralPhantomsRetaliation(CompoundTag nbt, CallbackInfo ci) {
         if (!((Object) this instanceof Phantom)) {
             return;
         }
         if (this.carpetIceAddition$neutralPhantomsTargetUuid == null) {
             return;
         }
-        view.putString(
+        nbt.putString(
                 CARPET_ICE_ADDITION$NEUTRAL_PHANTOMS_TARGET_UUID_KEY,
                 this.carpetIceAddition$neutralPhantomsTargetUuid.toString());
-        view.putInt(
+        nbt.putInt(
                 CARPET_ICE_ADDITION$NEUTRAL_PHANTOMS_TARGET_ENTITY_ID_KEY,
                 this.carpetIceAddition$neutralPhantomsTargetEntityId);
     }
 
     @Inject(method = "readAdditionalSaveData", at = @At("TAIL"))
-    private void carpetIceAddition$readNeutralPhantomsRetaliation(ValueInput view, CallbackInfo ci) {
+    private void carpetIceAddition$readNeutralPhantomsRetaliation(CompoundTag nbt, CallbackInfo ci) {
         if (!((Object) this instanceof Phantom)) {
             return;
         }
-        String uuidString = view.getStringOr(CARPET_ICE_ADDITION$NEUTRAL_PHANTOMS_TARGET_UUID_KEY, "");
-        if (uuidString.isEmpty()) {
+        if (!nbt.contains(CARPET_ICE_ADDITION$NEUTRAL_PHANTOMS_TARGET_UUID_KEY)) {
             return;
         }
         try {
-            this.carpetIceAddition$neutralPhantomsTargetUuid = UUID.fromString(uuidString);
-            this.carpetIceAddition$neutralPhantomsTargetEntityId =
-                    view.getIntOr(CARPET_ICE_ADDITION$NEUTRAL_PHANTOMS_TARGET_ENTITY_ID_KEY, -1);
+            this.carpetIceAddition$neutralPhantomsTargetUuid =
+                    UUID.fromString(nbt.getString(CARPET_ICE_ADDITION$NEUTRAL_PHANTOMS_TARGET_UUID_KEY));
+            this.carpetIceAddition$neutralPhantomsTargetEntityId = nbt.contains(
+                    CARPET_ICE_ADDITION$NEUTRAL_PHANTOMS_TARGET_ENTITY_ID_KEY)
+                    ? nbt.getInt(CARPET_ICE_ADDITION$NEUTRAL_PHANTOMS_TARGET_ENTITY_ID_KEY)
+                    : -1;
         } catch (IllegalArgumentException exception) {
             this.carpetIceAddition$clearNeutralPhantomsRetaliationTarget();
         }
@@ -168,4 +163,3 @@ public abstract class PhantomEntityNeutralPhantomsMixin implements NeutralPhanto
         this.carpetIceAddition$neutralPhantomsTargetEntityId = -1;
     }
 }
-//#endif

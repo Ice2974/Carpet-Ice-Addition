@@ -24,7 +24,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(ItemFrame.class)
-public abstract class ItemFrameEntityMixin {
+public abstract class ItemFrameMixin {
     @Unique private boolean carpetIceAddition$invisibleFramePaid;
     @Unique private boolean carpetIceAddition$fixedFramePaid;
     @Unique private boolean carpetIceAddition$invisibleFrameRefunded;
@@ -96,20 +96,25 @@ public abstract class ItemFrameEntityMixin {
         }
     }
 
-    @Inject(method = "hurtServer", at = @At("HEAD"))
-    private void carpetIceAddition$captureDamageSource(ServerLevel world, DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
+    @Inject(method = "hurt", at = @At("HEAD"))
+    private void carpetIceAddition$captureDamageSource(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
         this.carpetIceAddition$currentDamageSource = source;
     }
 
-    @Inject(method = "hurtServer", at = @At("RETURN"))
-    private void carpetIceAddition$clearDamageSource(ServerLevel world, DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
+    @Inject(method = "hurt", at = @At("RETURN"))
+    private void carpetIceAddition$clearDamageSource(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
         this.carpetIceAddition$currentDamageSource = null;
     }
 
-    @Inject(method = "dropItem(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/Entity;)V", at = @At("HEAD"))
-    private void carpetIceAddition$refundCustomizationMaterials(ServerLevel world, Entity breaker, CallbackInfo ci) {
+    @Inject(method = "dropItem(Lnet/minecraft/world/entity/Entity;)V", at = @At("HEAD"))
+    private void carpetIceAddition$refundCustomizationMaterials(Entity breaker, CallbackInfo ci) {
         ItemFrame frame = (ItemFrame) (Object) this;
+        if (frame.getCommandSenderWorld().isClientSide()) {
+            return;
+        }
+
         boolean creativeDestroyer = carpetIceAddition$isCreativeDestroyer(breaker);
+        ServerLevel world = (ServerLevel) frame.getCommandSenderWorld();
 
         if (CarpetIceAdditionSettings.itemFrameInvisible && frame.isInvisible() && !this.carpetIceAddition$invisibleFrameRefunded) {
             boolean refundTriggered = !creativeDestroyer;

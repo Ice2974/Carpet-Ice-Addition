@@ -8,7 +8,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(targets = "net.minecraft.world.entity.monster.Phantom$PhantomAttackPlayerTargetGoal")
-public abstract class PhantomFindTargetGoalNeutralPhantomsMixin {
+public abstract class PhantomAttackPlayerTargetGoalNeutralPhantomsMixin {
     @Inject(method = "canUse", at = @At("HEAD"), cancellable = true)
     private void carpetIceAddition$disableNeutralPhantomsActivePlayerTargeting(CallbackInfoReturnable<Boolean> cir) {
         if (CarpetIceAdditionSettings.neutralPhantoms) {

@@ -1,9 +1,9 @@
+//#if MC<260000
 package com.ice2974.carpeticeaddition.mixins;
 
 import com.ice2974.carpeticeaddition.rules.ItemFrameInteractionHelper;
 import com.ice2974.carpeticeaddition.rules.ItemFrameInteractionHelper.FrameCustomizationAction;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.InteractionHand;
@@ -15,6 +15,8 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -24,7 +26,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(ItemFrame.class)
-public abstract class ItemFrameEntityMixin {
+public abstract class ItemFrameMixin {
     @Unique private boolean carpetIceAddition$invisibleFramePaid;
     @Unique private boolean carpetIceAddition$fixedFramePaid;
     @Unique private boolean carpetIceAddition$invisibleFrameRefunded;
@@ -56,7 +58,7 @@ public abstract class ItemFrameEntityMixin {
             return;
         }
 
-        if (frame.getCommandSenderWorld().isClientSide()) {
+        if (frame.level().isClientSide()) {
             cir.setReturnValue(InteractionResult.SUCCESS);
             return;
         }
@@ -84,7 +86,7 @@ public abstract class ItemFrameEntityMixin {
                 boolean refundTriggered = CarpetIceAdditionSettings.itemFrameFixed && !creativeMode && !this.carpetIceAddition$fixedFrameRefunded;
                 ItemFrameInteractionHelper.logFixedClearAttempt(frame.getUUID(), this.fixed, creativeMode, refundTriggered);
                 if (refundTriggered) {
-                    carpetIceAddition$spawnRefundItem((ServerLevel) frame.getCommandSenderWorld(), new ItemStack(Items.GLASS_PANE));
+                    carpetIceAddition$spawnRefundItem((ServerLevel) frame.level(), new ItemStack(Items.GLASS_PANE));
                 }
                 this.carpetIceAddition$fixedFrameRefunded = true;
                 this.carpetIceAddition$fixedFramePaid = false;
@@ -133,15 +135,15 @@ public abstract class ItemFrameEntityMixin {
     }
 
     @Inject(method = "addAdditionalSaveData", at = @At("TAIL"))
-    private void carpetIceAddition$writePaidFlags(CompoundTag nbt, CallbackInfo ci) {
-        nbt.putBoolean(ItemFrameInteractionHelper.INVISIBLE_FRAME_PAID_KEY, this.carpetIceAddition$invisibleFramePaid);
-        nbt.putBoolean(ItemFrameInteractionHelper.FIXED_FRAME_PAID_KEY, this.carpetIceAddition$fixedFramePaid);
+    private void carpetIceAddition$writePaidFlags(ValueOutput view, CallbackInfo ci) {
+        view.putBoolean(ItemFrameInteractionHelper.INVISIBLE_FRAME_PAID_KEY, this.carpetIceAddition$invisibleFramePaid);
+        view.putBoolean(ItemFrameInteractionHelper.FIXED_FRAME_PAID_KEY, this.carpetIceAddition$fixedFramePaid);
     }
 
     @Inject(method = "readAdditionalSaveData", at = @At("TAIL"))
-    private void carpetIceAddition$readPaidFlags(CompoundTag nbt, CallbackInfo ci) {
-        this.carpetIceAddition$invisibleFramePaid = nbt.getBoolean(ItemFrameInteractionHelper.INVISIBLE_FRAME_PAID_KEY);
-        this.carpetIceAddition$fixedFramePaid = nbt.getBoolean(ItemFrameInteractionHelper.FIXED_FRAME_PAID_KEY);
+    private void carpetIceAddition$readPaidFlags(ValueInput view, CallbackInfo ci) {
+        this.carpetIceAddition$invisibleFramePaid = view.getBooleanOr(ItemFrameInteractionHelper.INVISIBLE_FRAME_PAID_KEY, false);
+        this.carpetIceAddition$fixedFramePaid = view.getBooleanOr(ItemFrameInteractionHelper.FIXED_FRAME_PAID_KEY, false);
     }
 
     private static boolean carpetIceAddition$consumeSingleItem(ItemStack stack, Player player) {
@@ -167,3 +169,4 @@ public abstract class ItemFrameEntityMixin {
         world.addFreshEntity(itemEntity);
     }
 }
+//#endif

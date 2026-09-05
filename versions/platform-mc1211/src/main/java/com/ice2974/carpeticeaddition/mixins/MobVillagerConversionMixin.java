@@ -1,25 +1,21 @@
-//#if MC<260000
 package com.ice2974.carpeticeaddition.mixins;
 
 import com.ice2974.carpeticeaddition.villagerevents.VillagerEventState;
 import com.ice2974.carpeticeaddition.villagerevents.VillagerEventsCompatibility;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.monster.Witch;
-import net.minecraft.world.entity.monster.zombie.ZombieVillager;
-import net.minecraft.world.entity.npc.villager.Villager;
+import net.minecraft.world.entity.monster.ZombieVillager;
+import net.minecraft.world.entity.npc.Villager;
+import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
-/** Observes only an active Villager conversion; every other Mob conversion is passed through unchanged. */
 @Mixin(Mob.class)
-public abstract class MobEntityVillagerConversionMixin {
-    //#disable-remap
-    @Redirect(method = "convertTo", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerLevel;addFreshEntity(Lnet/minecraft/world/entity/Entity;)Z"))
-    //#enable-remap
-    private boolean carpetIceAddition$observeVillagerSpawn(ServerLevel world, Entity target) {
+public abstract class MobVillagerConversionMixin {
+    @Redirect(method = "convertTo", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/Level;addFreshEntity(Lnet/minecraft/world/entity/Entity;)Z"))
+    private boolean carpetIceAddition$observeSpawn(Level world, Entity target) {
         boolean accepted = world.addFreshEntity(target);
         try {
             Object self = this;
@@ -27,11 +23,8 @@ public abstract class MobEntityVillagerConversionMixin {
         } catch (Throwable error) { VillagerEventsCompatibility.report("conversion_spawn", error); }
         return accepted;
     }
-
-    //#disable-remap
     @Redirect(method = "convertTo", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Mob;discard()V"))
-    //#enable-remap
-    private void carpetIceAddition$observeVillagerDiscard(Mob source) {
+    private void carpetIceAddition$observeDiscard(Mob source) {
         source.discard();
         try {
             Object self = this;
@@ -39,4 +32,3 @@ public abstract class MobEntityVillagerConversionMixin {
         } catch (Throwable error) { VillagerEventsCompatibility.report("conversion_discard", error); }
     }
 }
-//#endif

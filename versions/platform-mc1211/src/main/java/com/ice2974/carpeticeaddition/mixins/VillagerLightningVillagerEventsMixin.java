@@ -19,7 +19,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /** 1.21.1 creates a Witch manually instead of using MobEntity.convertTo. */
 @Mixin(Villager.class)
-public abstract class VillagerEntityLightningVillagerEventsMixin {
+public abstract class VillagerLightningVillagerEventsMixin {
     @Invoker("releaseAllPois")
     abstract void carpetIceAddition$invokeReleaseAllTickets();
     @Inject(method = "thunderHit", at = @At("HEAD"))

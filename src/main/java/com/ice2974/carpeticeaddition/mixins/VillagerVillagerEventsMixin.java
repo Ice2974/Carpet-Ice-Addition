@@ -16,7 +16,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(Villager.class)
-public abstract class VillagerEntityVillagerEventsMixin implements VillagerEventState {
+public abstract class VillagerVillagerEventsMixin implements VillagerEventState {
     @Unique private VillagerEventSnapshot121 carpetIceAddition$deathSnapshot;
     @Unique private VillagerEventSnapshot121 carpetIceAddition$conversionSnapshot;
     @Unique private boolean carpetIceAddition$conversionActive;

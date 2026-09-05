@@ -16,7 +16,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
 @Mixin(Villager.class)
-public abstract class VillagerEntityLightningVillagerEventsMixin {
+public abstract class VillagerLightningVillagerEventsMixin {
     @Redirect(method = "thunderHit", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/npc/villager/Villager;convertTo(Lnet/minecraft/world/entity/EntityType;Lnet/minecraft/world/entity/ConversionParams;Lnet/minecraft/world/entity/ConversionParams$AfterConversion;)Lnet/minecraft/world/entity/Mob;"))
     private <T extends Mob> Mob carpetIceAddition$observeWitch(Villager villager, EntityType<T> type,
                                                                           ConversionParams context, ConversionParams.AfterConversion<T> finalizer) {

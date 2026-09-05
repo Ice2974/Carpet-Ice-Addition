@@ -19,7 +19,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(Mob.class)
-public abstract class PhantomEntityNeutralPhantomsMixin implements NeutralPhantomsRetaliationTracker {
+public abstract class PhantomNeutralPhantomsMixin implements NeutralPhantomsRetaliationTracker {
     @Unique
     private static final String CARPET_ICE_ADDITION$NEUTRAL_PHANTOMS_TARGET_UUID_KEY =
             "carpet_ice_addition.neutral_phantoms_target_uuid";
@@ -142,16 +142,14 @@ public abstract class PhantomEntityNeutralPhantomsMixin implements NeutralPhanto
         if (!((Object) this instanceof Phantom)) {
             return;
         }
-        if (!nbt.contains(CARPET_ICE_ADDITION$NEUTRAL_PHANTOMS_TARGET_UUID_KEY)) {
+        String uuidString = nbt.getStringOr(CARPET_ICE_ADDITION$NEUTRAL_PHANTOMS_TARGET_UUID_KEY, "");
+        if (uuidString.isEmpty()) {
             return;
         }
         try {
-            this.carpetIceAddition$neutralPhantomsTargetUuid =
-                    UUID.fromString(nbt.getString(CARPET_ICE_ADDITION$NEUTRAL_PHANTOMS_TARGET_UUID_KEY));
-            this.carpetIceAddition$neutralPhantomsTargetEntityId = nbt.contains(
-                    CARPET_ICE_ADDITION$NEUTRAL_PHANTOMS_TARGET_ENTITY_ID_KEY)
-                    ? nbt.getInt(CARPET_ICE_ADDITION$NEUTRAL_PHANTOMS_TARGET_ENTITY_ID_KEY)
-                    : -1;
+            this.carpetIceAddition$neutralPhantomsTargetUuid = UUID.fromString(uuidString);
+            this.carpetIceAddition$neutralPhantomsTargetEntityId =
+                    nbt.getIntOr(CARPET_ICE_ADDITION$NEUTRAL_PHANTOMS_TARGET_ENTITY_ID_KEY, -1);
         } catch (IllegalArgumentException exception) {
             this.carpetIceAddition$clearNeutralPhantomsRetaliationTarget();
         }

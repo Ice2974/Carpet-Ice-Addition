@@ -14,7 +14,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
 @Mixin(net.minecraft.world.entity.monster.Zombie.class)
-public abstract class ZombieEntityVillagerEventsMixin {
+public abstract class ZombieVillagerEventsMixin {
     @Redirect(method = "killedEntity", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/npc/Villager;convertTo(Lnet/minecraft/world/entity/EntityType;Z)Lnet/minecraft/world/entity/Mob;"))
     private Mob carpetIceAddition$observeInfection(Villager villager, EntityType<? extends Mob> type, boolean keepEquipment) {
         VillagerEventState state = null; VillagerEventSnapshot121 snapshot = null; boolean observing = false;
