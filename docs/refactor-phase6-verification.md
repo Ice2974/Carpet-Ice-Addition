@@ -1,6 +1,8 @@
 # Phase 6 验证记录：项目自有类名统一（显式 mapping 等价验证框架）
 
 > Phase 6 于 main 分支执行（基点 5953a8e，Phase 5 终态）。目标：消除仅因项目内部历史命名（Phase 4 迁 Mojmap 前的遗留拼写、版本后缀）形成的类名分叉，统一方向为「`@Mixin` 目标类的最新 Mojmap 拼写」，并重构 `verifyJarEquivalence` 使 rename 在显式声明的前提下可被证明等价。
+>
+> **验收状态：完成**（2026-09-06 Level 3 人工游戏内回归通过；P6-baseline-final 已按 §5 步骤建立，快照只读）。
 
 ## 0. 已确认决策（人工锁定，全程有效）
 
@@ -24,7 +26,8 @@
 | P6-7 | daa1c15 | 文档同步：验收清单附录 A / §3.3 / 附录 C 现势化、target-architecture §3.1 示例与 Phase 6 执行结果、baseline §6.3/§6.4 注记；本记录；全仓旧名扫描。 |
 | P6-R1 | 362f18d | review 修正：补齐遗漏的 golem 族第 16 对——root 1.21.3–1.21.11 实现 `WalkTowardsNearestVisibleWantedItemTaskIronGolemOptimizationMixin` → `GoToWantedItemIronGolemOptimizationMixin`（`@Mixin` target 本就是 Mojmap `GoToWantedItem`，与 mc26x / mc1211 命名对齐；门控 `MC>=12103 && MC<260000`，不影响 mc1211 / mc26x）；8 份 1.21.x mixin JSON（mc1213–mc12111）同步；mapping +1（累计 47）。`IronGolemVillagerOptimizationHooks.markTaskInstance` 的 `"WalkTowardsNearestVisibleWantedItemTask.create"` 行为性标签与 javadoc 中 Yarn 历史说明经源码实证不含 mixin 类名引用，按原样保留。 |
 | P6-R2/R3/R4 | cebfc87 | review 修正：`verifyJarEquivalence` 内容级证明从 renamed-pair 扩展到全部项目 class partner（byte-identical → channel A sources 规范化 → channel B classfile 规范化兜底，覆盖 FQCN 未变但引用了 renamed class 的项目类与 `$` 内部类）；普通 non-class 资源按路径字节级严格比较（fabric.mod.json / *.mixins.json / 珊瑚资源包 pack.mcmeta 专项语义检查除外）；channel B 由单对 `SimpleRemapper` 升级为 full-mapping 前缀 `Remapper`（`$` 内部类前缀传播）；`selfTestRenameEquivalence` 补强（unchanged-FQCN 正负样例、普通资源差异、映射碰撞、mixin 配置 mapping 改写、缺失 / 错误 mapping 负例）；channel B 注释与实现对齐（剔除 SourceFile + LineNumberTable）。 |
-| P6-R6 | （本 commit） | review 小修补：① 珊瑚资源包 pack.mcmeta 从专项语义排除项移除，重新纳入普通资源字节级一致（pack_format 专项 invariant 保留为额外显式断言，最终语义 = 字节一致 + pack_format 双重约束），selfTest 增补「pack_format 相同、description 变化必须失败」负向场景与字节一致正向场景；② 修正文档 / build.gradle / mapping 头部「注释差异必须失败」的过强表述（纯源码注释变更若不影响 classfile，由 Git diff / 提交审查纪律负责，不属 verifyJarEquivalence 强制失败条件），历史 Phase 2～5 文档不改。 |
+| P6-R6 | 6184079 | review 小修补：① 珊瑚资源包 pack.mcmeta 从专项语义排除项移除，重新纳入普通资源字节级一致（pack_format 专项 invariant 保留为额外显式断言，最终语义 = 字节一致 + pack_format 双重约束），selfTest 增补「pack_format 相同、description 变化必须失败」负向场景与字节一致正向场景；② 修正文档 / build.gradle / mapping 头部「注释差异必须失败」的过强表述（纯源码注释变更若不影响 classfile，由 Git diff / 提交审查纪律负责，不属 verifyJarEquivalence 强制失败条件），历史 Phase 2～5 文档不改。负向变异测试：就地改写 mc1213 构建 jar 内 pack.mcmeta description（pack_format 不变）+ `-x :platform-mc1213:remapJar`，verifyJarEquivalence 按「ordinary resource content mismatch」失败并点名该条目，恢复后复验通过。 |
+| P6-8 | （本 commit） | Phase 6 收尾冻结：Level 3 人工游戏内回归通过（2026-09-06 人工确认，按 §4 重置后最终方案完整执行）；Phase 6 验收标记完成；按 §5 步骤以本 commit 干净工作区建立 P6-baseline-final（仓库外快照，目录内记录 commit SHA 与构建命令，此后只读）。 |
 
 ## 2. 等价验证新口径（P6-1 起）
 
@@ -45,7 +48,9 @@
 | `verifyCraftableCoralBlocksJars` / `verifyFabricModJson` / `verifyMixinConfigs` | 11/11 通过 |
 | `verifyClassRenameMapping` | 通过（mapping 终态 47 条，P6-R1 起） |
 | `selfTestRenameEquivalence` | 通过（channel A fail-closed 语义 + unchanged-FQCN 正负样例 + 普通资源 / 映射碰撞 / mixin 配置 / 缺失与错误 mapping 负例 + channel B 行号漂移与 `$` 内部类前缀场景） |
-| `verifyJarEquivalence -PbaselineDir=D:/Project/Carpet-Ice-Addition-P5-baseline-final` | 11/11 通过；P6 各 commit：renamed-pair 全部经 channel A 源码规范化等价证明（除 P6-5 BlockItem 对经 channel B classfile 规范化等价证明）；P6-R 复验（clean build）：全部项目 class partner 内容级证明（逐平台 total 151–161，byteIdentical 114–138，channel A 含 unchanged-FQCN 2–5 个，channel B 2–4 个——BlockItem unchanged-FQCN 内容变化与 `$` 内部类）；普通资源 33–35 条目字节一致 |
+| `verifyJarEquivalence -PbaselineDir=D:/Project/Carpet-Ice-Addition-P5-baseline-final` | 11/11 通过；P6 各 commit：renamed-pair 全部经 channel A 源码规范化等价证明（除 P6-5 BlockItem 对经 channel B classfile 规范化等价证明）；P6-R 复验（clean build）：全部项目 class partner 内容级证明（逐平台 total 151–161，byteIdentical 114–138，channel A 含 unchanged-FQCN 2–5 个，channel B 2–4 个——BlockItem unchanged-FQCN 内容变化与 `$` 内部类）；普通资源 34–36 条目字节一致（P6-R6 起含 pack.mcmeta） |
+| Level 3 人工游戏内回归（§4 最终方案） | 通过（2026-09-06 人工确认；P6-R1 重置后方案完整执行，旧结果未继承） |
+| P6-baseline-final 自校验 | 通过（11/11 `verifyJarEquivalence -PbaselineDir=D:/Project/Carpet-Ice-Addition-P6-baseline-final`：同 commit 构建条目与内容全量一致，47 条 mapping 全部 inert，逐平台 byteIdentical = total） |
 
 P6-2 期间的负向验证：先执行改名、后补 mapping 前的差异必然使条目集合检查失败（missing/extra 条目逐条列出），确认无 wildcard 放行；`.minecraft` 本地运行时目录曾被文本扫描误读（非源码），已加入扫描排除。
 
@@ -64,6 +69,7 @@ P6-2 期间的负向验证：先执行改名、后补 mapping 前的差异必然
   - villagerevents 族（P6-6 全部平台受影响）：mc1211 / mc12111 / mc261 三档 `/log villagerEvents` 订阅输出、语言翻译回退、无订阅者高频短路。
 - **client 侧**：mc1211 + mc261 各启动一次集成客户端（书编辑 / 剪贴板非法字符、TAB 列表名）确认 client mixin 正常；本项目玩家可见文本均为服务端 literal，改名不涉及翻译键。
 - **验收标准**：全部平台 dedicated server 启动无 Mixin 错误且 `/carpet list` 规则数量符合清单 §3.1 矩阵；§4 各代表场景行为与 Phase 5 记录一致；client 场景正常。全部通过后按 §5 步骤建立 P6-baseline-final，Phase 6 方可标记验收完成。
+- **执行结果**：通过（2026-09-06 人工确认）。
 
 ## 6. Review 修正与行尾记录（2026-09-05）
 
@@ -73,7 +79,7 @@ P6-2 期间的负向验证：先执行改名、后补 mapping 前的差异必然
 
 ## 5. 待人工确认项
 
-- Level 3 人工回归（§4）尚未执行——通过后方可建立 P6-baseline-final 并进入发布流程。
-- P6-baseline-final 建立步骤（验收通过后执行，仓库外目录）：以 P6 收尾 commit 干净工作区全量 `gradlew build`，将 11 个 `versions/platform-*/build/libs` 产物（jar + sources jar）按 `platform-*/build/libs` flat 布局复制到 `D:\Project\Carpet-Ice-Addition-P6-baseline-final`，并在目录内记录 commit SHA 与构建命令。
+- Level 3 人工回归已通过（2026-09-06 人工确认），Phase 6 验收完成。
+- P6-baseline-final 已按以下步骤建立（2026-09-06）：以 P6-8 收尾 commit 干净工作区全量 `gradlew build`，将 11 个 `versions/platform-*/build/libs` 产物（jar + sources jar）按 `platform-*/build/libs` flat 布局复制到 `D:\Project\Carpet-Ice-Addition-P6-baseline-final`，目录内记录文件载明 commit SHA 与构建命令；快照此后只读（与 P5-baseline-final 同等纪律）。
 - `VillagerDeathSide121` / `VillagerDimension121` / `VillagerEventConversionScope121`（1.21.x 独有单例）与 `PvpRuleHelper` / `LegacyPvpRuleHelper`（API wrapper 性质）不在本期范围，列为后续清尾候选。
 - 文档中 `Yarn / Mojmap 双胞胎`等历史标签按「历史记录保留旧名」约定仅在基线文档以注记形式存档，未篡改历史验证记录（phase2/3/4/5 验证记录未改动）。
