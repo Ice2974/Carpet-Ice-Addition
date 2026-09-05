@@ -243,12 +243,20 @@ def verifyMixinConfigs = tasks.register('verifyMixinConfigs') {
 //     同平台不得产生映射碰撞；不同平台的互斥历史名允许映射到同一目的地；
 //   - 无 wildcard / 字面量豁免：rename 之外的任何常量、方法、字段、指令、字符串字面量、
 //     注释或资源差异都必须失败并人工分析（fail closed）。
-// renamed-pair 等价证明优先级：
-//   channel A = sourcesJar 源码规范化等价（仅 code 段整词改写类名引用；字符串字面量 / char /
-//               text block / 注释逐字符原样比较，任何 literal 或注释差异都失败）；
-//   channel B = asm classfile 规范化等价（SimpleRemapper 重映射 internal name + 剔除 SourceFile
-//               self-name 元数据后重建字节做严格比较；字符串字面量不被重映射，差异即失败）；
-//   A/B 均不可用时 fail closed（不新增依赖、不自建宽松 comparator）。
+// 内容级等价证明范围（P6-R2 起）：所有 com/ice2974/**.class 的 baseline→current 对位项
+//   （未改名 class 同名对位，已改名 class 按显式 mapping 对位）都必须给出内容级证明，
+//   不只覆盖 renamed pair——同时覆盖 FQCN 未变但内部引用了 renamed class 的项目类。
+// 证明优先级（三者取一，全部走不通即 fail closed）：
+//   0. classfile 字节一致（rename 完全未波及该类时的最强证明）；
+//   channel A = sourcesJar 源码规范化等价（baseline 侧按 full mapping 仅在 code 段整词改写类名引用；
+//               字符串字面量 / char / text block / 注释逐字符原样比较，任何 literal 或注释差异都不在 A 放行）；
+//   channel B = asm classfile 规范化等价（full-mapping Remapper 重映射 internal name（含 $ 内部类前缀传播）+
+//               剔除 SourceFile / LineNumberTable 编译期调试元数据后重建字节做严格比较；
+//               字符串字面量不被重映射，差异即失败）；
+//   sources 缺失（如 $ 内部类、门控空文件被同路径 override 吸收）或 A 不等价时由 B 兜底；
+//   B 不可用时 fail closed（不新增依赖、不自建宽松 comparator）。
+// 普通 non-class 资源（fabric.mod.json / *.mixins.json / 珊瑚资源包 pack.mcmeta 等专项语义检查之外）
+//   按路径逐条字节级比较；rename 不是资源内容差异的豁免理由。
 // baseline 快照永久只读：verifyJarEquivalence 只读不写。快照布局兼容两种形态：
 //   P4 系 versions/platform-*/build/libs 与 P5 系 platform-*/build/libs（flat）。
 //   不得为迎合验证器修改 / 重建 P5-baseline-final；若工具链漂移需要同工具链 P5 对照，
@@ -374,7 +382,8 @@ def canonicalizeRenamedSource = { String oldSource, Collection renamePairs ->
     segmentJavaSource(oldSource).each { segment ->
         String text = segment[1]
         if (segment[0] == 'code') {
-            renamePairs.each { pair ->
+            // 只应用原文中真实出现的 rename 对（new 简名不会是任何行的 old 简名，原文过滤不影响结果）
+            renamePairs.findAll { text.contains(it.simpleOld) }.each { pair ->
                 text = text.replaceAll(
                         '\\b' + java.util.regex.Pattern.quote(pair.simpleOld) + '\\b',
                         java.util.regex.Matcher.quoteReplacement(pair.simpleNew))
@@ -439,6 +448,38 @@ def mapMixinConfigEntries = { Object parsed, Map<String, String> mapping ->
         }
     }
     return clone
+}
+
+// mapping 应用到 baseline class 条目集 → 期望 current 条目集（bijective 检测 + 对位表）。
+// collision=true 表示同平台内两个 baseline 条目映射到同一目的地（fail closed）。
+def computeClassEntryPartners = { Collection<String> baselineClassEntries, Map<String, String> mapping ->
+    def mappedBaseline = [:]
+    baselineClassEntries.each { entry ->
+        def mapped = mapClassEntryPath(entry, mapping)
+        if (mapped != entry) {
+            mappedBaseline[entry] = mapped
+        }
+    }
+    def unmapped = baselineClassEntries.findAll { !mappedBaseline.containsKey(it) }
+    def expected = (unmapped.collect() + mappedBaseline.values()) as Set
+    [expected: expected, mappedBaseline: mappedBaseline, collision: expected.size() != baselineClassEntries.size()]
+}
+
+// full mapping → asm Remapper 条目（internal name，按 old 路径长度降序 = longest-match 优先，
+// 与 mapClassEntryPath 的 $ 内部类前缀传播语义一致）
+def buildInternalRenameEntries = { Map<String, String> mapping ->
+    mapping.collect { oldFqcn, newFqcn -> [oldFqcn.replace('.', '/'), newFqcn.replace('.', '/')] }
+            .sort { a, b -> b[0].length() <=> a[0].length() }
+}
+
+// 普通 non-class 资源字节级差异检测（排除项由调用方传入：专项语义检查的资源不在此处重复检查）
+def findDifferingOrdinaryResources = { Map<String, byte[]> baselineByName, Map<String, byte[]> currentByName, Closure isExcluded ->
+    (baselineByName.keySet() + currentByName.keySet())
+            .findAll { !isExcluded(it) }.sort().findAll { name ->
+        def b = baselineByName[name]
+        def c = currentByName[name]
+        b == null || c == null || !java.util.Arrays.equals(b, c)
+    }
 }
 
 // ---- channel B：asm classfile 规范化（探测构建环境既有 asm / Gradle 发行版自带 asm，零新增依赖）----
@@ -510,15 +551,16 @@ def loadAsmCanonicalizer = { String pkg, ClassLoader loader ->
         import ${pkg}.ClassWriter
         import ${pkg}.ClassVisitor
         import ${pkg}.Opcodes
+        import ${pkg}.commons.Remapper
         import ${pkg}.commons.ClassRemapper
-        import ${pkg}.commons.SimpleRemapper
 
+        // 注意：parseClass 返回源码中的第一个类，目标入口类必须排在辅助类之前
         class RenameClassfileCanonicalizer {
             // internal name 重映射 + 编译期调试元数据剔除（SourceFile / LineNumberTable）；
             // 字符串字面量不被重映射。B 通道比较对象是结构与指令：SourceFile 为 self-name 元数据，
             // LineNumberTable 随源码行号布局变化（如 consolidation 引入门控注释行），
             // 二者均非语义载体，两侧统一剔除后做严格字节比较。
-            static byte[] canonicalize(byte[] classBytes, Map<String, String> internalRenames) {
+            static byte[] canonicalize(byte[] classBytes, List renameEntries) {
                 def api = Opcodes.ASM9
                 def writer = new ClassWriter(0)
                 def stripDebug = new ClassVisitor(api, writer) {
@@ -539,7 +581,7 @@ def loadAsmCanonicalizer = { String pkg, ClassLoader loader ->
                         }
                     }
                 }
-                new ClassReader(classBytes).accept(new ClassRemapper(stripDebug, new SimpleRemapper(internalRenames)), 0)
+                new ClassReader(classBytes).accept(new ClassRemapper(stripDebug, new PrefixClassRemapper(renameEntries)), 0)
                 return writer.toByteArray()
             }
 
@@ -559,30 +601,71 @@ def loadAsmCanonicalizer = { String pkg, ClassLoader loader ->
                 writer.visitEnd()
                 return writer.toByteArray()
             }
+
+            // LDC 类常量引用 targetInternal：模拟 unchanged-FQCN class 内部引用 renamed class 的场景
+            static byte[] buildRefSampleClass(String internalName, String sourceFile, String targetInternal, int lineNo) {
+                def writer = new ClassWriter(0)
+                writer.visit(Opcodes.V17, Opcodes.ACC_PUBLIC | Opcodes.ACC_SUPER, internalName, null, 'java/lang/Object', null)
+                writer.visitSource(sourceFile, null)
+                def mv = writer.visitMethod(Opcodes.ACC_PUBLIC, 'ref', '()Ljava/lang/Class;', null, null)
+                mv.visitCode()
+                def label = new org.objectweb.asm.Label()
+                mv.visitLabel(label)
+                mv.visitLineNumber(lineNo, label)
+                mv.visitLdcInsn(org.objectweb.asm.Type.getObjectType(targetInternal))
+                mv.visitInsn(Opcodes.ARETURN)
+                mv.visitMaxs(1, 1)
+                mv.visitEnd()
+                writer.visitEnd()
+                return writer.toByteArray()
+            }
+        }
+
+        class PrefixClassRemapper extends Remapper {
+            // 条目 [oldInternal, newInternal]，按 old 路径长度降序（longest-match 优先）；
+            // 精确匹配整名改写，\$ 内部类按前缀传播（与 class 条目路径映射同语义）；
+            // 成员名 / 方法描述符 / 字符串字面量不重映射（non-rename 语义保持原样）。
+            private final List entries
+            PrefixClassRemapper(List entries) { this.entries = entries }
+            String map(String internalName) {
+                for (Object e in entries) {
+                    String oldPath = e[0]
+                    if (internalName == oldPath) {
+                        return e[1]
+                    }
+                    if (internalName.startsWith(oldPath + '\$')) {
+                        return e[1] + internalName.substring(oldPath.length())
+                    }
+                }
+                return internalName
+            }
         }
     """)
     def result = [
-            canonicalize: { byte[] bytes, Map renames ->
-                org.codehaus.groovy.runtime.InvokerHelper.invokeStaticMethod(parsed, 'canonicalize', [bytes, renames] as Object[])
+            canonicalize: { byte[] bytes, List renameEntries ->
+                org.codehaus.groovy.runtime.InvokerHelper.invokeStaticMethod(parsed, 'canonicalize', [bytes, renameEntries] as Object[])
             },
             buildSample : { String internalName, String sourceFile, String literal, int lineNo ->
                 org.codehaus.groovy.runtime.InvokerHelper.invokeStaticMethod(parsed, 'buildSampleClass', [internalName, sourceFile, literal, lineNo] as Object[])
+            },
+            buildRefSample: { String internalName, String sourceFile, String targetInternal, int lineNo ->
+                org.codehaus.groovy.runtime.InvokerHelper.invokeStaticMethod(parsed, 'buildRefSampleClass', [internalName, sourceFile, targetInternal, lineNo] as Object[])
             }
     ]
     asmCanonicalizerCache[cacheKey] = result
     return result
 }
 
-def channelBEquivalence = { byte[] oldClassBytes, byte[] newClassBytes, String oldFqcn, String newFqcn ->
+def channelBEquivalence = { byte[] oldClassBytes, byte[] newClassBytes, Map<String, String> mapping ->
     def asm = probeAsmSupport()
     if (asm == null) {
         return 'channel B 不可用（构建环境无既有 asm/asm-commons，按规约不新增依赖）'
     }
     try {
         def canonicalizer = loadAsmCanonicalizer(asm.pkg, asm.loader)
-        def internalRenames = [(oldFqcn.replace('.', '/')): newFqcn.replace('.', '/')]
-        def canonicalOld = canonicalizer.canonicalize(oldClassBytes, internalRenames)
-        def canonicalNew = canonicalizer.canonicalize(newClassBytes, [:])
+        def renameEntries = buildInternalRenameEntries(mapping)
+        def canonicalOld = canonicalizer.canonicalize(oldClassBytes, renameEntries)
+        def canonicalNew = canonicalizer.canonicalize(newClassBytes, [])
         if (java.util.Arrays.equals(canonicalOld, canonicalNew)) {
             return null
         }
@@ -594,10 +677,12 @@ def channelBEquivalence = { byte[] oldClassBytes, byte[] newClassBytes, String o
 
 // Phase 6 jar 内容级等价对照：与基线快照逐平台比对（mapping 感知版）。
 // 用法：.\gradlew.bat verifyJarEquivalence -PbaselineDir=<快照根目录>（建议绝对路径）
-// 比对项：zip 条目清单（com/ice2974/ class 条目按显式 mapping 做 bijective 对齐）、
+// 比对项：zip 条目清单（com/ice2974/ class 条目按显式 mapping 做 bijective 对齐，其余条目严格同名）、
+// 全部项目 class partner（未改名同名对位 / 已改名按 mapping 对位）的内容级等价证明
+// （字节一致 → channel A sources 规范化 → channel B classfile 规范化兜底）、
 // fabric.mod.json 解析后逐键语义、*.mixins.json（字节一致，或 mapping 感知解析等价）、
-// pack.mcmeta 的 pack_format、全部 class 的 intermediary 引用集合（P4-1 防线），
-// 以及 renamed-pair 的 channel A/B 等价证明；sources jar 存在性 + mapping 感知条目覆盖。
+// 普通非 class 资源字节级一致、pack.mcmeta 的 pack_format、
+// 全部 class 的 intermediary 引用集合（P4-1 防线）；sources jar 存在性 + mapping 感知条目覆盖。
 def verifyJarEquivalence = tasks.register('verifyJarEquivalence') {
     doLast {
         def baselineDirName = project.findProperty('baselineDir')
@@ -656,22 +741,14 @@ def verifyJarEquivalence = tasks.register('verifyJarEquivalence') {
             def isOurClassEntry = { String name -> name.startsWith('com/ice2974/') && name.endsWith('.class') }
             def baselineClassEntries = (baselineEntries.findAll(isOurClassEntry) as Set) as List
             def currentClassEntriesSet = currentEntries.findAll(isOurClassEntry) as Set
-            def mappedBaseline = [:]
-            baselineClassEntries.each { entry ->
-                def mapped = mapClassEntryPath(entry, mapping)
-                if (mapped != entry) {
-                    mappedBaseline[entry] = mapped
-                }
-            }
-            def unmappedBaseline = baselineClassEntries.findAll { !mappedBaseline.containsKey(it) }
-            def expectedClassEntries = (unmappedBaseline.collect() + mappedBaseline.values()) as Set
-            assert expectedClassEntries.size() == baselineClassEntries.size():
-                    "class rename mapping 在 ${projectPath} 产生映射碰撞：mapping 应用后期望 ${expectedClassEntries.size()} 条，" +
+            def partners = computeClassEntryPartners(baselineClassEntries, mapping)
+            assert !partners.collision:
+                    "class rename mapping 在 ${projectPath} 产生映射碰撞：mapping 应用后期望 ${partners.expected.size()} 条，" +
                     "baseline 有 ${baselineClassEntries.size()} 条（同一平台内映射后必须一一对应）"
-            assert currentClassEntriesSet == expectedClassEntries:
+            assert currentClassEntriesSet == partners.expected:
                     "Zip class entry mismatch for ${currentJar.name} vs ${baselineJar.name} (mapping-aware):\n" +
-                    "  missing in current: ${(expectedClassEntries - currentClassEntriesSet).sort()}\n" +
-                    "  extra in current: ${(currentClassEntriesSet - expectedClassEntries).sort()}"
+                    "  missing in current: ${(partners.expected - currentClassEntriesSet).sort()}\n" +
+                    "  extra in current: ${(currentClassEntriesSet - partners.expected).sort()}"
             def currentOtherEntries = currentEntries.findAll { !isOurClassEntry(it) } as Set
             def baselineOtherEntries = baselineEntries.findAll { !isOurClassEntry(it) } as Set
             assert currentOtherEntries == baselineOtherEntries:
@@ -696,50 +773,76 @@ def verifyJarEquivalence = tasks.register('verifyJarEquivalence') {
             assert unexplainedSources.isEmpty():
                     "当前 sources jar 存在 baseline 中无来源的条目（${projectPath}）: ${unexplainedSources.sort()}"
 
-            // ---- 3) renamed-pair 等价证明（channel A 源码规范化等价 → channel B classfile 规范化等价）----
-            def renamedPairs = mappedBaseline.findAll { oldEntry, destEntry -> !oldEntry.contains('$') }
-            if (!renamedPairs.isEmpty()) {
-                def renamePairs = mapping.collect { oldFqcn, newFqcn ->
-                    [simpleOld: oldFqcn.substring(oldFqcn.lastIndexOf('.') + 1),
-                     simpleNew: newFqcn.substring(newFqcn.lastIndexOf('.') + 1)]
+            // ---- 3) 全部项目 class partner 内容级等价证明 ----
+            // 未改名 class：同名 ↔ 同名；已改名 class：按显式 mapping 对位（第 1 步已断言 bijective）。
+            // 每个 partner 都必须给出内容级证明：classfile 字节一致（rename 未波及）→
+            // channel A sources 规范化（覆盖 FQCN 未变但引用了 renamed class 的项目类）→
+            // channel B classfile 规范化兜底（sources 缺失如 $ 内部类，或 A 不等价时）。
+            // 三条路都走不通即 fail closed。
+            def renamePairs = mapping.collect { oldFqcn, newFqcn ->
+                [simpleOld: oldFqcn.substring(oldFqcn.lastIndexOf('.') + 1),
+                 simpleNew: newFqcn.substring(newFqcn.lastIndexOf('.') + 1)]
+            }
+            def sourceTextOrNull = { File jarFile, String entryName ->
+                new java.util.zip.ZipFile(jarFile).withCloseable { zip ->
+                    def entry = zip.getEntry(entryName)
+                    entry == null ? null : zip.getInputStream(entry).withCloseable {
+                        new String(it.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8)
+                    }
                 }
-                def renamedPairFailures = []
-                renamedPairs.each { oldEntry, newEntry ->
-                    def oldFqcn = oldEntry.substring(0, oldEntry.length() - '.class'.length()).replace('/', '.')
-                    def newFqcn = newEntry.substring(0, newEntry.length() - '.class'.length()).replace('/', '.')
-                    def oldSourceEntry = oldFqcn.replace('.', '/') + '.java'
-                    def newSourceEntry = newFqcn.replace('.', '/') + '.java'
-                    def oldSourceBytes = new java.util.zip.ZipFile(baselineSourcesJar).withCloseable { zip ->
-                        zip.getEntry(oldSourceEntry) == null ? null : zip.getInputStream(zip.getEntry(oldSourceEntry)).withCloseable { it.readAllBytes() }
-                    }
-                    def newSourceBytes = new java.util.zip.ZipFile(currentSourcesJar).withCloseable { zip ->
-                        zip.getEntry(newSourceEntry) == null ? null : zip.getInputStream(zip.getEntry(newSourceEntry)).withCloseable { it.readAllBytes() }
-                    }
-                    if (oldSourceBytes == null || newSourceBytes == null) {
-                        renamedPairFailures << "${oldFqcn} -> ${newFqcn}: sources entry 缺失（old=${oldSourceBytes != null}, new=${newSourceBytes != null}）"
-                        return
-                    }
-                    def oldText = new String(oldSourceBytes, java.nio.charset.StandardCharsets.UTF_8)
-                    def newText = new String(newSourceBytes, java.nio.charset.StandardCharsets.UTF_8)
+            }
+            def contentProofFailures = []
+            def channelBProven = []
+            int byteIdenticalCount = 0
+            int channelARenamedCount = 0
+            int channelAUnchangedCount = 0
+            baselineClassEntries.sort(false).each { baselineEntry ->
+                def currentEntry = mapClassEntryPath(baselineEntry, mapping)
+                def oldClassBytes = readEntryBytes(baselineJar, baselineEntry)
+                def newClassBytes = readEntryBytes(currentJar, currentEntry)
+                if (java.util.Arrays.equals(oldClassBytes, newClassBytes)) {
+                    byteIdenticalCount++
+                    return
+                }
+                boolean renamed = currentEntry != baselineEntry
+                def oldFqcn = baselineEntry.substring(0, baselineEntry.length() - '.class'.length()).replace('/', '.')
+                def newFqcn = currentEntry.substring(0, currentEntry.length() - '.class'.length()).replace('/', '.')
+                def oldSourceEntry = baselineEntry.substring(0, baselineEntry.length() - '.class'.length()) + '.java'
+                def newSourceEntry = currentEntry.substring(0, currentEntry.length() - '.class'.length()) + '.java'
+                def oldText = sourceTextOrNull(baselineSourcesJar, oldSourceEntry)
+                def newText = sourceTextOrNull(currentSourcesJar, newSourceEntry)
+                if (oldText != null && newText != null) {
                     def canonicalOld = canonicalizeRenamedSource(oldText, renamePairs)
                     if (canonicalOld == newText) {
-                        println "renamed pair OK (channel A sources): ${oldFqcn} -> ${newFqcn} (${projectPath})"
+                        if (renamed) {
+                            channelARenamedCount++
+                            println "renamed pair OK (channel A sources): ${oldFqcn} -> ${newFqcn} (${projectPath})"
+                        } else {
+                            channelAUnchangedCount++
+                        }
                         return
                     }
-                    // channel A 不等价 → channel B classfile 规范化等价兜底
-                    def oldClassBytes = readEntryBytes(baselineJar, oldEntry)
-                    def newClassBytes = readEntryBytes(currentJar, newEntry)
-                    def channelBResult = channelBEquivalence(oldClassBytes, newClassBytes, oldFqcn, newFqcn)
-                    if (channelBResult == null) {
-                        println "renamed pair OK (channel B classfile): ${oldFqcn} -> ${newFqcn} (${projectPath})"
-                        return
-                    }
-                    renamedPairFailures << "${oldFqcn} -> ${newFqcn}: channel A 源码不等价（${firstDiffPreview(canonicalOld, newText)}）；${channelBResult}"
                 }
-                assert renamedPairFailures.isEmpty():
-                        "renamed class 等价验证失败（fail closed，请人工分析；唯一允许的差异来源是显式 class rename mapping）:\n" +
-                        renamedPairFailures.collect { '  - ' + it }.join('\n')
+                // channel A 不适用（sources 缺失）或不等价 → channel B classfile 规范化兜底（full mapping remap）
+                def channelBResult = channelBEquivalence(oldClassBytes, newClassBytes, mapping)
+                def pairLabel = renamed ? "${oldFqcn} -> ${newFqcn}" : "${newFqcn} (FQCN unchanged)"
+                if (channelBResult == null) {
+                    channelBProven << pairLabel
+                    println "class OK (channel B classfile): ${pairLabel} (${projectPath})"
+                    return
+                }
+                def channelANote = (oldText == null || newText == null)
+                        ? 'channel A 不适用（sources entry 缺失）'
+                        : "channel A 源码不等价（${firstDiffPreview(canonicalizeRenamedSource(oldText, renamePairs), newText)}）"
+                contentProofFailures << "${pairLabel}: ${channelANote}；${channelBResult}"
             }
+            assert contentProofFailures.isEmpty():
+                    "项目 class 内容级等价验证失败（fail closed，请人工分析；唯一允许的差异来源是显式 class rename mapping）:\n" +
+                    contentProofFailures.collect { '  - ' + it }.join('\n')
+            println "class content proof OK (${projectPath}): total=${baselineClassEntries.size()}, " +
+                    "byteIdentical=${byteIdenticalCount}, " +
+                    "channelA=${channelARenamedCount + channelAUnchangedCount} (renamed ${channelARenamedCount}, unchanged-FQCN ${channelAUnchangedCount}), " +
+                    "channelB=${channelBProven.size()}${channelBProven.isEmpty() ? '' : ': ' + channelBProven.sort().join(', ')}"
 
             // fabric.mod.json：模板展开值应完全相同，解析后逐键语义一致
             def slurper = new groovy.json.JsonSlurper()
@@ -771,6 +874,23 @@ def verifyJarEquivalence = tasks.register('verifyJarEquivalence') {
             assert currentPackFormat == baselinePackFormat:
                     "pack_format mismatch for ${currentJar.name}: current=${currentPackFormat} baseline=${baselinePackFormat}"
 
+            // 普通非 class 资源严格内容比较：fabric.mod.json（语义逐键）、*.mixins.json（mapping 感知
+            // 解析等价）、resourcepacks/craftable_coral_blocks/pack.mcmeta（pack_format 专项）之外，
+            // 路径相同的 non-class 条目必须字节级一致；rename 不是资源内容差异的豁免理由。
+            def isSpecialResourceEntry = { String name ->
+                name == 'fabric.mod.json' || name.endsWith('.mixins.json') ||
+                        name == 'resourcepacks/craftable_coral_blocks/pack.mcmeta'
+            }
+            def ordinaryResourceNames = baselineOtherEntries.findAll { !isSpecialResourceEntry(it) }
+            def differingResources = findDifferingOrdinaryResources(
+                    ordinaryResourceNames.collectEntries { [it, readEntryBytes(baselineJar, it)] },
+                    ordinaryResourceNames.collectEntries { [it, readEntryBytes(currentJar, it)] },
+                    isSpecialResourceEntry)
+            assert differingResources.isEmpty():
+                    "ordinary resource content mismatch for ${currentJar.name}（mapping 之外的普通资源内容差异必须失败）:\n" +
+                    differingResources.collect { '  - ' + it }.join('\n')
+            println "ordinary resources byte-identical: ${ordinaryResourceNames.size()} entries (${currentJar.name})"
+
             // P4-1 intermediary 引用集合语义比较（mapping 感知：renamed class 与 baseline 对位条目比较）。
             // 实证记录：本项目 loom 构建不产出 refmap（注解目标在 remapJar 时直接重映射进 class 常量池，
             // mixin json 无 refmap 指针），因此命名空间迁移的语义验证对象是 class 文件内的
@@ -792,7 +912,7 @@ def verifyJarEquivalence = tasks.register('verifyJarEquivalence') {
                 }
                 result
             }
-            def destToOldEntry = mappedBaseline.collectEntries { oldEntry, destEntry -> [destEntry, oldEntry] }
+            def destToOldEntry = partners.mappedBaseline.collectEntries { oldEntry, destEntry -> [destEntry, oldEntry] }
             def currentRefs = readIntermediaryRefs(currentJar, currentClassEntriesSet.sort())
             def baselineRefs = readIntermediaryRefs(baselineJar, baselineClassEntries.sort())
             currentClassEntriesSet.sort().each { entryName ->
@@ -977,13 +1097,17 @@ def verifyClassRenameMapping = tasks.register('verifyClassRenameMapping') {
 }
 
 // ==================== Phase 6（P6-1）：等价验证器自测 ====================
-// 锁定 renamed-pair 等价验证的 fail-closed 语义：
-//   - channel A：code 段整词类名改写生效；字符串字面量 / 注释 / 前缀标识符差异必须失败；
+// 锁定等价验证的 fail-closed 语义：
+//   - channel A：code 段整词类名改写生效（含 unchanged-FQCN class 仅引用 rename 的场景）；
+//                字符串字面量 / 注释 / 前缀标识符 / 常量与指令语义差异必须失败；
 //   - mapping 条目映射：class / sources 路径映射与内部类前缀传播；不相关条目保持不变；
-//   - channel B（探测可用时）：asm 规范化对干净 rename 通过、对字面量差异失败。
+//     per-platform bijective（映射碰撞检测）；mixin 配置 mapping 感知改写；
+//   - channel B（探测可用时）：asm 规范化对干净 rename 通过、对字面量差异失败；
+//     unchanged-FQCN class 仅引用 rename 通过（full-mapping remap），缺失 / 错误 mapping 失败；
+//   - 普通资源：内容一致通过，内容变化必须被检测（排除项机制本身不豁免普通资源）。
 def selfTestRenameEquivalence = tasks.register('selfTestRenameEquivalence') {
     group = 'verification'
-    description = 'Phase 6：renamed-class 等价验证器自测（fail-closed 语义回归）'
+    description = 'Phase 6：class rename 等价验证器自测（fail-closed 语义回归）'
     doLast {
         def mapping = loadClassRenameMapping()
         println "selfTest: 当前 class rename mapping 共 ${mapping.size()} 条（语法与终态断言通过）"
@@ -1001,6 +1125,32 @@ def selfTestRenameEquivalence = tasks.register('selfTestRenameEquivalence') {
                 'com/ice2974/carpeticeaddition/mixins/New.java'
         assert mapSourceEntryPath('com/ice2974/carpeticeaddition/mixins/Unrelated.java', testMapping) ==
                 'com/ice2974/carpeticeaddition/mixins/Unrelated.java'
+
+        // mapping 条目集合对位：bijective 正例 + 映射碰撞负例
+        def partners = computeClassEntryPartners([
+                'com/ice2974/carpeticeaddition/mixins/Old.class',
+                'com/ice2974/carpeticeaddition/mixins/Old$1.class',
+                'com/ice2974/carpeticeaddition/mixins/Unrelated.class'], testMapping)
+        assert !partners.collision: 'selfTest: 无碰撞 mapping 应用后必须保持一一对应'
+        assert partners.expected == ([
+                'com/ice2974/carpeticeaddition/mixins/New.class',
+                'com/ice2974/carpeticeaddition/mixins/New$1.class',
+                'com/ice2974/carpeticeaddition/mixins/Unrelated.class'] as Set)
+        def collisionMapping = ['com.ice2974.carpeticeaddition.mixins.Old' : 'com.ice2974.carpeticeaddition.mixins.New',
+                                'com.ice2974.carpeticeaddition.mixins.Twin': 'com.ice2974.carpeticeaddition.mixins.New']
+        def collisionPartners = computeClassEntryPartners([
+                'com/ice2974/carpeticeaddition/mixins/Old.class',
+                'com/ice2974/carpeticeaddition/mixins/Twin.class'], collisionMapping)
+        assert collisionPartners.collision: 'selfTest: 同平台映射碰撞必须被检测（fail closed）'
+
+        // mixin 配置 mapping 感知改写：mapping 内条目改写、mapping 外条目与非数组键保持原样
+        def testConfig = new groovy.json.JsonSlurper().parseText(
+                '{"package":"com.ice2974.carpeticeaddition.mixins","mixins":["Old","Keep"],"client":["Keep"],"required":true}')
+        def mappedConfig = mapMixinConfigEntries(testConfig, testMapping)
+        assert mappedConfig.mixins == ['New', 'Keep']: 'selfTest: mixin 配置 mapping 内条目应被改写'
+        assert mappedConfig.client == ['Keep']: 'selfTest: mixin 配置 mapping 外条目应保持原样'
+        assert mappedConfig.required == true: 'selfTest: mixin 配置非数组键应保持原样'
+        assert mapMixinConfigEntries(testConfig, [:]).mixins == ['Old', 'Keep']: 'selfTest: 空 mapping 不得改写配置'
 
         def renames = [[simpleOld: 'Old', simpleNew: 'New']]
         def oldSource = 'package p;\n' +
@@ -1036,6 +1186,38 @@ def selfTestRenameEquivalence = tasks.register('selfTestRenameEquivalence') {
         assert canonicalPrefix.contains('OldPrefix') && !canonicalPrefix.contains('NewPrefix'):
                 'selfTest: channel A 前缀标识符不得被整词替换波及'
 
+        // unchanged-FQCN class（类名不变、仅内部引用了 renamed class）：mapping canonicalization 应放行
+        def unchangedOldSource = 'package p;\n' +
+                'class Holder {\n' +
+                '    static final String TAG = "Old label";\n' +
+                '    Class<?> c = Old.class;\n' +
+                '    Object o = Old.CONST;\n' +
+                '}\n'
+        def unchangedNewSource = 'package p;\n' +
+                'class Holder {\n' +
+                '    static final String TAG = "Old label";\n' +
+                '    Class<?> c = New.class;\n' +
+                '    Object o = New.CONST;\n' +
+                '}\n'
+        assert canonicalizeRenamedSource(unchangedOldSource, renames) == unchangedNewSource:
+                'selfTest: unchanged-FQCN class 仅 rename 引用变化应通过 channel A'
+        assert canonicalizeRenamedSource(unchangedOldSource, renames) !=
+                unchangedNewSource.replace('Object o = New.CONST;', 'Object o = New.OTHER;'):
+                'selfTest: unchanged-FQCN class 的常量 / 指令语义变化必须失败（fail closed）'
+        assert canonicalizeRenamedSource(unchangedOldSource, renames) !=
+                unchangedNewSource.replace('"Old label"', '"New label"'):
+                'selfTest: unchanged-FQCN class 的字符串字面量变化必须失败（fail closed）'
+
+        // 普通资源：一致通过；内容变化必须被检测；排除项只对专项语义检查资源生效
+        def isExcluded = { String name -> name == 'fabric.mod.json' }
+        def baselineResources = ['a.json': '"v1"'.bytes, 'b.bin': [1, 2, 3] as byte[], 'fabric.mod.json': '"x"'.bytes]
+        def sameResources = ['a.json': '"v1"'.bytes, 'b.bin': [1, 2, 3] as byte[], 'fabric.mod.json': '"changed"'.bytes]
+        assert findDifferingOrdinaryResources(baselineResources, sameResources, isExcluded).isEmpty():
+                'selfTest: 普通资源一致（排除项变化不计入）应通过'
+        def changedResources = ['a.json': '"v1"'.bytes, 'b.bin': [1, 2, 9] as byte[], 'fabric.mod.json': '"x"'.bytes]
+        assert findDifferingOrdinaryResources(baselineResources, changedResources, isExcluded) == ['b.bin']:
+                'selfTest: 普通资源内容变化必须被检测（fail closed）'
+
         def asm = probeAsmSupport()
         if (asm == null) {
             println 'selfTest: channel B 探测不可用（构建环境无既有 asm），跳过 classfile 自测'
@@ -1044,16 +1226,39 @@ def selfTestRenameEquivalence = tasks.register('selfTestRenameEquivalence') {
             // 行号故意不同：模拟 consolidation 引入门控注释行导致的 LineNumberTable 漂移（P6-5 场景）
             def oldClass = canonicalizer.buildSample('p/Old', 'Old.java', 'hello world', 42)
             def newClass = canonicalizer.buildSample('p/New', 'New.java', 'hello world', 99)
-            def internalRenames = ['p/Old': 'p/New']
+            def renameEntries = buildInternalRenameEntries(['p.Old': 'p.New'])
             assert java.util.Arrays.equals(
-                    canonicalizer.canonicalize(oldClass, internalRenames),
-                    canonicalizer.canonicalize(newClass, [:])):
+                    canonicalizer.canonicalize(oldClass, renameEntries),
+                    canonicalizer.canonicalize(newClass, [])):
                     'selfTest: channel B 干净 rename 应通过'
             def literalMutated = canonicalizer.buildSample('p/New', 'New.java', 'hello mutated', 99)
             assert !java.util.Arrays.equals(
-                    canonicalizer.canonicalize(oldClass, internalRenames),
-                    canonicalizer.canonicalize(literalMutated, [:])):
+                    canonicalizer.canonicalize(oldClass, renameEntries),
+                    canonicalizer.canonicalize(literalMutated, [])):
                     'selfTest: channel B 字符串字面量差异必须失败（fail closed）'
+
+            // unchanged-FQCN class 仅内部引用 renamed class：full-mapping remap 后应等价
+            def refOld = canonicalizer.buildRefSample('p/Holder', 'Holder.java', 'p/Old', 42)
+            def refNew = canonicalizer.buildRefSample('p/Holder', 'Holder.java', 'p/New', 42)
+            assert java.util.Arrays.equals(
+                    canonicalizer.canonicalize(refOld, renameEntries),
+                    canonicalizer.canonicalize(refNew, [])):
+                    'selfTest: channel B unchanged-FQCN 仅引用 rename 应通过'
+            assert !java.util.Arrays.equals(
+                    canonicalizer.canonicalize(refOld, []),
+                    canonicalizer.canonicalize(refNew, [])):
+                    'selfTest: channel B 缺失 mapping 引用时必须失败（fail closed）'
+            assert !java.util.Arrays.equals(
+                    canonicalizer.canonicalize(refOld, buildInternalRenameEntries(['p.Old': 'p.Other'])),
+                    canonicalizer.canonicalize(refNew, [])):
+                    'selfTest: channel B 错误映射目的地必须失败（fail closed）'
+            // $ 内部类前缀传播：Holder$1 引用 Old$2 → New$2
+            def innerOld = canonicalizer.buildRefSample('p/Holder$1', 'Holder.java', 'p/Old$2', 42)
+            def innerNew = canonicalizer.buildRefSample('p/Holder$1', 'Holder.java', 'p/New$2', 42)
+            assert java.util.Arrays.equals(
+                    canonicalizer.canonicalize(innerOld, renameEntries),
+                    canonicalizer.canonicalize(innerNew, [])):
+                    'selfTest: channel B $ 内部类前缀传播应通过'
             println "selfTest: channel B classfile 自测通过（asm=${asm.pkg}）"
         }
         println 'selfTestRenameEquivalence OK'

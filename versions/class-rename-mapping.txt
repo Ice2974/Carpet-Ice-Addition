@@ -9,10 +9,13 @@
 #   - 不存在 wildcard / 字面量豁免：rename 之外的任何常量、方法、字段、指令、
 #     字符串字面量、注释或资源差异都必须失败并人工分析（fail closed）。
 # 语义：mapping 行只解释「类条目改名 + 源码 / Jar 内对该类名的引用」；
-#   renamed-pair 等价由 channel A（sourcesJar 规范化源码逐字符等价：仅 code 段整词改写类名，
-#   字符串字面量 / char / text block / 注释原样比较）优先证明，channel B（asm classfile 规范化：
-#   SimpleRemapper 重映射 internal name + 剔除 SourceFile 后重建字节严格比较）兜底；
+#   全部项目 class partner（未改名同名对位 / 已改名按 mapping 对位）的内容级等价由
+#   channel A（sourcesJar 规范化源码逐字符等价：仅 code 段整词改写类名，
+#   字符串字面量 / char / text block / 注释原样比较）优先证明，
+#   channel B（asm classfile 规范化：full-mapping Remapper 重映射 internal name（含 $ 内部类前缀传播）+
+#   剔除 SourceFile / LineNumberTable 编译期调试元数据后重建字节严格比较）兜底；
 #   A/B 均不可用时 fail closed，不自建宽松 comparator。
+#   普通 non-class 资源（专项语义检查之外）按路径字节级比较，rename 不构成资源差异豁免。
 # baseline 快照永久只读：P5-baseline-final（flat 布局）不得修改或重建；
 #   若工具链漂移需要同工具链 P5 对照，只允许以 Phase 5 HEAD
 #   5953a8e472b16e6007ab6158cc1cc68f4bb16eb7 clean build 建立明确标记的辅助 P5 baseline，
