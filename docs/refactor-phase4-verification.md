@@ -2,7 +2,7 @@
 
 > 关联文档：[refactor-target-architecture.md](refactor-target-architecture.md)（目标与路线，Phase 4 执行结果已回填）、[refactor-phase3-verification.md](refactor-phase3-verification.md)（上一阶段，基线 `af07f26`）、[refactor-acceptance-checklist.md](refactor-acceptance-checklist.md)（验收标准）。
 >
-> 最终目标（2026-09-05 锁定）：**完整迁移到 Fallen_breath 风格源码架构**（根 src 主源码树 + per-version override + preprocess 版本图 + 单一 Mojmap）。Phase 4 完成其中「单一 Mojmap」部分，**不等于完整迁移完成**；后续见 Phase 5（本文 §9）。
+> 最终目标（2026-09-05 锁定）：**完整迁移到 Fallen_breath 风格源码架构**（根 src 主源码树 + per-version override + preprocess 版本图 + 单一 Mojmap）。Phase 4 完成其中「单一 Mojmap」部分，**不等于完整迁移完成**；后续见 Phase 5（本文 §10）。
 
 ## 1. 范围与结论
 
@@ -13,8 +13,8 @@ Phase 4 实施内容（与批准计划一致）：
 | P4-0 | 基线冻结与测定、双胞胎权威清单、migrateMappings 评估 | implementation complete |
 | P4-1 | 构建层过渡分支 + mc1214 试点切换 + intermediary 语义等价防线 + 变异测试 | implementation complete，acceptance accepted（L1-5，2026-09-05） |
 | P4-2 | 其余 8 个 1.21.x 平台逐个切换（每平台独立绿 commit）+ 收尾删除 Yarn 档位与过渡分支 | implementation complete，acceptance accepted（11 平台 L1-5，2026-09-05） |
-| P4-3 | 零差异双胞胎合并（含 mc26x 受限合并）、入口类错误上报逐字抽取、命令家族版本边界助手合并 | implementation complete，acceptance 待 Level 3 |
-| P4-4 | 最终基线、静态核算、本文档与 docs/ 修正、target 文档最终目标/Phase 5 重写 | implementation complete，acceptance 待 Level 3 |
+| P4-3 | 零差异双胞胎合并（含 mc26x 受限合并）、入口类错误上报逐字抽取、命令家族版本边界助手合并 | implementation complete，acceptance accepted（Level 3，2026-09-05） |
+| P4-4 | 最终基线、静态核算、本文档与 docs/ 修正、target 文档最终目标/Phase 5 重写 | implementation complete，acceptance accepted（Level 3，2026-09-05） |
 
 净效果：**11 个平台全部统一 officialMojangMappings（layered），Yarn 依赖彻底移除**；1.21.x 侧由 18 个 mojmap 档位承载（14 个 1:1 镜像原 Yarn 拓扑 + 4 个 Mojmap 名漂移分叉档）；mc26x 95→82 文件（13 个零差异双胞胎移入全平台档）。物理 java 257→267（Mojmap 名漂移导致的档位拆分略增副本，换取单一命名空间），唯一类名 147→149（新增 2 个版本边界助手类；`FeatureCompatibilityReporter` 在 common，不计入 versions/）。
 
@@ -108,15 +108,19 @@ javac 重复类编译错误为机械兜底；全周期未触发。
 | 项 | 内容 | 执行人 | 日期 | 结果 |
 |---|---|---|---|---|
 | L1-5 冒烟（P4-1/P4-2） | 11 平台 dev 启动无 mixin/注册错误、`/carpet` 可用（Mojmap 切换后） | Ice2974 | 2026.9.5 | 通过 |
-| Level 3 完整回归（P4-3/P4-4） | 全 11 平台按验收清单 §3：/carpet list 矩阵、§3.3 版本特定分支（重点：/killitem 全子命令 2-7、/machineStatus 全子命令 2-8、machineStatusRollbackWarning 2-12——命令家族结构重构后）、§3.2 规则翻译显示、§3.4 资源与翻译 | Ice2974 | 待执行 | 待执行 |
+| Level 3 完整回归（P4-3/P4-4） | 全 11 平台按验收清单 §3：/carpet list 矩阵、§3.3 版本特定分支（重点：/killitem 全子命令 2-7、/machineStatus 全子命令 2-8、machineStatusRollbackWarning 2-12——命令家族结构重构后）、§3.2 规则翻译显示、§3.4 资源与翻译 | Ice2974 | 2026.9.5 | 通过 |
 
-## 8. 已知限制
+## 8. Phase 4 最终状态
+
+P4-0 ~ P4-4 implementation 与 acceptance 全部完成（2026-09-05）。分支 `phase4-mojmap`（14 commit，`e480181..e02a90f`）待合并 main。Phase 4 至此状态冻结；完整迁移的后续收敛见 §9 Phase 5（独立立项，受供应链门禁约束）。
+
+## 9. 已知限制
 
 - `verifyJarEquivalence` 的 intermediary 比较对「引用从一个类迁移到新助手类」的结构性重构报差异（按设计），此类变更以最终基线 ratchet 承接（见 §3.1/§3.3）。
 - Yarn 档位目录名仍出现在部分 properties 注释中（历史出处说明，非功能引用）；`extra_resource_dirs=mc1213-12111` 指向的目录现为纯资源档（java 已删）。
 - 1.21.11 平台的 mojmap 档（mojmap-mc12111）承载 24+2 文件，为最大单版本档——Phase 5 根 src + per-version override 收敛的主要对象。
 
-## 9. Phase 5 展望（独立立项，非 Phase 4 承诺）
+## 10. Phase 5 展望（独立立项，非 Phase 4 承诺）
 
 目标：**preprocess 版本图 + 根 src 主源码树 + per-version override 收敛**，完成 Fallen_breath 风格源码架构的完整迁移。
 
