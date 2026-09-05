@@ -192,10 +192,42 @@ loom 缓存 tiny 实证**同 intermediary 纯改名**（§4）：
 
 断言③反向枚举从「srcDirs 下 .java 文件」改为「jar 内 mixins 包 top-level class（排除 `$` 内部类）」。实证链条：lab 中旧口径对整文件 guard 空输出 .java 误报（mc12110 报 3 个未注册类）→ 改造后误报消除；主线旧体系一致性证明：改造前后 11 平台校验计数逐平台一致（67/64/64/64/63/63/63/63/65/64/64）。json→class 防悬空断言不变；双向等强。
 
-## 11. 后续阶段记录（占位）
+## 11. P5-2～P5-5 实施记录（2026-09-05，全部完成）
 
-- P5-2（core flip）：待实施（lab 已完整原型化，见 §9）。
-- P5-3 / P5-4 / P5-5 / P5-6 / P5-7 / P5-8：待实施，实施后在此追加记录。
+### 11.1 提交序列（分支 phase5-preprocess）
+
+| commit | 阶段 | 内容 |
+| - | - | - |
+| 8564a88 | P5-2 | core flip：root src = mc12111 完整编译集 100 文件；mc12111 开关 on + shared_tiers 空；8 平台文件 dormant；等价 11/11 |
+| f8245c2 | P5-3a | mc12110 flip：3 个 1.21.11 独有 mixin guard、GameRules/EnvironmentAttributes 宏 ×4、helper 间接性宏 ×3、PlayerWorlds/MachineStatusTextEvents/BlockItem base 以 main 态入 root、disable-remap ×2（convertTo 歧义）、入口类 High/Low 注册宏（修复自类引用盲区）；parallel=false |
+| 8d72461 | P5-3b | mc1219 flip：1219/12110 边零差异，纯属性翻转（P5-0 判定实证） |
+| 595a985 | P5-3c | mc1218 flip：DisableIllegalText 旧形态 override + PvpRuleHelper 整文件 guard(MC>=12105) + 三分支宏 |
+| ea24a20 | P5-3d | mc1216 flip：同 mc1218 集，override 复制 + 纯属性翻转 |
+| 95521ba | P5-3e | mc1215 flip：BookEditScreen 入 root(guard MC<12106)；发现并修复「player.level() 同名多版本双重解析」（SafeScaffolding/RuleMessageThrottle 两处 disable-remap）；TrialSpawner rename 经 automatic 实证 |
+| f8583e5 | P5-3f | mc1214 flip：9 个 <=1.21.4 形态 override + LegacyPvpRuleHelper 入 root(guard MC<12105)；MachineStatusTextEvents else 分支首次激活 |
+| 4c8c5be | P5-3g | mc1213 flip：与 mc1214 同集（仅 FindPointOfInterest 平台自有变体不同） |
+| f98097a | P5-3h | mc1211 flip：root 3 个 1.21.3+ 类补 guard；平台既有 26 文件转 active override + 3 个档位独占变体复制；BlockItem base guard 修正为 MC<12111（zip 比对检出 P5-0 归因笔误） |
+| e098b27 | P5-4c | mc261 flip：37 纯 + 6 复合 MC<260000 guard；mapping-mc12111-mc261.txt 填充（displayClientMessage→sendSystemMessage、getDayTime→getOverworldClockTime，AMS 短式）；50 个 26.x override 复制（38 独有 FQCN + 12 结构性同 FQCN）；5 处 26.x C 宏（main 态方向） |
+| 751b235 | P5-4d | mc262 flip：mc261 同批 50 文件双份复制；本地 EndPortal(26.2 形态)保留；mapping-mc262-mc261.txt 保持 0 字节 |
+
+### 11.2 P5-5 收敛核对（2026-09-05）
+
+- 属性审计：11 平台 shared_tiers 全空、preprocess_enabled 全 true。
+- **全仓 `clean` 后从零重建**：build + 4 verify + verifyJarEquivalence(P4-baseline-final) 全绿（33 项 OK；
+  全部 preprocess 变换、宏求值、edge 重映射、override 组装、资源恢复经冷启动验证）。
+- FQCN 唯一性：编译层由「同路径 override 替换语义 + core 不读平台目录 + guard 空输出」与 javac 重复类检查
+  双重保证（clean 构建通过即无重复）；源文件层的同路径配对（82 对）均为设计内 override 对，非重复。
+- 旧档位状态：versions/shared 全部 Java 档（19 个）与 platform-mc12111 的 8 个文件进入 **dormant**
+  （零引用、不参与任何编译），等待 P5-7（Level 3 通过后单独 commit 删除）；纯资源档 mc1213-12111 仍在役。
+
+### 11.3 遗留与移交
+
+- **P5-6（Level 3 人工回归）**：按计划 §10 矩阵由 Ice2974 执行（全部 11 平台；重点边界 mc1211/mc1214-1215/
+  mc1215-1216/mc1218-1219/mc12111/mc261/mc262；规则注册矩阵 40/38×7/39×3——特别覆盖入口类宏；
+  /killitem、/machineStatus、machineStatusRollbackWarning；高风险 Mixin 逐平台）。
+- P5-7（删 dormant，单独 commit）与 P5-8（文档冻结 + P5-baseline-final 快照）在 Level 3 通过后执行。
+- 待人工确认项更新：§7-1（注入字符串宏豁免）实际未启用——所有 descriptor 差异族按默认走 override 落地
+  （DisableIllegalTextCharacterCheck 6 平台复制等），无需豁免裁决；§7-4 WardenEntity 26 边以 override 落地。
 
 ---
 
