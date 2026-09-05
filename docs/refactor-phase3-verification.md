@@ -176,7 +176,7 @@ revert 本步单 commit 即可（仅根 build.gradle 增量 + 本文档）。
 
 | 对象 | 内容 | 删除理由 |
 |---|---|---|
-| Bridge ×11 | `versions/platform-*/.../bridge/Mc<ver>Bridge.java`（每平台 1 个，仅含 `platformId()` 桩方法与私有构造器） | 历史迁移遗留死代码；基线 §3.3"薄桥接模式已覆盖残余差异"的描述与实测不符（实测为纯桩、零引用），经人工确认删除 |
+| Bridge ×11 | `versions/platform-*/.../bridge/Mc<ver>Bridge.java`（每平台 1 个，仅含 `platformId()` 桩方法与私有构造器） | 历史迁移遗留死代码；目标文档 §3.3"薄桥接模式已覆盖残余差异"的描述与实测不符（实测为纯桩、零引用），经人工确认删除 |
 | 空档 ×2 | `versions/shared/mc1211-1219/`、`versions/shared/mc12110-12111/`（仅空目录骨架） | 0 文件、无任何 `shared_tiers` / `extra_resource_dirs` 引用，档位碎片化的纯残留 |
 
 ### 6.2 删除前检查结果（全部通过）

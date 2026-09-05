@@ -26,7 +26,7 @@
 
 ## 1. Level 1 架构验收
 
-- [ ] **L1-1 全平台构建**：`.\gradlew.bat build verifyCraftableCoralBlocksJars verifyFabricModJson --stacktrace` 全绿（Windows 下用 `.\gradlew.bat`）。
+- [ ] **L1-1 全平台构建**：`.\gradlew.bat build verifyCraftableCoralBlocksJars verifyFabricModJson verifyMixinConfigs --stacktrace` 全绿（Windows 下用 `.\gradlew.bat`；`verifyMixinConfigs` 为 P3-3 新增防线，随 CI 接入同步加入本命令）。
 - [ ] **L1-2 jar 生成与命名**：11 个平台 jar 齐全，文件名与基线 §3 表一致（mod_version 变更时仅版本段变化；label 部分逐字符一致）。
 - [ ] **L1-3 fabric.mod.json 语义**：逐平台与基线 §1.2 / §5 比对——`depends`（minecraft / fabric-api / carpet / fabricloader）、`version`、`id`、`name`、`license`、`environment`、entrypoints、`mixins` 引用全部一致；无未展开 `${`、无 BOM、JSON 合法（`verifyFabricModJson` 覆盖后半部分，前半部分需人工或脚本比对）。
 - [ ] **L1-4 mixin 配置行为**：每平台 mixin json 的文件名、package、compatibilityLevel、`mixins` / `client` 条目数与基线 §1.2 一致；`defaultRequire=1` 下游戏加载成功即隐式证明所有条目类存在（配合 L1-5）。

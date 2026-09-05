@@ -3,6 +3,8 @@
 > 本文档是迁移的目标设计与路线图，不随实现自动更新。基线数据见 [refactor-baseline.md](refactor-baseline.md)（下称"基线"），验收标准见 [refactor-acceptance-checklist.md](refactor-acceptance-checklist.md)（下称"验收清单"）。
 >
 > 参考实例：本地 `references/Carpet-AMS-Addition-master`（只读，不修改）是 Carpet TIS Addition（Fallen-Breath）多版本架构的同构实现，本文第 1 章以其为解剖对象。
+>
+> **最终目标（2026-09-05 锁定）：完整迁移到 Fallen-Breath 风格源码架构**——根 src 主源码树 + per-version override + preprocess `#if MC` 版本图 + 单一 Mojmap 命名空间。Phase 4（Mojmap 统一）完成后**不等于**完整迁移完成；剩余收敛相为 Phase 5（§6），其 preprocess 前置受供应链门禁约束，**门禁无法通过时整体状态标记 blocked 并等待人工决策，不是可永久跳过的可选优化**。
 
 ## 0. 总约束（全部阶段适用）
 
@@ -54,7 +56,7 @@
 
 | 设计要素 | 评估 |
 |---|---|
-| preprocess 版本图 | **可选优化工具，不是必须依赖**。前提是单一 mappings 命名空间（见 §3.2），因此只能排在 Phase 4 决策之后或与之绑定；引入前需过供应链确认（JitPack commit 锁定的第三方插件）与 `THIRD_PARTY_NOTICES.md` 登记 |
+| preprocess 版本图 | ~~可选优化工具~~ **Phase 5 必经步骤（最终目标已锁定完整迁移）**。前提是单一 mappings 命名空间（Phase 4 已完成）；引入前需过供应链确认（JitPack commit 锁定的第三方插件）与 `THIRD_PARTY_NOTICES.md` 登记，门禁不通过则完整迁移状态 blocked 等待人工决策（见 §6 Phase 5） |
 | `#if MC` 宏 | 仅限"小差异"（几行内的条件分支）。**硬约束：大型 Mixin / 行为差异必须继续用版本覆盖文件表达**，不强行塞进宏；覆盖文件是本项目长期保留的一等公民机制 |
 | mixin json 统一管理 | 不强制收敛为一个 json。两个候选形态：方案 A——单一模板 + 占位符按版本生成（参考实现的 `/*JAVA_VERSION*/` 思路扩展）；方案 B——保持 11 份 + 新增一致性校验任务（条目类必须存在于该平台编译产物、无悬空条目）。**已决策（2026-09-04，P3-3）：采用方案 B**，`verifyMixinConfigs` 已落地并接入 CI（悬空 / 漏注双向 + 不变量断言，见 refactor-phase3-verification.md §5） |
 | 矩阵 CI | 延后。现有单作业构建 + publish.yml 幂等管线保留，仅把其元数据来源从根 properties 前缀改为 per-version properties |
@@ -231,11 +233,19 @@ carpet-ice-addition/
 
 净效果：`versions/` 物理 java 276 → 257、唯一类名 164 → 147、档位 17 → 15；余下冗余为结构性分叉，归 Phase 4。完整记录见 refactor-phase3-verification.md。
 
-### Phase 4：可选的 mappings 迁移（Mojmap 统一）
+### Phase 4：mappings 迁移（Mojmap 统一）——**已完成（2026-09-05）**
 
-- 独立于 Fallen 架构迁移的独立决策；**不是任何前置条件**。
-- 触发判据（建议）：Yarn↔Mojmap 双胞胎（约 30 对）的漏改事故频发，或 preprocess 收益论证需要。
-- 成本量级：约 150 个 Yarn 源文件重写 + 全量 Level 3 回归；完成前不动双胞胎。
+- ~~独立于 Fallen 架构迁移的独立决策；**不是任何前置条件**。~~ **已执行**：最终目标锁定后由人工决策直接启动。
+- ~~触发判据（建议）：Yarn↔Mojmap 双胞胎（约 30 对）的漏改事故频发，或 preprocess 收益论证需要。~~ 实测权威口径为 **58 对**（P4-0 清单，基线"约 30"与 phase3"~45"为口径不明的手工估算）。
+- 原成本量级预估"约 150 个 Yarn 源文件重写 + 全量 Level 3 回归"与实际相符（loom `migrateMappings` 自动迁移 + 人工修复两类系统性缺口）。
+- 执行记录与验收见 [refactor-phase4-verification.md](refactor-phase4-verification.md)；净效果：11 平台统一 officialMojangMappings，Yarn 依赖彻底移除，零差异双胞胎（13 组入全平台档 `mojmap-unified` + 3 组档位内归一）与命令家族/入口类定向去重落地。
+
+### Phase 5：preprocess 版本图 + 根 src + per-version override 收敛（最终目标收敛相，独立立项）
+
+- 范围：引入 `com.github.Fallen-Breath:preprocessor`（JitPack commit 锁定）版本图与 `#if MC` 宏；源码树从 shared 档位收敛为根 src（面向最新版本）+ `versions/<v>/src` 覆盖文件；结构性分叉保留覆盖文件形态。
+- **前置门禁**：preprocessor 供应链确认 + `THIRD_PARTY_NOTICES.md` 登记（Fallen-Breath/preprocessor、TIS 架构来源致谢）。**门禁无法通过时，「完整迁移」整体状态标记 blocked 并等待人工决策——最终目标已锁定，该步骤不是可永久跳过的可选优化。**
+- 素材沉淀：`mojmap-unified` 档为根 src 雏形；1-3 行差异家族（P4-0 报告清单）为宏候选；1.21.11 的 24 文件 Mojmap 名漂移档为 override 主要对象。
+- 宏使用硬约束沿用 §2.B（`#if` 宏）：大型 Mixin / 行为差异必须继续用覆盖文件表达；单处 ≤10 行、不改注入 descriptor。
 
 ## 7. 风险登记册
 
@@ -255,14 +265,15 @@ carpet-ice-addition/
 
 | 深度 | 内容 | 状态 |
 |---|---|---|
-| 仅 Phase 1 + 2（构建统一即止） | 消灭 11 份克隆 + 版本数据归位 + 注册表驱动 | **天然合法停点**：约六成收益（脚本与数据维度）、风险最低；源码组织维持现状 |
-| + Phase 3 | preprocess / 档位收敛 / Mixin 合并等源码体系优化 | 按项独立决策，触发判据量化后才启动 |
-| + Phase 4 | mappings 统一 → 消除 Yarn↔Mojmap 双胞胎 | 仅当双胞胎维护成本失控 |
+| 仅 Phase 1 + 2（构建统一即止） | 消灭 11 份克隆 + 版本数据归位 + 注册表驱动 | ~~天然合法停点~~ 已被执行并超越 |
+| + Phase 3 | preprocess / 档位收敛 / Mixin 合并等源码体系优化 | **已完成**（2026-09-05，按项独立决策执行，见 §6 执行结果） |
+| + Phase 4 | mappings 统一 → 消除 Yarn↔Mojmap 双胞胎 | ~~仅当双胞胎维护成本失控~~ **已完成**（2026-09-05，最终目标锁定后启动，见 §6 Phase 4） |
+| + Phase 5 | preprocess 版本图 + 根 src + per-version override 收敛 | 最终目标收敛相；受供应链门禁约束，门禁不通过则完整迁移状态 **blocked** 等待人工决策 |
 
 ## 9. 待人工确认项汇总
 
-1. **Phase 3 / Phase 4 触发**：是否执行、何时执行（建议判据见 §6 各表）。
-2. **preprocessor 供应链**（若 Phase 3 引入）：JitPack commit 锁定第三方插件的接受度；`THIRD_PARTY_NOTICES.md` 登记内容（Fallen-Breath/preprocessor、TIS 架构来源致谢）。
+1. ~~**Phase 3 / Phase 4 触发**：是否执行、何时执行（建议判据见 §6 各表）。~~ **已关闭**：Phase 3（2026-09-04~09-05）与 Phase 4（2026-09-05）均已执行并验收。
+2. **preprocessor 供应链（Phase 5 门禁）**：JitPack commit 锁定第三方插件的接受度；`THIRD_PARTY_NOTICES.md` 登记内容（Fallen-Breath/preprocessor、TIS 架构来源致谢）。**门禁结论必须显式记录：通过则进入 Phase 5；不通过则"完整迁移"整体状态标记 blocked 并等待人工决策，不得视为永久跳过。**
 3. **mixin json 统一管理形态**：~~方案 A（单模板生成）vs 方案 B（多份 + 校验任务），Phase 3 决策~~ **已决策：方案 B（2026-09-04，见 §6 执行结果与 §2.B）**。
 4. **注册表文件名**：`settings.json`（TIS 命名）vs `minecraftVersions.json`（参考实现命名）。
 5. **旧 jar 对照基线留存位置**：建议 Phase 1 动工前本地 `gradlew build` 产物复制到仓库外目录（或 `.minecraft/` 部署实例），Release 2.13.1 资产作历史参考。
