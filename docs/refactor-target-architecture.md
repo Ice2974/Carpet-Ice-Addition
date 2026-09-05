@@ -80,7 +80,7 @@
 |---|---|---|
 | 标识符重命名（类 / 方法 / 字段改名） | 版本图边映射（mapping 文件） | `ItemUsage` ↔ `ItemUtils`、`WanderingTraderEntity` ↔ `WanderingTrader` |
 | 小逻辑分支（几行差异） | `#if` 宏（若 Phase 3 引入） | 注入点参数增减、返回值微调 |
-| 结构性分叉（注入目标、方法体、AI 任务拓扑不同） | 版本覆盖文件（永久机制） | `PhantomEntityNeutralPhantomsMixin` 6 份分叉、`FindPointOfInterestTaskIronGolemOptimizationMixin` 4 份、`KillItemCommand` 三实现 |
+| 结构性分叉（注入目标、方法体、AI 任务拓扑不同） | 版本覆盖文件（永久机制） | `PhantomNeutralPhantomsMixin` 6 份分叉、`AcquirePoiIronGolemOptimizationMixin` 4 份（Phase 6 统一命名后的现名）、`KillItemCommand` 三实现 |
 
 本项目 68 份 mixin 重复中，估计只有一部分能被前两层消化；结构性分叉（尤其 ironGolem 的 21 份 Yarn 分叉）在覆盖文件模型下依然是独立文件，只是存放位置从 17 个 shared 档位收敛为 per-version 覆盖目录。
 
@@ -253,7 +253,7 @@ carpet-ice-addition/
 - **源码组织**：根 src 105 文件（1.21.11「main 态」+ `//#if MC` 宏 + `//$$` 非主流注释态）；per-version override 承担结构性分叉（mc1211 29 份、mc1213 / mc1214 各 10 份、mc1215 3 份、mc1216 / mc1218 各 1 份、mc261 / mc262 各 51 份，26.x 名称分叉族双份复制）；`versions/shared/` 仅保留纯资源档 `mc1213-12111`（Java 档与 `shared_tiers` 机制已于 P5-7 删除）。
 - **mapping 策略实证**：1.21.x remap↔remap 9 条边全部 0 字节（automatic mapping 经 loom 双侧树自动合成承担全部 Mojmap rename）；仅 remap↔plain 的 mc12111↔mc261 边需要显式 legacy mapping（AMS 短式 2 行）；`//#disable-remap` 用于裸方法名歧义与 `player.level()` 同名多版本双重解析两族。
 - **等价验证**：每次 flip 均全量 build + 4 verify + `verifyJarEquivalence` 对 P4-baseline-final 11/11 零适配零忽略；全仓 clean 冷重建通过；Level 3 人工回归通过（2026-09-05）。
-- **Phase 6 展望（未立项）**：项目自有类名统一（1.21.x 旧 FQCN 家族 ↔ 26.x 新 FQCN 家族，如 ItemFrameEntityMixin/ItemFrameMixin）。Phase 5 刻意不做以保持 jar 条目集与 P4 基线逐字节一致；届时需同步扩展 `verifyJarEquivalence` 的条目集比较口径与各平台 mixin json。
+- **Phase 6 执行结果（2026-09-05，main 分支，完整记录见 [refactor-phase6-verification.md](refactor-phase6-verification.md)）**：项目自有类名统一完成——46 个分叉族（golem 13 + 实体名 9 + 杂项 9 + BlockItem consolidation 1 + villagerevents 6 对 11 行 mapping + mc1211 附加 3）按 `@Mixin` 目标类最新 Mojmap 拼写统一 FQCN（mc26x 平台 P6-2～P6-5 零改动）；`versions/class-rename-mapping.txt` 显式 mapping 成为 `verifyJarEquivalence` 的唯一差异豁免通道（renamed-pair 经 channel A 源码规范化等价 / channel B asm classfile 规范化等价证明，无 wildcard / 字面量豁免）；新增 `verifyClassRenameMapping` 与 `selfTestRenameEquivalence` 并接入 CI。
 
 ## 7. 风险登记册
 

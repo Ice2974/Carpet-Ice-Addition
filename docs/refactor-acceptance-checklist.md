@@ -79,7 +79,7 @@
 - [ ] mobsSpawnWithoutSpears：mc12111 / mc261 / mc262 存在；1.21.1–1.21.10 不存在。
 - [ ] /killitem：Phase 5 起为两个实现分支——根 src 单一实现（1.21.1–1.21.11，helper 间接宏覆盖跨版本差异）与 `platform-mc261` / `platform-mc262` 各自 override（26.x 形态）——两个分支都要冒烟。
 - [ ] /machineStatus：同 /killitem 的两分支形态（根 src 实现承担 1.21.x 跨版本差异宏；mc261 / mc262 override 承担 26.x 形态）——两个分支都要冒烟。
-- [ ] itemFrameInvisible / itemFrameFixed：根 src `ItemFrameEntityMixin`（mc1216–mc12111 生效形态）+ `platform-mc1211` / `platform-mc1213` / `platform-mc1214` / `platform-mc1215` override 变体；26.x 为各平台 src 的 `ItemFrameMixin`（1.21.x↔26.x 名称分叉族，Phase 6 统一）——对应版本全部冒烟（展示框隐形 / 固定交互）。
+- [ ] itemFrameInvisible / itemFrameFixed：根 src `ItemFrameMixin`（mc1216–mc12111 生效形态）+ `platform-mc1211` / `platform-mc1213` / `platform-mc1214` / `platform-mc1215` override 变体；26.x 为各平台 src 的同名 `ItemFrameMixin`（1.21.x↔26.x 项目类名已由 Phase 6 统一）——对应版本全部冒烟（展示框隐形 / 固定交互）。
 - [ ] BookEditScreen client mixin 仅存在于 1.21.1–1.21.5 平台的 mixin json `client` 数组；1.21.6+ 与 26.x 只有 Clipboard mixin。
 - [ ] 26.x 命令实现（平台 override）与 1.21.x 根 src 实现同为 CommandSourceStack（Mojmap 命名空间，Phase 4 统一），注册与执行正常。
 - [ ] mc1211 平台 jar 内包含其自有的 10 个珊瑚配方副本；mc1213–mc12111 由 shared/mc1213-12111 提供；mc261 / mc262 各自携带（`verifyCraftableCoralBlocksJars` 已覆盖计数，此处为行为冒烟）。
@@ -122,32 +122,32 @@
 | woolSuppressesSculkSpread | false | F | 全部 | SculkCatalystListenerMixin×2（targets 内部类） | 否 |
 | wardenNotHostileToPlayers | false | F,S | 全部 | WardenEntityMixin×3 + WardenAngerManagerMixin×2 | 否 |
 | fakePlayerIgnoreThornsDamage | false | F,S,BOT | 全部 | FakePlayerIgnoreThornsDamageMixin×3 | 否 |
-| itemFrameInvisible | false | F | 全部 | ItemFrameEntityMixin×5（Yarn）/ ItemFrameMixin（mc26x）+ ItemFrameInteractionHelper | 否 |
+| itemFrameInvisible | false | F | 全部 | ItemFrameMixin（根 + mc1211/1213/1214/1215 override；mc26x 同名 override，Phase 6 统一）+ ItemFrameInteractionHelper | 否 |
 | itemFrameFixed | false | F | 全部 | 与 itemFrameInvisible 共用同一 mixin / helper | 否 |
-| easyWaterloggedBlockPlacement | false | F | 全部 | BlockItemEasyWaterloggedBlockPlacementMixin×2 + platform-mc12111 专用变体 | 否 |
-| portableInfiniteWater | false | F,S | 全部 | ItemUsagePortableInfiniteWaterMixin（Yarn）/ ItemUtilsPortableInfiniteWaterMixin（mc26x） | 否 |
+| easyWaterloggedBlockPlacement | false | F | 全部 | BlockItemEasyWaterloggedBlockPlacementMixin（P6-5 起单一统一类，12111 蒸发判定经宏分支；mc26x 同名 override） | 否 |
+| portableInfiniteWater | false | F,S | 全部 | ItemUtilsPortableInfiniteWaterMixin（根；mc26x 同名 override，Phase 6 统一） | 否 |
 | disableAirborneMiningPenalty | false | F,S,C | 全部 | DisableAirborneMiningPenaltyMixin×2（分类标 C 但 mixin 在通用列表） | 否 |
 | disableIllegalTextCharacterCheck | false | F,C | 全部 | 4 个 mixin：StringHelper 版×3、网络处理器版×2、Clipboard（client）、BookEditScreen（client，仅 1.21.1–1.21.5） | 是 |
 | disablePlayerAttackingTamedMobs | false | F | 全部 | DisablePlayerAttackingTamedMobsMixin×4 + PvpRuleHelper / LegacyPvpRuleHelper | 否 |
 | phantomSpawnWarning | false | S | 全部 | ServerWorldPhantomSpawnWarningMixin×2 + PhantomSpawnWarningHelper×3 | 否 |
-| neutralPhantoms | false | F,S | 全部 | Yarn：PhantomEntity 版×6 + LivingEntity 版×3 + FindTargetGoal 版×1；Mojmap：Phantom / PhantomAttackPlayerTargetGoal / LivingEntity 三类 | 否 |
+| neutralPhantoms | false | F,S | 全部 | PhantomNeutralPhantomsMixin（根 + mc1211/1213/1214/1215 override；mc26x 同名 override）+ PhantomAttackPlayerTargetGoalNeutralPhantomsMixin（根；mc26x 同名 override，Phase 6 统一）+ LivingEntityNeutralPhantomsMixin×3 | 否 |
 | commandKillItem | "ops"（{false,true,ops,0..4}） | CMD | 全部 | 无 mixin；KillItemCommand 4 处实现（见 §3.3） | 否 |
 | commandMachineStatus | "ops"（同上） | CMD | 全部 | 无 mixin；MachineStatusCommand 3 处实现（见 §3.3） | 否 |
-| machineStatusRollbackWarning | false | — | 全部 | ServerPlayNetworkHandler…Mixin + ServerCommonNetworkHandlerAccessor（mc121x）/ ServerGamePacketListenerImpl…Mixin（26.x）+ Handler 类 + 全局配置 json | 否 |
+| machineStatusRollbackWarning | false | — | 全部 | ServerGamePacketListenerImplMachineStatusRollbackWarningMixin（Phase 6 统一后单一名称：根 + mc26x 同名 override）+ ServerCommonNetworkHandlerAccessor + Handler 类 + 全局配置 json | 否 |
 | botTabListNamePrefix | "#none"（{#none,[Bot]}，strict=false） | BOT | 全部 | PlayerListEntryTabListNameMixin×2（目标为 ServerPlayer TAB 名方法，服务端）+ BotTabListNameHelper | 否 |
 | botTabListNameSuffix | "#none"（{#none,[Fake]}，strict=false） | BOT | 全部 | 与 Prefix 共用 mixin / helper | 否 |
 | beaconIgnoresObstruction | false | F,C | 全部 | BeaconBlockEntityMixin×3（分类标 C 但 mixin 在通用列表） | 否 |
-| namedWanderingTraderPersistence | false | F | 全部 | WanderingTraderEntityMixin（Yarn）/ WanderingTraderMixin（mc26x） | 否 |
-| villagerTradingOptimization | false | F,O | 全部 | Yarn：VillagerEntity 版×4 + Sensor / EntitySet 版；Mojmap：4 类；VillagerTradingOptimizationTasks 等 5 份 + RuleHelper + common Access | 否 |
-| ironGolemSpawningOptimization | false | F,O | 全部 | Yarn 合计 21 份分叉；Mojmap 13 类（mc26x）；common Optimizer / SkipMarked / Access + Hooks | 否 |
+| namedWanderingTraderPersistence | false | F | 全部 | WanderingTraderMixin（根；mc26x 同名 override，Phase 6 统一） | 否 |
+| villagerTradingOptimization | false | F,O | 全部 | VillagerTradingOptimizationMixin（根 + mc1211/1213/1214 override；mc26x 同名 override，Phase 6 统一）+ SensorTradingOptimization / EntitySetCustomNameTradingOptimization（mc121x）+ BrainProviderTradingOptimization（mc26x）；VillagerTradingOptimizationTasks 等 5 份 + RuleHelper + common Access | 否 |
+| ironGolemSpawningOptimization | false | F,O | 全部 | Phase 6 统一后 13 类（Behavior / OneShot / GateBehavior / AcquirePoi / GoToWantedItem / AssignProfessionFromJobSite / ResetProfession / ReactToBell / SetRaidStatus / YieldJobSite / PoiCompetitorScan / VillagerGoalPackages / VillagerIronGolemOptimization）+ GoToPotentialJobSite 版（1.21.x）+ per-version override（AcquirePoi 于 mc1211/1213/1214；AssignProfessionFromJobSite / GoToPotentialJobSite / GoToWantedItem 1211 形态于 mc1211）；common Optimizer / SkipMarked / Access + Hooks | 否 |
 | nameTagDuplicateNamingFix | false | B | 全部 | NameTagItemDuplicateNamingFixMixin×3 | 否 |
-| mobsSpawnWithoutSpears | false | F | mc12111 / mc261 / mc262 | Piglin + Zombie MobsSpawnWithoutSpearsMixin（Yarn / Mojmap 各 2） | 否 |
+| mobsSpawnWithoutSpears | false | F | mc12111 / mc261 / mc262 | PiglinMobsSpawnWithoutSpearsMixin + ZombieMobsSpawnWithoutSpearsMixin（根；mc26x 同名 override，Phase 6 统一） | 否 |
 | carpetSingleplayerExitCrashFix | **true** | B,C | 仅 mc1211 | CarpetServerOnServerClosedNullFixMixin（remap=false，目标 carpet.CarpetServer） | 否 |
 | ctrlQStonecuttingFix | false | B | 仅 mc1211 | ScreenHandlerCtrlQStonecuttingFixMixin | 否 |
 | customEndPlatformPosition | "vanilla"（{vanilla,-100,49,0}，strict=false） | F | 全部 | EndPortalBlockCustomEndPlatformPositionMixin×4 + CustomEndPlatformPositionHelper + EndPlatformSettings | 否 |
-| craftableCoralBlocks | false | F,S | 全部 | CraftingScreenHandler / CraftingMenu 刷新 Mixin×3 + DataPackController / Validator / ConflictDetector 等 + 10 配方资源包 | 否 |
-| waterFluidTickDelay | "5"（{freeze,5}，strict=false） | F | 全部 | WaterFluidTickRateMixin（Yarn）/ WaterFluidTickDelayMixin（mc26x）+ FlowableFluid / FlowingFluidFreezeMixin + FluidSettings / Validator / Util | 否 |
-| lavaFluidTickDelay | "30"（{freeze,30}，strict=false） | F | 全部 | LavaFluidTickRateMixin×2（两档内容分叉）/ LavaFluidTickDelayMixin（mc26x）+ 共用 Freeze mixin | 否 |
+| craftableCoralBlocks | false | F,S | 全部 | CraftingMenuCraftableCoralBlocksMixin（根 + mc1211 override；mc26x 同名 override，Phase 6 统一）+ DataPackController / Validator / ConflictDetector 等 + 10 配方资源包 | 否 |
+| waterFluidTickDelay | "5"（{freeze,5}，strict=false） | F | 全部 | WaterFluidTickDelayMixin（根；mc26x 同名 override，Phase 6 统一）+ FlowingFluidFreezeMixin（根 + mc1211 override；mc26x 同名 override）+ FluidSettings / Validator / Util | 否 |
+| lavaFluidTickDelay | "30"（{freeze,30}，strict=false） | F | 全部 | LavaFluidTickDelayMixin（根；mc26x 同名 override，Phase 6 统一）+ 共用 Freeze mixin | 否 |
 
 规则文档：中文见 `docs/rules.md` 对应 `### 中文描述 (内部名)` 小节，英文见 `docs/rules_en.md` 对应 `### 内部名` 小节。
 
@@ -173,7 +173,7 @@
 ## 附录 C：logger 规格
 
 - 内部名：`villagerEvents`；options `{all, death, zombified, witch}`，默认 `all`，strict。
-- 注册：`VillagerEventsLogger121`（全部 1.21.x 平台）/ `VillagerEventsLogger26`（mc261 / mc262），入口类 `registerLoggers()` 接入。
+- 注册：`VillagerEventsLogger`（Phase 6 统一名称；1.21.x 由根 src 编译、mc261 / mc262 由平台 override 提供），入口类 `registerLoggers()` 接入。
 - 行为：输出村民死亡 / 僵尸化 / 女巫化事件；服务端经 `VanillaLanguageService` 翻译；`VillagerEventsCompatibility` 做一次性错误节流（保证 logger 永不阻断实体 tick）。
 - 高频路径：无订阅者时经 `__villagerEvents` 静态字段短路，不组装文本。
 - 文档：`docs/loggers.md` / `docs/loggers_en.md`。

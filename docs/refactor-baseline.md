@@ -186,11 +186,11 @@ Phase 1 完成后，以下内容必须与迁移前完全一致（判定时逐项
 
 ### 6.3 logger（1 个）
 
-- `villagerEvents`：options `{all, death, zombified, witch}`，默认 `all`，strict；`VillagerEventsLogger121`（mc121x）/ `VillagerEventsLogger26`（mc26x）双胞胎注册；订阅加速字段 `__villagerEvents`；服务端翻译兜底 `VanillaLanguageService`。
+- `villagerEvents`：options `{all, death, zombified, witch}`，默认 `all`，strict；`VillagerEventsLogger`（Phase 6 统一名称，基线期为 `VillagerEventsLogger121` / `VillagerEventsLogger26` 双胞胎）；订阅加速字段 `__villagerEvents`；服务端翻译兜底 `VanillaLanguageService`。
 
 ### 6.4 Mixin（105 个唯一类 / 173 个文件 / 68 份重复拷贝）
 
-- 重复两大轴：Yarn↔Mojmap 双胞胎（mc121x ↔ mc26x，约 30 对）；1.21.x 窄档位分叉（最重：`PhantomEntityNeutralPhantomsMixin` 6 份、`FindPointOfInterestTaskIronGolemOptimizationMixin` 4 份）。
+- 重复两大轴：Yarn↔Mojmap 双胞胎（mc121x ↔ mc26x，约 30 对；Phase 6 已统一项目类名至 `@Mixin` 目标 Mojmap 拼写，文件份分叉仍由 per-version override 承载）；1.21.x 窄档位分叉（最重：`PhantomNeutralPhantomsMixin` 6 份、`AcquirePoiIronGolemOptimizationMixin` 4 份，Phase 6 前旧名 `PhantomEntityNeutralPhantomsMixin` / `FindPointOfInterestTaskIronGolemOptimizationMixin`）。
 - client 侧 mixin 仅 4 个类：`DisableIllegalTextCharacterCheckClipboardMixin`（全部平台）与 `BookEditScreenDisableIllegalTextCharacterCheckMixin`（仅 1.21.1–1.21.5），全部服务于 `disableIllegalTextCharacterCheck`。
 - villager-events 独立 mixin 9 个（不挂任何规则）。
 - `@Accessor` 1 个：`ServerCommonNetworkHandlerAccessor`（mc121x）。
