@@ -6,8 +6,11 @@
 #   - 仅允许项目自有类（com.ice2974.*）的整类 rename；禁止链式映射（目的地不得再作为任何行的 old 出现）；
 #   - 同一平台内 mapping 应用后必须保持条目一一对应（不允许映射碰撞）；
 #     不同平台的互斥历史名允许映射到同一目的地；
-#   - 不存在 wildcard / 字面量豁免：rename 之外的任何常量、方法、字段、指令、
-#     字符串字面量、注释或资源差异都必须失败并人工分析（fail closed）。
+#   - 不存在 wildcard / 字面量豁免：显式 mapping 是运行时 / 编译产物语义差异的唯一允许来源；
+#     mapping 之外的方法、字段、常量、字符串字面量、控制流、指令、class 结构及资源内容差异
+#     都必须失败并人工分析（fail closed）。channel A 实际参与证明时对字符串 / 注释等非 code 段
+#     逐字符严格比较；纯源码注释变更若不影响 classfile，由 Git diff / 提交审查纪律负责，
+#     不属于 verifyJarEquivalence 的强制失败条件。
 # 语义：mapping 行只解释「类条目改名 + 源码 / Jar 内对该类名的引用」；
 #   全部项目 class partner（未改名同名对位 / 已改名按 mapping 对位）的内容级等价由
 #   channel A（sourcesJar 规范化源码逐字符等价：仅 code 段整词改写类名，

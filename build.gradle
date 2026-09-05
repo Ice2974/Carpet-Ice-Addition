@@ -241,8 +241,11 @@ def verifyMixinConfigs = tasks.register('verifyMixinConfigs') {
 //   - 每行 `<oldFQCN> -> <newFQCN>`；仅允许项目自有类（com.ice2974.*）整类 rename，禁止链式映射；
 //   - per-platform bijective：mapping 应用到某平台 baseline 条目后必须与当前条目一一对应，
 //     同平台不得产生映射碰撞；不同平台的互斥历史名允许映射到同一目的地；
-//   - 无 wildcard / 字面量豁免：rename 之外的任何常量、方法、字段、指令、字符串字面量、
-//     注释或资源差异都必须失败并人工分析（fail closed）。
+//   - 无 wildcard / 字面量豁免：显式 mapping 是运行时 / 编译产物语义差异的唯一允许来源；
+//     mapping 之外的方法、字段、常量、字符串字面量、控制流、指令、class 结构及资源内容
+//     差异都必须失败并人工分析（fail closed）。channel A 实际参与证明时还会对字符串 /
+//     注释等非 code 段逐字符严格比较；纯源码注释变更若不影响 classfile，由 Git diff /
+//     提交审查纪律负责，不属于本验证器的强制失败条件。
 // 内容级等价证明范围（P6-R2 起）：所有 com/ice2974/**.class 的 baseline→current 对位项
 //   （未改名 class 同名对位，已改名 class 按显式 mapping 对位）都必须给出内容级证明，
 //   不只覆盖 renamed pair——同时覆盖 FQCN 未变但内部引用了 renamed class 的项目类。
@@ -255,8 +258,9 @@ def verifyMixinConfigs = tasks.register('verifyMixinConfigs') {
 //               字符串字面量不被重映射，差异即失败）；
 //   sources 缺失（如 $ 内部类、门控空文件被同路径 override 吸收）或 A 不等价时由 B 兜底；
 //   B 不可用时 fail closed（不新增依赖、不自建宽松 comparator）。
-// 普通 non-class 资源（fabric.mod.json / *.mixins.json / 珊瑚资源包 pack.mcmeta 等专项语义检查之外）
-//   按路径逐条字节级比较；rename 不是资源内容差异的豁免理由。
+// 普通 non-class 资源（fabric.mod.json / *.mixins.json 专项语义检查之外）按路径逐条字节级比较；
+//   珊瑚资源包 pack.mcmeta 亦参与字节级一致（另有 pack_format 专项 invariant）；
+//   rename 不是资源内容差异的豁免理由。
 // baseline 快照永久只读：verifyJarEquivalence 只读不写。快照布局兼容两种形态：
 //   P4 系 versions/platform-*/build/libs 与 P5 系 platform-*/build/libs（flat）。
 //   不得为迎合验证器修改 / 重建 P5-baseline-final；若工具链漂移需要同工具链 P5 对照，
@@ -482,6 +486,12 @@ def findDifferingOrdinaryResources = { Map<String, byte[]> baselineByName, Map<S
     }
 }
 
+// 普通资源字节级比较的专项语义检查排除项：fabric.mod.json（解析后逐键语义）与
+// *.mixins.json（mapping 感知解析等价）。pack.mcmeta 不豁免：完整字节一致 + pack_format 专项 invariant。
+def isSpecialResourceEntry = { String name ->
+    name == 'fabric.mod.json' || name.endsWith('.mixins.json')
+}
+
 // ---- channel B：asm classfile 规范化（探测构建环境既有 asm / Gradle 发行版自带 asm，零新增依赖）----
 def probeAsmClasses = { String pkg, ClassLoader loader ->
     try {
@@ -681,7 +691,7 @@ def channelBEquivalence = { byte[] oldClassBytes, byte[] newClassBytes, Map<Stri
 // 全部项目 class partner（未改名同名对位 / 已改名按 mapping 对位）的内容级等价证明
 // （字节一致 → channel A sources 规范化 → channel B classfile 规范化兜底）、
 // fabric.mod.json 解析后逐键语义、*.mixins.json（字节一致，或 mapping 感知解析等价）、
-// 普通非 class 资源字节级一致、pack.mcmeta 的 pack_format、
+// 普通非 class 资源字节级一致（含珊瑚资源包 pack.mcmeta；pack_format 另有专项 invariant）、
 // 全部 class 的 intermediary 引用集合（P4-1 防线）；sources jar 存在性 + mapping 感知条目覆盖。
 def verifyJarEquivalence = tasks.register('verifyJarEquivalence') {
     doLast {
@@ -867,20 +877,17 @@ def verifyJarEquivalence = tasks.register('verifyJarEquivalence') {
                 println "mixin config OK (mapping-aware parse equality): ${entryName} (${currentJar.name})"
             }
 
-            // 珊瑚资源包 pack.mcmeta 的 pack_format 逐平台一致
+            // 珊瑚资源包 pack.mcmeta 的 pack_format 专项 invariant（pack.mcmeta 完整字节一致
+            // 已由下方普通资源比较保证，此处保留独立断言作为显式语义防线）
             def packMetaPath = 'resourcepacks/craftable_coral_blocks/pack.mcmeta'
             def currentPackFormat = slurper.parseText(readEntryText(currentJar, packMetaPath)).pack.pack_format
             def baselinePackFormat = slurper.parseText(readEntryText(baselineJar, packMetaPath)).pack.pack_format
             assert currentPackFormat == baselinePackFormat:
                     "pack_format mismatch for ${currentJar.name}: current=${currentPackFormat} baseline=${baselinePackFormat}"
 
-            // 普通非 class 资源严格内容比较：fabric.mod.json（语义逐键）、*.mixins.json（mapping 感知
-            // 解析等价）、resourcepacks/craftable_coral_blocks/pack.mcmeta（pack_format 专项）之外，
-            // 路径相同的 non-class 条目必须字节级一致；rename 不是资源内容差异的豁免理由。
-            def isSpecialResourceEntry = { String name ->
-                name == 'fabric.mod.json' || name.endsWith('.mixins.json') ||
-                        name == 'resourcepacks/craftable_coral_blocks/pack.mcmeta'
-            }
+            // 普通非 class 资源严格内容比较：fabric.mod.json（语义逐键）与 *.mixins.json（mapping 感知
+            // 解析等价）走专项语义检查；其余（含珊瑚资源包 pack.mcmeta，另有上方 pack_format 专项
+            // invariant）路径相同的 non-class 条目必须字节级一致；rename 不是资源内容差异的豁免理由。
             def ordinaryResourceNames = baselineOtherEntries.findAll { !isSpecialResourceEntry(it) }
             def differingResources = findDifferingOrdinaryResources(
                     ordinaryResourceNames.collectEntries { [it, readEntryBytes(baselineJar, it)] },
@@ -1104,7 +1111,8 @@ def verifyClassRenameMapping = tasks.register('verifyClassRenameMapping') {
 //     per-platform bijective（映射碰撞检测）；mixin 配置 mapping 感知改写；
 //   - channel B（探测可用时）：asm 规范化对干净 rename 通过、对字面量差异失败；
 //     unchanged-FQCN class 仅引用 rename 通过（full-mapping remap），缺失 / 错误 mapping 失败；
-//   - 普通资源：内容一致通过，内容变化必须被检测（排除项机制本身不豁免普通资源）。
+//   - 普通资源：内容一致通过，内容变化必须被检测（排除项机制本身不豁免普通资源；
+//     pack.mcmeta 不豁免——pack_format 相同、description 等其他内容变化必须失败）。
 def selfTestRenameEquivalence = tasks.register('selfTestRenameEquivalence') {
     group = 'verification'
     description = 'Phase 6：class rename 等价验证器自测（fail-closed 语义回归）'
@@ -1209,14 +1217,29 @@ def selfTestRenameEquivalence = tasks.register('selfTestRenameEquivalence') {
                 'selfTest: unchanged-FQCN class 的字符串字面量变化必须失败（fail closed）'
 
         // 普通资源：一致通过；内容变化必须被检测；排除项只对专项语义检查资源生效
-        def isExcluded = { String name -> name == 'fabric.mod.json' }
         def baselineResources = ['a.json': '"v1"'.bytes, 'b.bin': [1, 2, 3] as byte[], 'fabric.mod.json': '"x"'.bytes]
         def sameResources = ['a.json': '"v1"'.bytes, 'b.bin': [1, 2, 3] as byte[], 'fabric.mod.json': '"changed"'.bytes]
-        assert findDifferingOrdinaryResources(baselineResources, sameResources, isExcluded).isEmpty():
-                'selfTest: 普通资源一致（排除项变化不计入）应通过'
+        assert findDifferingOrdinaryResources(baselineResources, sameResources, isSpecialResourceEntry).isEmpty():
+                'selfTest: 普通资源一致（专项语义检查资源变化不计入）应通过'
         def changedResources = ['a.json': '"v1"'.bytes, 'b.bin': [1, 2, 9] as byte[], 'fabric.mod.json': '"x"'.bytes]
-        assert findDifferingOrdinaryResources(baselineResources, changedResources, isExcluded) == ['b.bin']:
+        assert findDifferingOrdinaryResources(baselineResources, changedResources, isSpecialResourceEntry) == ['b.bin']:
                 'selfTest: 普通资源内容变化必须被检测（fail closed）'
+
+        // pack.mcmeta：pack_format 不变但 description 等其他内容变化必须被字节级比较捕获（P6-R6 修补的空洞）
+        assert !isSpecialResourceEntry('resourcepacks/craftable_coral_blocks/pack.mcmeta'):
+                'selfTest: pack.mcmeta 必须参与普通资源字节级比较（不得豁免）'
+        def packMetaOriginal = '{"pack":{"pack_format":34,"description":"craftable coral blocks"}}'
+        def packMetaSameFormatChangedDesc = '{"pack":{"pack_format":34,"description":"mutated"}}'
+        assert findDifferingOrdinaryResources(
+                ['resourcepacks/craftable_coral_blocks/pack.mcmeta': packMetaOriginal.bytes],
+                ['resourcepacks/craftable_coral_blocks/pack.mcmeta': packMetaOriginal.bytes],
+                isSpecialResourceEntry).isEmpty():
+                'selfTest: pack.mcmeta 字节一致应通过'
+        assert findDifferingOrdinaryResources(
+                ['resourcepacks/craftable_coral_blocks/pack.mcmeta': packMetaOriginal.bytes],
+                ['resourcepacks/craftable_coral_blocks/pack.mcmeta': packMetaSameFormatChangedDesc.bytes],
+                isSpecialResourceEntry) == ['resourcepacks/craftable_coral_blocks/pack.mcmeta']:
+                'selfTest: pack.mcmeta 非 pack_format 内容变化必须失败（fail closed）'
 
         def asm = probeAsmSupport()
         if (asm == null) {

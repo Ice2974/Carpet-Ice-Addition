@@ -5,8 +5,8 @@
 ## 0. 已确认决策（人工锁定，全程有效）
 
 - 统一方向：保留 Mojmap target 风格——项目类名 = `@Mixin` 目标类简单名（+ 用途后缀）；mc26x 平台 override 名即为目标现名，P6-2～P6-5 保持 mc26x 零改动。
-- `verifyJarEquivalence` 的唯一差异豁免通道 = `versions/class-rename-mapping.txt` 显式 mapping；禁止 wildcard / `!allow:` 字面量 / blanket ignore；rename 之外的常量、方法、字段、指令、字符串字面量、注释或资源差异必须失败并人工分析（fail closed）。
-- channel A（sourcesJar 源码规范化等价）优先，channel B（asm classfile 规范化等价）兜底；不自建宽松 comparator。A 的 canonicalization 仅覆盖 code 段整词类名改写（Java 类型 / self-reference 语义），字符串字面量 / char / text block / 注释逐字符原样比较——任何 literal / 注释差异都必须失败。
+- `verifyJarEquivalence` 的唯一差异豁免通道 = `versions/class-rename-mapping.txt` 显式 mapping；禁止 wildcard / `!allow:` 字面量 / blanket ignore。显式 mapping 是运行时 / 编译产物语义差异的唯一允许来源：mapping 之外的方法、字段、常量、字符串字面量、控制流、指令、class 结构及资源内容变化必须失败并人工分析（fail closed）；纯源码注释变更若不影响 classfile，不属于 `verifyJarEquivalence` 的强制失败条件，由 Git diff / 提交审查纪律负责。
+- 内容级证明链（P6-R2 起）：classfile 字节一致 → channel A（sourcesJar 源码规范化等价）→ channel B（asm classfile 规范化等价）兜底；不自建宽松 comparator。A 的 canonicalization 仅覆盖 code 段整词类名改写（Java 类型 / self-reference 语义），字符串字面量 / char / text block / 注释逐字符原样比较——任何 literal / 注释差异都使 A 不等价（再按证明链进入 B 或失败）。
 - per-platform bijective：mapping 应用到某平台 baseline 条目后必须一一对应，同平台不得产生映射碰撞；不同平台的互斥历史名允许映射到同一目的地。
 - P5-baseline-final 永久只读；如工具链漂移需同工具链 P5 对照，只允许以 Phase 5 HEAD `5953a8e472b16e6007ab6158cc1cc68f4bb16eb7` clean build 建立明确标记的辅助 baseline，禁止从含 Phase 6 改动的工作区重建。P6-baseline-final 只能在 Phase 6 完整验收（含 Level 3 人工回归）后建立。
 - `PvpRuleHelper` / `LegacyPvpRuleHelper` 本期不合并（避免扩大为 API wrapper 重构），列入后续清尾候选。
@@ -24,13 +24,14 @@
 | P6-7 | daa1c15 | 文档同步：验收清单附录 A / §3.3 / 附录 C 现势化、target-architecture §3.1 示例与 Phase 6 执行结果、baseline §6.3/§6.4 注记；本记录；全仓旧名扫描。 |
 | P6-R1 | 362f18d | review 修正：补齐遗漏的 golem 族第 16 对——root 1.21.3–1.21.11 实现 `WalkTowardsNearestVisibleWantedItemTaskIronGolemOptimizationMixin` → `GoToWantedItemIronGolemOptimizationMixin`（`@Mixin` target 本就是 Mojmap `GoToWantedItem`，与 mc26x / mc1211 命名对齐；门控 `MC>=12103 && MC<260000`，不影响 mc1211 / mc26x）；8 份 1.21.x mixin JSON（mc1213–mc12111）同步；mapping +1（累计 47）。`IronGolemVillagerOptimizationHooks.markTaskInstance` 的 `"WalkTowardsNearestVisibleWantedItemTask.create"` 行为性标签与 javadoc 中 Yarn 历史说明经源码实证不含 mixin 类名引用，按原样保留。 |
 | P6-R2/R3/R4 | cebfc87 | review 修正：`verifyJarEquivalence` 内容级证明从 renamed-pair 扩展到全部项目 class partner（byte-identical → channel A sources 规范化 → channel B classfile 规范化兜底，覆盖 FQCN 未变但引用了 renamed class 的项目类与 `$` 内部类）；普通 non-class 资源按路径字节级严格比较（fabric.mod.json / *.mixins.json / 珊瑚资源包 pack.mcmeta 专项语义检查除外）；channel B 由单对 `SimpleRemapper` 升级为 full-mapping 前缀 `Remapper`（`$` 内部类前缀传播）；`selfTestRenameEquivalence` 补强（unchanged-FQCN 正负样例、普通资源差异、映射碰撞、mixin 配置 mapping 改写、缺失 / 错误 mapping 负例）；channel B 注释与实现对齐（剔除 SourceFile + LineNumberTable）。 |
+| P6-R6 | （本 commit） | review 小修补：① 珊瑚资源包 pack.mcmeta 从专项语义排除项移除，重新纳入普通资源字节级一致（pack_format 专项 invariant 保留为额外显式断言，最终语义 = 字节一致 + pack_format 双重约束），selfTest 增补「pack_format 相同、description 变化必须失败」负向场景与字节一致正向场景；② 修正文档 / build.gradle / mapping 头部「注释差异必须失败」的过强表述（纯源码注释变更若不影响 classfile，由 Git diff / 提交审查纪律负责，不属 verifyJarEquivalence 强制失败条件），历史 Phase 2～5 文档不改。 |
 
 ## 2. 等价验证新口径（P6-1 起）
 
 - **baseline 双布局**：`-PbaselineDir` 同时支持 `versions/platform-*/build/libs`（P4 系快照）与 `platform-*/build/libs`（P5 系 flat 快照）；baseline 永久只读。
 - **条目集合**：`com/ice2974/**.class` 条目按显式 mapping 做 bijective 对齐（期望条目数 != baseline 条目数即映射碰撞失败）；其余条目严格同名。sources jar 做 mapping 感知双向覆盖检查（门控空文件被同路径 override 吸收时允许合并，条目数不做强相等）。
 - **内容级 class partner 证明（P6-R2 起，替代原 renamed-pair 口径）**：全部 `com/ice2974/**.class` 的 baseline→current 对位项（未改名同名对位 / 已改名按 mapping 对位）都必须给出内容级证明——覆盖 FQCN 未变但内部引用了 renamed class 的项目类，以及 `$` 内部类。证明链：classfile 字节一致（rename 未波及时的最强证明）→ channel A = baseline/new sources jar 对应 `.java` 的源码规范化等价（Java 源分段器切分 code / lineComment / blockComment / string / char / textBlock，仅 code 段整词改写 mapping 中的类名，其余逐字符比较；首个差异位置与上下文随失败输出）→ channel B = Gradle 发行版自带 asm（`asm-9.8` / `asm-commons-9.8`，零新增依赖）full-mapping 前缀 `Remapper` + `ClassRemapper` 规范化 internal name（含 `$` 内部类传播）、统一剔除 SourceFile / LineNumberTable 编译期调试元数据后重建字节做严格比较（字符串字面量不被重映射，literal 差异即失败）。sources 缺失（如 `$` 内部类）或 A 不等价时由 B 兜底；三条路都走不通 → 失败（fail closed）。
-- **普通资源严格比较（P6-R2 起）**：fabric.mod.json（解析后逐键语义）、*.mixins.json（mapping 感知解析等价）、珊瑚资源包 pack.mcmeta（pack_format 专项）之外，路径相同的 non-class 条目必须字节级一致；rename 不是资源内容差异的豁免理由。
+- **普通资源严格比较（P6-R2 起；P6-R6 收紧 pack.mcmeta）**：fabric.mod.json（解析后逐键语义）与 *.mixins.json（mapping 感知解析等价）走专项语义检查；其余路径相同的 non-class 条目必须字节级一致——P6-R6 起珊瑚资源包 pack.mcmeta 不再豁免（完整字节一致），pack_format 专项 invariant 保留为额外显式断言；rename 不是资源内容差异的豁免理由。
 - **mixins.json**：优先字节级一致；字节不一致时按 mapping 做解析级等价（数组顺序保留，mapping 外差异失败）。
 - **intermediary refs**（P4-1 防线保留）：renamed class 与 baseline 对位条目比较引用集合；plain 形态（26.x）空集通过，renamed-pair 语义由 channel A/B 承担。
 - **verifyClassRenameMapping**：mapping 语法 / old 重复 / old==new / 简名交叠 / 链式映射断言；old 源文件与类型声明必须已不存在、new 源文件与类型声明必须存在；mixin 配置不得引用 old 简名；active .java 的 code 段 / 字面量段出现 old 简名失败（注释段仅报告，历史说明允许）；gradle / CI / 资源文本出现 old 简名或 FQCN 失败；docs / references / README / AGENTS / 构建输出排除在扫描外。
