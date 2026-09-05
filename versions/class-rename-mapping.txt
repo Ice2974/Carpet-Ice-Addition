@@ -52,3 +52,14 @@ com.ice2974.carpeticeaddition.mixins.ServerPlayNetworkHandlerDisableIllegalTextC
 com.ice2974.carpeticeaddition.mixins.ServerPlayNetworkHandlerMachineStatusRollbackWarningMixin -> com.ice2974.carpeticeaddition.mixins.ServerGamePacketListenerImplMachineStatusRollbackWarningMixin
 com.ice2974.carpeticeaddition.mixins.ItemUsagePortableInfiniteWaterMixin -> com.ice2974.carpeticeaddition.mixins.ItemUtilsPortableInfiniteWaterMixin
 com.ice2974.carpeticeaddition.mixins.BlockItemEasyWaterloggedBlockPlacementMc12111Mixin -> com.ice2974.carpeticeaddition.mixins.BlockItemEasyWaterloggedBlockPlacementMixin
+com.ice2974.carpeticeaddition.villagerevents.VillagerEventsLogger121 -> com.ice2974.carpeticeaddition.villagerevents.VillagerEventsLogger
+com.ice2974.carpeticeaddition.villagerevents.VillagerEventsRuntime121 -> com.ice2974.carpeticeaddition.villagerevents.VillagerEventsRuntime
+com.ice2974.carpeticeaddition.villagerevents.VillagerEventSnapshot121 -> com.ice2974.carpeticeaddition.villagerevents.VillagerEventSnapshot
+com.ice2974.carpeticeaddition.villagerevents.VillagerIdentity121 -> com.ice2974.carpeticeaddition.villagerevents.VillagerIdentity
+com.ice2974.carpeticeaddition.villagerevents.TextRenderer121 -> com.ice2974.carpeticeaddition.villagerevents.TextRenderer
+com.ice2974.carpeticeaddition.villagerevents.VillagerEventsLogger26 -> com.ice2974.carpeticeaddition.villagerevents.VillagerEventsLogger
+com.ice2974.carpeticeaddition.villagerevents.VillagerEventsRuntime26 -> com.ice2974.carpeticeaddition.villagerevents.VillagerEventsRuntime
+com.ice2974.carpeticeaddition.villagerevents.VillagerEventSnapshot26 -> com.ice2974.carpeticeaddition.villagerevents.VillagerEventSnapshot
+com.ice2974.carpeticeaddition.villagerevents.VillagerIdentity26 -> com.ice2974.carpeticeaddition.villagerevents.VillagerIdentity
+com.ice2974.carpeticeaddition.villagerevents.TextRenderer26 -> com.ice2974.carpeticeaddition.villagerevents.TextRenderer
+com.ice2974.carpeticeaddition.villagerevents.VillagerEventState26 -> com.ice2974.carpeticeaddition.villagerevents.VillagerEventState

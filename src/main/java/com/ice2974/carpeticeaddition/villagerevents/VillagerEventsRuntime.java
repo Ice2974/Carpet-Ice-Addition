@@ -18,12 +18,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 /** Server-session holder. It is replaced and closed when a server closes. */
-public final class VillagerEventsRuntime121 {
+public final class VillagerEventsRuntime {
     private static final Logger LOGGER = LoggerFactory.getLogger("Carpet Ice Addition");
     private static final AtomicLong SEQUENCE = new AtomicLong();
     private static volatile Session session;
 
-    private VillagerEventsRuntime121() { }
+    private VillagerEventsRuntime() { }
 
     public static void onServerLoaded(MinecraftServer server) { VillagerEventsCompatibility.beginServerSession(); replace(server); }
     public static void onServerClosed(MinecraftServer server) {
@@ -46,46 +46,46 @@ public final class VillagerEventsRuntime121 {
         session = new Session(server);
     }
 
-    public static VillagerEventSnapshot121 captureDeath(Villager villager, DamageSource source) {
-        if (!VillagerEventsLogger121.active()) return null;
+    public static VillagerEventSnapshot captureDeath(Villager villager, DamageSource source) {
+        if (!VillagerEventsLogger.active()) return null;
         return snapshot(villager, source.getLocalizedDeathMessage(villager));
     }
 
-    public static VillagerEventSnapshot121 snapshot(Villager villager, Component death) {
+    public static VillagerEventSnapshot snapshot(Villager villager, Component death) {
         BlockPos pos = villager.blockPosition();
-        VillagerIdentity121.Identity identity = VillagerIdentity121.create(villager);
-        return new VillagerEventSnapshot121(SEQUENCE.incrementAndGet(), VillagerDimension121.id(villager), pos.getX(), pos.getY(), pos.getZ(), identity.translated(), identity.fallback(), death);
+        VillagerIdentity.Identity identity = VillagerIdentity.create(villager);
+        return new VillagerEventSnapshot(SEQUENCE.incrementAndGet(), VillagerDimension121.id(villager), pos.getX(), pos.getY(), pos.getZ(), identity.translated(), identity.fallback(), death);
     }
 
-    public static void death(MinecraftServer server, VillagerEventSnapshot121 snapshot) {
-        if (snapshot == null || !VillagerEventsLogger121.active()) return;
+    public static void death(MinecraftServer server, VillagerEventSnapshot snapshot) {
+        if (snapshot == null || !VillagerEventsLogger.active()) return;
         Session current = current(server);
         if (current.language.state() == State.LOADING) return;
         if (current.language.state() == State.FAILED) return;
         sendDeath(current, snapshot);
     }
 
-    public static void conversion(MinecraftServer server, String event, VillagerEventSnapshot121 snapshot) {
-        if (snapshot == null || !VillagerEventsLogger121.active()) return;
+    public static void conversion(MinecraftServer server, String event, VillagerEventSnapshot snapshot) {
+        if (snapshot == null || !VillagerEventsLogger.active()) return;
         Session current = current(server);
-        Component identity = current.language.state() == State.READY ? TextRenderer121.renderLiteralTree(snapshot.identity(), current.language.translations()) : null;
-        if (identity == null) identity = TextRenderer121.renderLiteralTree(snapshot.fallbackIdentity(), java.util.Map.of());
+        Component identity = current.language.state() == State.READY ? TextRenderer.renderLiteralTree(snapshot.identity(), current.language.translations()) : null;
+        if (identity == null) identity = TextRenderer.renderLiteralTree(snapshot.fallbackIdentity(), java.util.Map.of());
         if (identity == null) { current.warnOnce("suppressed conversion message with unresolved component"); return; }
         String template = "zombified".equals(event) ? "logger.carpet-ice-addition.villager_events.zombified" : "logger.carpet-ice-addition.villager_events.witch";
         String action = TranslationFormatUtil.translate(template);
         int marker = action.indexOf("%s");
         Component detail = marker < 0 ? Component.literal(action) : Component.literal(action.substring(0, marker)).append(identity).append(action.substring(marker + 2));
-        VillagerEventsLogger121.send(event, message(detail, snapshot));
+        VillagerEventsLogger.send(event, message(detail, snapshot));
     }
 
-    private static void sendDeath(Session current, VillagerEventSnapshot121 snapshot) {
-        Component rendered = TextRenderer121.renderDeath(snapshot.deathMessage(), snapshot.identity(), current.language.translations());
-        if (rendered == null) rendered = TextRenderer121.renderDeath(snapshot.deathMessage(), snapshot.fallbackIdentity(), current.language.translations());
+    private static void sendDeath(Session current, VillagerEventSnapshot snapshot) {
+        Component rendered = TextRenderer.renderDeath(snapshot.deathMessage(), snapshot.identity(), current.language.translations());
+        if (rendered == null) rendered = TextRenderer.renderDeath(snapshot.deathMessage(), snapshot.fallbackIdentity(), current.language.translations());
         if (rendered == null) { current.warnOnce("suppressed death message with unresolved vanilla component"); return; }
-        VillagerEventsLogger121.send("death", message(rendered, snapshot));
+        VillagerEventsLogger.send("death", message(rendered, snapshot));
     }
 
-    private static Component message(Component detail, VillagerEventSnapshot121 snapshot) {
+    private static Component message(Component detail, VillagerEventSnapshot snapshot) {
         String dimension = switch (snapshot.dimensionId()) {
             case "minecraft:overworld" -> TranslationFormatUtil.translate("logger.carpet-ice-addition.villager_events.dimension.overworld");
             case "minecraft:the_nether" -> TranslationFormatUtil.translate("logger.carpet-ice-addition.villager_events.dimension.nether");
@@ -111,7 +111,7 @@ public final class VillagerEventsRuntime121 {
             String minecraftVersion = FabricLoader.getInstance().getModContainer("minecraft")
                     .orElseThrow(() -> new IllegalStateException("Minecraft metadata unavailable"))
                     .getMetadata().getVersion().getFriendlyString();
-            this.language = new VanillaLanguageService(minecraftVersion, locale, root, VillagerEventsRuntime121.class.getClassLoader(), LOGGER);
+            this.language = new VanillaLanguageService(minecraftVersion, locale, root, VillagerEventsRuntime.class.getClassLoader(), LOGGER);
             this.language.start(ignored -> server.execute(() -> {
                 if (closed || session != this) return;
                 if (language.state() == State.FAILED) warnLanguageFailureOnce();

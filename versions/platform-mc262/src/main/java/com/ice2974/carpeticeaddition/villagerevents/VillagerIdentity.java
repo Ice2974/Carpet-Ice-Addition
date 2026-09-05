@@ -8,9 +8,9 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.Identifier;
 
 /** Produces only literal identity components, so logger output never asks a client to translate it. */
-final class VillagerIdentity26 {
+final class VillagerIdentity {
     record Identity(Component translated, Component fallback) { }
-    private VillagerIdentity26() { }
+    private VillagerIdentity() { }
 
     static Identity create(Villager villager) {
         String identity;
@@ -37,7 +37,7 @@ final class VillagerIdentity26 {
         Component name = villager.getCustomName().copy();
         boolean chinese = CarpetSettings.language != null && CarpetSettings.language.toLowerCase(java.util.Locale.ROOT).startsWith("zh");
         Component translated = named(name, result, chinese);
-        Component safeName = TextRenderer26.renderLiteralTree(villager.getCustomName(), java.util.Map.of());
+        Component safeName = TextRenderer.renderLiteralTree(villager.getCustomName(), java.util.Map.of());
         Component fallbackNamed = safeName == null ? fallback : named(safeName, fallback, chinese);
         return new Identity(translated, fallbackNamed);
     }

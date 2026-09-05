@@ -1,7 +1,7 @@
 package com.ice2974.carpeticeaddition.villagerevents;
 
-public interface VillagerEventState26 {
-    void carpetIceAddition$beginConversion(VillagerEventSnapshot26 snapshot);
+public interface VillagerEventState {
+    void carpetIceAddition$beginConversion(VillagerEventSnapshot snapshot);
     boolean carpetIceAddition$conversionActive();
     void carpetIceAddition$recordConversionSpawn(boolean accepted);
     void carpetIceAddition$recordConversionDiscard();

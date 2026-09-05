@@ -1,6 +1,6 @@
 package com.ice2974.carpeticeaddition.mixins;
 
-import com.ice2974.carpeticeaddition.villagerevents.VillagerEventState26;
+import com.ice2974.carpeticeaddition.villagerevents.VillagerEventState;
 import com.ice2974.carpeticeaddition.villagerevents.VillagerEventsCompatibility;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
@@ -19,7 +19,7 @@ public abstract class MobVillagerConversionMixin {
         boolean accepted = level.addFreshEntity(target);
         try {
             Object self = this;
-            if (self instanceof Villager && self instanceof VillagerEventState26 state && state.carpetIceAddition$conversionActive() && (target instanceof ZombieVillager || target instanceof Witch)) state.carpetIceAddition$recordConversionSpawn(accepted);
+            if (self instanceof Villager && self instanceof VillagerEventState state && state.carpetIceAddition$conversionActive() && (target instanceof ZombieVillager || target instanceof Witch)) state.carpetIceAddition$recordConversionSpawn(accepted);
         } catch (Throwable error) { VillagerEventsCompatibility.report("conversion_spawn", error); }
         return accepted;
     }
@@ -28,7 +28,7 @@ public abstract class MobVillagerConversionMixin {
         source.discard();
         try {
             Object self = this;
-            if (self instanceof Villager && self instanceof VillagerEventState26 state && state.carpetIceAddition$conversionActive()) state.carpetIceAddition$recordConversionDiscard();
+            if (self instanceof Villager && self instanceof VillagerEventState state && state.carpetIceAddition$conversionActive()) state.carpetIceAddition$recordConversionDiscard();
         } catch (Throwable error) { VillagerEventsCompatibility.report("conversion_discard", error); }
     }
 }

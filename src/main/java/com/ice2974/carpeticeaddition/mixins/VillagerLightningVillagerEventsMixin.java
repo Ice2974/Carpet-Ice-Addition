@@ -1,9 +1,9 @@
 //#if MC<260000
 package com.ice2974.carpeticeaddition.mixins;
 
-import com.ice2974.carpeticeaddition.villagerevents.VillagerEventSnapshot121;
+import com.ice2974.carpeticeaddition.villagerevents.VillagerEventSnapshot;
 import com.ice2974.carpeticeaddition.villagerevents.VillagerEventState;
-import com.ice2974.carpeticeaddition.villagerevents.VillagerEventsRuntime121;
+import com.ice2974.carpeticeaddition.villagerevents.VillagerEventsRuntime;
 import net.minecraft.world.entity.ConversionParams;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
@@ -20,10 +20,10 @@ public abstract class VillagerLightningVillagerEventsMixin {
     @Redirect(method = "thunderHit", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/npc/villager/Villager;convertTo(Lnet/minecraft/world/entity/EntityType;Lnet/minecraft/world/entity/ConversionParams;Lnet/minecraft/world/entity/ConversionParams$AfterConversion;)Lnet/minecraft/world/entity/Mob;"))
     private <T extends Mob> Mob carpetIceAddition$observeWitch(Villager villager, EntityType<T> type,
                                                                           ConversionParams context, ConversionParams.AfterConversion<T> finalizer) {
-        VillagerEventState state = null; VillagerEventSnapshot121 snapshot = null; boolean observing = false;
+        VillagerEventState state = null; VillagerEventSnapshot snapshot = null; boolean observing = false;
         try {
             state = (VillagerEventState) villager;
-            snapshot = VillagerEventsRuntime121.snapshot(villager, null);
+            snapshot = VillagerEventsRuntime.snapshot(villager, null);
             state.carpetIceAddition$abortConversion(); state.carpetIceAddition$beginConversion(snapshot); observing = true;
         } catch (Throwable error) {
             VillagerEventsCompatibility.report("witch_conversion", error);
@@ -33,7 +33,7 @@ public abstract class VillagerLightningVillagerEventsMixin {
         try { result = villager.convertTo(type, context, finalizer); returned = true; return result; }
         finally {
             if (returned && observing) try {
-                if (state.carpetIceAddition$finishConversion(result instanceof Witch) && CarpetServer.minecraft_server != null) VillagerEventsRuntime121.conversion(CarpetServer.minecraft_server, "witch", snapshot);
+                if (state.carpetIceAddition$finishConversion(result instanceof Witch) && CarpetServer.minecraft_server != null) VillagerEventsRuntime.conversion(CarpetServer.minecraft_server, "witch", snapshot);
             } catch (Throwable error) { VillagerEventsCompatibility.report("witch_conversion", error); }
             finally { if (observing) try { state.carpetIceAddition$abortConversion(); } catch (Throwable cleanup) { VillagerEventsCompatibility.report("witch_conversion", cleanup); } }
             else if (observing) try { state.carpetIceAddition$abortConversion(); } catch (Throwable error) { VillagerEventsCompatibility.report("witch_conversion", error); }

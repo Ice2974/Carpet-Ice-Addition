@@ -11,10 +11,10 @@ import net.minecraft.network.chat.Style;
 import net.minecraft.network.chat.contents.PlainTextContents;
 import net.minecraft.network.chat.contents.TranslatableContents;
 
-final class TextRenderer121 {
+final class TextRenderer {
     private static final Pattern FORMAT = Pattern.compile("%(?:(\\d+)\\$)?([%s])");
 
-    private TextRenderer121() { }
+    private TextRenderer() { }
 
     static Component renderDeath(Component source, Component identity, Map<String, String> language) {
         if (!(source.getContents() instanceof TranslatableContents root) || root.getArgs().length == 0 || !(root.getArgs()[0] instanceof Component)) return null;

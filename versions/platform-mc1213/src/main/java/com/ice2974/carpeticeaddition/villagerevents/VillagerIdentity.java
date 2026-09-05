@@ -8,9 +8,9 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.entity.npc.VillagerProfession;
 
-final class VillagerIdentity121 {
+final class VillagerIdentity {
     record Identity(Component translated, Component fallback) { }
-    private VillagerIdentity121() { }
+    private VillagerIdentity() { }
     static Identity create(Villager villager) {
         VillagerProfession profession = villager.getVillagerData().getProfession();
         ResourceLocation id = BuiltInRegistries.VILLAGER_PROFESSION.getKey(profession);
@@ -30,7 +30,7 @@ final class VillagerIdentity121 {
     }
     private static Component fallbackName(ResourceLocation id) { return id == null ? Component.literal(TranslationFormatUtil.translate("logger.carpet-ice-addition.villager_events.unknown_profession")) : Component.literal(id.toString()); }
     private static Component fallbackNamed(Villager villager, Component value, boolean chinese) {
-        Component name = TextRenderer121.renderLiteralTree(villager.getCustomName(), java.util.Map.of());
+        Component name = TextRenderer.renderLiteralTree(villager.getCustomName(), java.util.Map.of());
         return name == null ? value : named(name, value, chinese);
     }
     private static Component named(Component name, Component value, boolean chinese) {

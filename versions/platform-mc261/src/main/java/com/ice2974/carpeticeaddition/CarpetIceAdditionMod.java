@@ -15,8 +15,8 @@ import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
 import com.ice2974.carpeticeaddition.settings.CraftableCoralBlocksSettings;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionFluidSettings;
 import com.ice2974.carpeticeaddition.translation.CarpetIceAdditionTranslations;
-import com.ice2974.carpeticeaddition.villagerevents.VillagerEventsLogger26;
-import com.ice2974.carpeticeaddition.villagerevents.VillagerEventsRuntime26;
+import com.ice2974.carpeticeaddition.villagerevents.VillagerEventsLogger;
+import com.ice2974.carpeticeaddition.villagerevents.VillagerEventsRuntime;
 import com.ice2974.carpeticeaddition.command.KillItemConfigManager;
 import com.ice2974.carpeticeaddition.command.MachineStatusConfigManager;
 import com.mojang.brigadier.CommandDispatcher;
@@ -96,7 +96,7 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
         CarpetIceAdditionFluidSettings.refreshCachedValues();
     }
 
-    @Override public void registerLoggers() { VillagerEventsLogger26.register(); }
+    @Override public void registerLoggers() { VillagerEventsLogger.register(); }
 
     @Override
     public void onPlayerLoggedIn(ServerPlayer player) {
@@ -130,7 +130,7 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
     public void onServerLoaded(MinecraftServer server) {
         KillItemConfigManager.initialize(server.getWorldPath(LevelResource.ROOT));
         MachineStatusConfigManager.initialize(server.getWorldPath(LevelResource.ROOT));
-        VillagerEventsRuntime26.onServerLoaded(server);
+        VillagerEventsRuntime.onServerLoaded(server);
     }
 
     @Override
@@ -151,7 +151,7 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
 
     @Override
     public void onServerClosed(MinecraftServer server) {
-        VillagerEventsRuntime26.onServerClosed(server);
+        VillagerEventsRuntime.onServerClosed(server);
         KillItemConfigManager.shutdown();
         MachineStatusConfigManager.shutdown();
         try {

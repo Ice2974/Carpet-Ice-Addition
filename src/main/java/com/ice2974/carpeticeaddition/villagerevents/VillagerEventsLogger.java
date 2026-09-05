@@ -5,16 +5,16 @@ import carpet.logging.Logger;
 import carpet.logging.LoggerRegistry;
 import net.minecraft.network.chat.Component;
 
-public final class VillagerEventsLogger121 {
+public final class VillagerEventsLogger {
     public static boolean __villagerEvents;
     private static final String[] OPTIONS = {"all", "death", "zombified", "witch"};
     private static Logger logger;
 
-    private VillagerEventsLogger121() { }
+    private VillagerEventsLogger() { }
 
     public static void register() {
         try {
-            logger = new Logger(VillagerEventsLogger121.class.getField("__villagerEvents"), "villagerEvents", "all", OPTIONS, true);
+            logger = new Logger(VillagerEventsLogger.class.getField("__villagerEvents"), "villagerEvents", "all", OPTIONS, true);
             LoggerRegistry.registerLogger("villagerEvents", logger);
         } catch (ReflectiveOperationException exception) {
             throw new IllegalStateException("Unable to register villagerEvents logger", exception);

@@ -10,9 +10,9 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-final class TextRenderer26 {
+final class TextRenderer {
     private static final Pattern FORMAT = Pattern.compile("%(?:(\\d+)\\$)?([%s])");
-    private TextRenderer26() { }
+    private TextRenderer() { }
     static Component renderDeath(Component source, Component identity, Map<String, String> language) {
         if (!(source.getContents() instanceof TranslatableContents root) || root.getArgs().length == 0 || !(root.getArgs()[0] instanceof Component)) return null;
         return render(source, language, identity, true, 0);
