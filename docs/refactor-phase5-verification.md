@@ -154,10 +154,48 @@ loom 缓存 tiny 实证**同 intermediary 纯改名**（§4）：
 3. JitPack 在 GitHub Actions runner 的可达性（本地已证，CI 随 P5-1 实跑）。
 4. `WardenEntityMixin` 26 边 4 行差异的定类（A3 局部名 or B edge 成员）——P5-4 机械提取时裁定。
 
-## 8. 后续阶段记录（占位）
+## 8. P5-1 基础设施 + 扁平化（commit 2337cf3，2026-09-05）
 
-- P5-1（基础设施 + 扁平化）：待实施。
-- P5-1b / P5-1c / P5-2 / P5-3 / P5-4 / P5-5 / P5-6 / P5-7 / P5-8：待实施，实施后在此追加记录。
+修改：settings.gradle（pluginManagement + JitPack + resolutionStrategy + include 扁平化 `:platform-mcXXXX`）、根 build.gradle（plugins 块 + 11 节点 10 边版本图 + `strictExtraMappings=true` + 路径字面量）、gradle.properties（`preprocess_version` 全 SHA）、versions/mainProject（`platform-mc12111`）+ 10 个 0 字节 mapping 占位、common.gradle（`preprocess_enabled` 条件接入预留 + afterEvaluate 资源恢复 + 根 src 无 resources 断言 + shared_tiers 空断言）、THIRD_PARTY_NOTICES.md（preprocessor + TIS/AMS 登记）。
+
+验证：全量 build + 4 verify + jar 等价 11/11 全绿；插件确认经 JitPack 解析入 Gradle 缓存（`com.github.Fallen-Breath/preprocessor`）。全平台开关 off，行为零变化。
+
+## 9. P5-1b 行为学实验（scratch worktree `D:\Project\Carpet-Ice-Addition-P5-lab`，不入主线）
+
+实验方式：lab worktree 中完整原型化 P5-2（core flip）与 P5-3 首步（mc12110 flip）。root src = mc12111 完整编译集 100 文件（8 平台 + 92 档位逐字节复制）；lab 内对 mc12111/mc12110 置 `preprocess_enabled=true` + `shared_tiers=`。**最终态：clean build 后双翻转平台 + 其余 9 平台，4 verify + jar 等价 11/11 全绿。**
+
+### 9.1 逐项结论
+
+| 项 | 结论 |
+| - | - |
+| (a) 任务与 sourceSet 改写 | ✓ core java sourceSet = [根 src] 原位编译；非 core = [本地 src/main/java（overwrite 层）， build/preprocessed 生成目录] |
+| (b) 资源恢复 | ✓ afterEvaluate 恢复后全部资源语义等价（verifyFabricModJson / verifyCraftableCoralBlocksJars / jar 等价共同证明）；core 资源同径恢复 |
+| (c) overwrite 语义 | ✓ **本地 overwrite 文件不经宏处理、不经重映射、直接编译**；同路径时生成侧跳过该文件；异路径文件作为附加源编译（同名 FQCN 不冲突由 javac 保证） |
+| (d) 整文件 guard | ✓ 输出文件保留、全部内容行变 `//$$ ` 注释、无类型声明、不产 class（zip 条目集不受影响）。**核心纪律：root src 必须以「main 态」书写**——core 对 root src 原位编译、不运行宏引擎，凡对 1.21.11 不成立的代码行必须以 `//$$` 前缀注释态存放（等价于引擎对 MC=12111 求值后的输出态） |
+| (e) 字符串字面量 | **推翻 P5-0 §3.4 假设**：preprocessor 的源重映射器**会重映射 mixin 注解字符串**（实证：mc12110 生成源码中 `@Redirect target` 类路径 `npc/villager/Villager` 自动变为 `npc/Villager`）。裸方法名在上游侧遇多重载时报歧义错（`convertTo` 双重载），解法 = 行级 `//#disable-remap`（该行原样输出，两版本方法名相同时输出文本与旧档位一致）或补全 descriptor。@At 字符串族的 override 需求收窄至「descriptor 真变（方法增删参）」者 |
+| (f) automatic mapping | ✓ remap↔remap 边经 loom OMM 完全生效：1.21.11 批量 rename（Villager/Zombie/WanderingTrader/GameRules/ResourceLocation→Identifier/AbstractHorse 包移动族）零手工条目，生成源码正确换名并编译 |
+| (g) strictExtraMappings | ✓ `=true` + 0 字节 1.21.x 边正常（strict 路径无抱怨） |
+| (h) cleanupUnnecessaryMappings | ⏸ 未实测（需真实 mapping 内容，留 P5-4 附带观察） |
+| (i) clean build 依赖顺序 | ✓ `clean` 后从零构建（无 build/preprocessed 缓存）全绿；verifyMixinConfigs 以编译产物枚举后对翻转平台正确 |
+| (j) core 项目行为 | ✓ 本地 src/main/java 完全不参与 sourceSet（lab 中 dormant 8 文件保留、无重复类错误、断言③不计入）；core 资源经恢复逻辑正常打包 |
+| (k) mainProject | ✓ `../mainProject` 解析 + 内容 `platform-mc12111` 匹配成功（core 被正确识别，无节点查找错误） |
+| (l) evaluationDependsOn | ✓ 变换链（mc12110 → core 输出）正常 |
+
+### 9.2 新发现（重要）
+
+1. **`org.gradle.parallel=true` 与 preprocess 冲突**：非 core 平台的 preprocessCode 在执行期解析上游项目 compileClasspath，Gradle 9 抛「attempted without an exclusive lock」。`--no-parallel` 下正常。**处置：P5-3 起（首个非 core flip）将根 gradle.properties 的 `org.gradle.parallel` 改为 false（或全部命令加 --no-parallel），CI 命令不变**；构建时间影响可接受（workers.max=2 本已限流）。core-only flip（P5-2）不受影响。
+2. **仓库行尾约定 = CRLF blob**：本会话曾误判为 LF 并触发一次全库 renormalize（已 `reset --hard` 撤销）与一次 LF blob 误提交（已 amend 回 CRLF）。后续所有源文件写入保持 CRLF；lab worktree 需以 `--no-checkout` + `core.autocrlf=false` 重建以避免 smudge 伪影（Phase 2 已知伪影复核成立）。
+3. **worktree 空目录伪影**：mc261/mc262 的 `src/main/resources/data/carpet-ice-addition/`（未跟踪空目录）不随 checkout 携带，lab 需手工补齐才能过 zip 条目比对；主线不受影响。该空目录为历史遗留，P5-7 清理时一并评估。
+4. **E2 期间在 lab 施加并验证的 P5-3 式处理**（mc12110 步骤完整原型，全部达到等价）：mc12111 独有 mixin ×3 的整文件 guard（`MC>=12111` 裸文本）；GameRules/EnvironmentAttributes 宏 ×4 家族；PlayerWorlds / MachineStatusTextEvents / BlockItem base 以「main 态 //$$」入 root + guard（`MC<12111` 等）；KillItemCommand / MachineStatusCommand / MachineStatusRollbackWarningHandler 的 helper 间接性宏（维持引用集等价）；MobEntityVillagerConversionMixin 的 `//#disable-remap` ×2（convertTo 歧义）。
+
+## 10. P5-1c verifyMixinConfigs 产物化改造（commit f8d0be7）
+
+断言③反向枚举从「srcDirs 下 .java 文件」改为「jar 内 mixins 包 top-level class（排除 `$` 内部类）」。实证链条：lab 中旧口径对整文件 guard 空输出 .java 误报（mc12110 报 3 个未注册类）→ 改造后误报消除；主线旧体系一致性证明：改造前后 11 平台校验计数逐平台一致（67/64/64/64/63/63/63/63/65/64/64）。json→class 防悬空断言不变；双向等强。
+
+## 11. 后续阶段记录（占位）
+
+- P5-2（core flip）：待实施（lab 已完整原型化，见 §9）。
+- P5-3 / P5-4 / P5-5 / P5-6 / P5-7 / P5-8：待实施，实施后在此追加记录。
 
 ---
 
