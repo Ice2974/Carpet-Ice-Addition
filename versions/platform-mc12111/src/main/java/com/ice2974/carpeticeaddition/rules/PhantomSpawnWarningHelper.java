@@ -2,15 +2,14 @@ package com.ice2974.carpeticeaddition.rules;
 
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
 import com.ice2974.carpeticeaddition.translation.TranslationFormatUtil;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.stat.Stat;
-import net.minecraft.stat.Stats;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.stats.Stat;
+import net.minecraft.stats.Stats;
 import net.minecraft.world.Difficulty;
-import net.minecraft.world.rule.GameRules;
-import net.minecraft.world.World;
-
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.gamerules.GameRules;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -26,12 +25,12 @@ public final class PhantomSpawnWarningHelper {
     private PhantomSpawnWarningHelper() {
     }
 
-    public static void tick(ServerWorld world) {
-        if (!World.OVERWORLD.equals(world.getRegistryKey())) {
+    public static void tick(ServerLevel world) {
+        if (!Level.OVERWORLD.equals(world.dimension())) {
             return;
         }
 
-        long dayTime = world.getTimeOfDay();
+        long dayTime = world.getDayTime();
         long dayTick = dayTime % 24000L;
         if (dayTick < NIGHT_WARNING_TICK || dayTick >= NIGHT_WARNING_END_TICK) {
             return;
@@ -50,11 +49,11 @@ public final class PhantomSpawnWarningHelper {
             return;
         }
 
-        if (world.getServer() == null || world.getServer().getPlayerManager() == null) {
+        if (world.getServer() == null || world.getServer().getPlayerList() == null) {
             return;
         }
 
-        List<ServerPlayerEntity> onlinePlayers = world.getServer().getPlayerManager().getPlayerList();
+        List<ServerPlayer> onlinePlayers = world.getServer().getPlayerList().getPlayers();
         if (onlinePlayers.isEmpty()) {
             return;
         }
@@ -62,37 +61,37 @@ public final class PhantomSpawnWarningHelper {
         if (!hasInsomniaThresholdPlayer(onlinePlayers)) {
             return;
         }
-        for (ServerPlayerEntity player : onlinePlayers) {
-            player.sendMessage(Text.literal(TranslationFormatUtil.translate(WARNING_MESSAGE_KEY)), false);
+        for (ServerPlayer player : onlinePlayers) {
+            player.displayClientMessage(Component.literal(TranslationFormatUtil.translate(WARNING_MESSAGE_KEY)), false);
         }
     }
 
-    private static boolean hasInsomniaThresholdPlayer(List<ServerPlayerEntity> onlinePlayers) {
-        Stat<?> stat = Stats.CUSTOM.getOrCreateStat(Stats.TIME_SINCE_REST);
-        for (ServerPlayerEntity player : onlinePlayers) {
-            if (player.getStatHandler().getStat(stat) >= MIN_TIME_SINCE_REST) {
+    private static boolean hasInsomniaThresholdPlayer(List<ServerPlayer> onlinePlayers) {
+        Stat<?> stat = Stats.CUSTOM.get(Stats.TIME_SINCE_REST);
+        for (ServerPlayer player : onlinePlayers) {
+            if (player.getStats().getValue(stat) >= MIN_TIME_SINCE_REST) {
                 return true;
             }
         }
         return false;
     }
 
-    private static boolean isDoInsomniaEnabled(ServerWorld world) {
-        return Boolean.TRUE.equals(world.getGameRules().getValue(GameRules.SPAWN_PHANTOMS));
+    private static boolean isDoInsomniaEnabled(ServerLevel world) {
+        return Boolean.TRUE.equals(world.getGameRules().get(GameRules.SPAWN_PHANTOMS));
     }
 
-    private static boolean isServerAccelerated(ServerWorld world) {
+    private static boolean isServerAccelerated(ServerLevel world) {
         var server = world.getServer();
         if (server == null) {
             return false;
         }
         try {
-            var tickManager = server.getTickManager();
+            var tickManager = server.tickRateManager();
             if (tickManager != null) {
                 if (tickManager.isSprinting()) {
                     return true;
                 }
-                if (tickManager.getTickRate() > 20.0F) {
+                if (tickManager.tickrate() > 20.0F) {
                     return true;
                 }
             }

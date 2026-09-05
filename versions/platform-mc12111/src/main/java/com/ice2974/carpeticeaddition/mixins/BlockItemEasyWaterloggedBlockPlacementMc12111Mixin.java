@@ -2,13 +2,13 @@ package com.ice2974.carpeticeaddition.mixins;
 
 import com.ice2974.carpeticeaddition.CarpetIceAdditionMod;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
-import net.minecraft.block.BlockState;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.ItemPlacementContext;
-import net.minecraft.item.Items;
-import net.minecraft.state.property.Properties;
 import net.minecraft.world.attribute.EnvironmentAttributes;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -19,18 +19,18 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(BlockItem.class)
 public abstract class BlockItemEasyWaterloggedBlockPlacementMc12111Mixin {
     @Unique
-    private static final ThreadLocal<ItemPlacementContext> CARPET_ICE_ADDITION$PLACEMENT_CONTEXT = new ThreadLocal<>();
+    private static final ThreadLocal<BlockPlaceContext> CARPET_ICE_ADDITION$PLACEMENT_CONTEXT = new ThreadLocal<>();
 
-    @Inject(method = "place(Lnet/minecraft/item/ItemPlacementContext;Lnet/minecraft/block/BlockState;)Z", at = @At("HEAD"))
-    private void carpetIceAddition$cachePlacementContext(ItemPlacementContext context, BlockState state, CallbackInfoReturnable<Boolean> cir) {
+    @Inject(method = "placeBlock(Lnet/minecraft/world/item/context/BlockPlaceContext;Lnet/minecraft/world/level/block/state/BlockState;)Z", at = @At("HEAD"))
+    private void carpetIceAddition$cachePlacementContext(BlockPlaceContext context, BlockState state, CallbackInfoReturnable<Boolean> cir) {
         CARPET_ICE_ADDITION$PLACEMENT_CONTEXT.set(context);
     }
 
     @ModifyArg(
-            method = "place(Lnet/minecraft/item/ItemPlacementContext;Lnet/minecraft/block/BlockState;)Z",
+            method = "placeBlock(Lnet/minecraft/world/item/context/BlockPlaceContext;Lnet/minecraft/world/level/block/state/BlockState;)Z",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/world/World;setBlockState(Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;I)Z"
+                    target = "Lnet/minecraft/world/level/Level;setBlock(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;I)Z"
             ),
             index = 1
     )
@@ -40,21 +40,21 @@ public abstract class BlockItemEasyWaterloggedBlockPlacementMc12111Mixin {
                 return state;
             }
 
-            ItemPlacementContext context = CARPET_ICE_ADDITION$PLACEMENT_CONTEXT.get();
+            BlockPlaceContext context = CARPET_ICE_ADDITION$PLACEMENT_CONTEXT.get();
             if (context == null) {
                 return state;
             }
 
-            if (context.getWorld().getEnvironmentAttributes().getAttributeValue(EnvironmentAttributes.WATER_EVAPORATES_GAMEPLAY, context.getBlockPos())) {
+            if (context.getLevel().environmentAttributes().getValue(EnvironmentAttributes.WATER_EVAPORATES, context.getClickedPos())) {
                 return state;
             }
 
-            PlayerEntity player = context.getPlayer();
-            if (player == null || !player.getOffHandStack().isOf(Items.WATER_BUCKET) || !state.contains(Properties.WATERLOGGED)) {
+            Player player = context.getPlayer();
+            if (player == null || !player.getOffhandItem().is(Items.WATER_BUCKET) || !state.hasProperty(BlockStateProperties.WATERLOGGED)) {
                 return state;
             }
 
-            return state.with(Properties.WATERLOGGED, true);
+            return state.setValue(BlockStateProperties.WATERLOGGED, true);
         } catch (Throwable throwable) {
             CarpetIceAdditionMod.reportFeatureCompatibilityIssue("easyWaterloggedBlockPlacement", throwable);
             return state;
@@ -63,8 +63,8 @@ public abstract class BlockItemEasyWaterloggedBlockPlacementMc12111Mixin {
         }
     }
 
-    @Inject(method = "place(Lnet/minecraft/item/ItemPlacementContext;Lnet/minecraft/block/BlockState;)Z", at = @At("RETURN"))
-    private void carpetIceAddition$clearPlacementContext(ItemPlacementContext context, BlockState state, CallbackInfoReturnable<Boolean> cir) {
+    @Inject(method = "placeBlock(Lnet/minecraft/world/item/context/BlockPlaceContext;Lnet/minecraft/world/level/block/state/BlockState;)Z", at = @At("RETURN"))
+    private void carpetIceAddition$clearPlacementContext(BlockPlaceContext context, BlockState state, CallbackInfoReturnable<Boolean> cir) {
         CARPET_ICE_ADDITION$PLACEMENT_CONTEXT.remove();
     }
 }

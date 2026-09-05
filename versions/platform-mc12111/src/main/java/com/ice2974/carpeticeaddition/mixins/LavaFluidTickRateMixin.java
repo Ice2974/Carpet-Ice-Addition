@@ -2,12 +2,12 @@ package com.ice2974.carpeticeaddition.mixins;
 
 import com.ice2974.carpeticeaddition.rules.FluidTickDelayUtil;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionFluidSettings;
-import net.minecraft.fluid.Fluid;
-import net.minecraft.fluid.Fluids;
-import net.minecraft.fluid.LavaFluid;
-import net.minecraft.world.WorldView;
-import net.minecraft.world.attribute.EnvironmentAttributeAccess;
+import net.minecraft.world.attribute.EnvironmentAttributeReader;
 import net.minecraft.world.attribute.EnvironmentAttributes;
+import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.material.Fluid;
+import net.minecraft.world.level.material.Fluids;
+import net.minecraft.world.level.material.LavaFluid;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -31,8 +31,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(LavaFluid.class)
 public abstract class LavaFluidTickRateMixin {
 
-    @Inject(method = "getTickRate", at = @At("HEAD"), cancellable = true)
-    private void carpetIceAddition$lavaTickRate(WorldView world, CallbackInfoReturnable<Integer> cir) {
+    @Inject(method = "getTickDelay", at = @At("HEAD"), cancellable = true)
+    private void carpetIceAddition$lavaTickRate(LevelReader world, CallbackInfoReturnable<Integer> cir) {
         Fluid self = (Fluid) (Object) this;
         if (self != Fluids.LAVA && self != Fluids.FLOWING_LAVA) {
             return;
@@ -40,8 +40,8 @@ public abstract class LavaFluidTickRateMixin {
         if (CarpetIceAdditionFluidSettings.lavaFrozen) {
             return;
         }
-        EnvironmentAttributeAccess access = world.getEnvironmentAttributes();
-        Boolean fastLava = access.getAttributeValue(EnvironmentAttributes.FAST_LAVA_GAMEPLAY);
+        EnvironmentAttributeReader access = world.environmentAttributes();
+        Boolean fastLava = access.getDimensionValue(EnvironmentAttributes.FAST_LAVA);
         boolean ultrawarm = fastLava != null && fastLava;
         cir.setReturnValue(FluidTickDelayUtil.getLavaDelay(CarpetIceAdditionFluidSettings.lavaDelay, ultrawarm));
     }
