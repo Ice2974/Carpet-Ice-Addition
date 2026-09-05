@@ -22,7 +22,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * 的更名（Yarn 改名断点，语义不变），1.21.1 版本见 platform-mc1211 档。
  */
 @Mixin(GoToWantedItem.class)
-public abstract class WalkTowardsNearestVisibleWantedItemTaskIronGolemOptimizationMixin {
+public abstract class GoToWantedItemIronGolemOptimizationMixin {
 
     @Inject(method = "create(FZI)Lnet/minecraft/world/entity/ai/behavior/BehaviorControl;", at = @At("RETURN"))
     private static void carpetIceAddition$markForIronGolemOptimization(float speed, boolean requiresWalkTarget, int radius, CallbackInfoReturnable<BehaviorControl<LivingEntity>> cir) {

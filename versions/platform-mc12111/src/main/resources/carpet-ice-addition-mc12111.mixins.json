@@ -62,7 +62,7 @@
     "ResetProfessionIronGolemOptimizationMixin",
     "PoiCompetitorScanIronGolemOptimizationMixin",
     "AssignProfessionFromJobSiteIronGolemOptimizationMixin",
-    "WalkTowardsNearestVisibleWantedItemTaskIronGolemOptimizationMixin",
+    "GoToWantedItemIronGolemOptimizationMixin",
     "GoToPotentialJobSiteIronGolemOptimizationMixin",
     "AcquirePoiIronGolemOptimizationMixin",
     "SetRaidStatusIronGolemOptimizationMixin",
