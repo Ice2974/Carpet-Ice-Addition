@@ -1,4 +1,4 @@
-//#if MC>=12103 && MC<12111
+//#if MC<12111
 //$$ package com.ice2974.carpeticeaddition.mixins;
 
 //$$ import com.ice2974.carpeticeaddition.CarpetIceAdditionMod;

@@ -1,3 +1,4 @@
+//#if MC>=12103
 package com.ice2974.carpeticeaddition.mixins;
 
 import com.ice2974.carpeticeaddition.rules.IronGolemVillagerOptimizationHooks;
@@ -27,3 +28,4 @@ public abstract class WalkTowardsNearestVisibleWantedItemTaskIronGolemOptimizati
         IronGolemVillagerOptimizationHooks.markTaskInstance(cir.getReturnValue(), "WalkTowardsNearestVisibleWantedItemTask.create");
     }
 }
+//#endif
