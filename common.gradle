@@ -4,7 +4,8 @@
 //   必需键：minecraft_version / release_minecraft_range / minecraft_dependency / loader_version /
 //           fabric_version / fabric_dependency / carpet_version / carpet_dependency / carpet_repo /
 //           loom_plugin / jar_task / java_release / pack_format / mixin_config / shared_tiers
-//   可选键：yarn_mappings（免混淆平台无）/ java_toolchain（仅 26.x）/ extra_resource_dirs
+//   可选键：yarn_mappings（Phase 4 过渡期：remap 形态下存在=Yarn、缺省=Mojmap；终态删除）/
+//           java_toolchain（仅 26.x）/ extra_resource_dirs
 // jar_task=remap：Yarn 映射形态，依赖走 modImplementation，产物经 remapJar/remapSourcesJar 命名
 // jar_task=plain：免混淆形态，依赖走 implementation，产物经 jar/sourcesJar 命名
 
@@ -38,8 +39,17 @@ dependencies {
     implementation project(':common')
 
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
-    if (project.hasProperty('yarn_mappings')) {
-        mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+    // Phase 4 过渡期（P4-1 起）：remap 形态下 yarn_mappings 键存在与否决定命名空间——
+    //   仍带键的平台走 Yarn（尚未迁移）；已删键的平台走 officialMojangMappings（layered）。
+    //   全部 1.21.x 平台完成切换后，本过渡分支与所有 yarn_mappings 键一并删除，终态为无条件 Mojmap。
+    if (remapFamily) {
+        if (project.hasProperty('yarn_mappings')) {
+            mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+        } else {
+            mappings loom.layered() {
+                officialMojangMappings()
+            }
+        }
     }
 
     def loaderNotation = "net.fabricmc:fabric-loader:${project.loader_version}"

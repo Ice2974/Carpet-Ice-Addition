@@ -193,9 +193,10 @@ def verifyMixinConfigs = tasks.register('verifyMixinConfigs') {
     }
 }
 
-// L1-6 jar 内容级等价对照（Phase 2）：与 Phase 1 迁移前（0270fc3）的全量构建快照逐平台比对。
+// L1-6 jar 内容级等价对照（Phase 2）：与迁移前全量构建快照逐平台比对。
 // 用法：.\gradlew.bat verifyJarEquivalence -PbaselineDir=<快照根目录>（含 versions/platform-*/build/libs 的目录，建议绝对路径）
-// 比对项：zip 条目清单、fabric.mod.json 解析后逐键语义、全部 *.mixins.json 字节、pack.mcmeta 的 pack_format；
+// 比对项：zip 条目清单、fabric.mod.json 解析后逐键语义、全部 *.mixins.json 字节、pack.mcmeta 的 pack_format、
+// 以及本模组全部 class 的 intermediary 引用集合（P4-1 新增，Phase 4 命名空间迁移语义防线，见任务内注释）；
 // 另核对两侧 sources jar 存在且同名。class 文件不做字节级比对（编译时间戳噪声，见 refactor-target-architecture R5）。
 def verifyJarEquivalence = tasks.register('verifyJarEquivalence') {
     doLast {
@@ -267,6 +268,40 @@ def verifyJarEquivalence = tasks.register('verifyJarEquivalence') {
             def baselinePackFormat = slurper.parseText(readEntryText(baselineJar, packMetaPath)).pack.pack_format
             assert currentPackFormat == baselinePackFormat:
                     "pack_format mismatch for ${currentJar.name}: current=${currentPackFormat} baseline=${baselinePackFormat}"
+
+            // P4-1 intermediary 引用集合语义比较（Phase 4 命名空间迁移等价防线）。
+            // 实证记录：本项目 loom 构建不产出 refmap（注解目标在 remapJar 时直接重映射进 class 常量池，
+            // mixin json 无 refmap 指针），因此 Yarn→Mojmap 迁移的语义验证对象是 class 文件内的
+            // (class|method|field)_NNNN intermediary 引用集合：同名 class 在两侧 jar 中集合必须完全一致。
+            // 覆盖 mixin 注解目标（@Mixin/@Inject/@At/@Shadow/@Accessor 字符串）与全部编译期 MC 成员调用；
+            // 检出案例：BeaconBlockEntityMixin 的 @At target 在自动迁移中未被重映射（getOpacity→getLightBlock），
+            // 该差异在本比较下必现，杜绝 blanket 忽略。
+            def intermediaryPattern = ~/(?:class|method|field)_[0-9]+/
+            def readIntermediaryRefs = { File jarFile, Collection<String> entryNames ->
+                def result = [:]
+                new java.util.zip.ZipFile(jarFile).withCloseable { zip ->
+                    entryNames.each { entryName ->
+                        def bytes = zip.getInputStream(zip.getEntry(entryName)).withCloseable { it.readAllBytes() }
+                        def matcher = intermediaryPattern.matcher(new String(bytes, java.nio.charset.StandardCharsets.ISO_8859_1))
+                        def refs = new TreeSet<String>()
+                        while (matcher.find()) {
+                            refs << matcher.group()
+                        }
+                        result[entryName] = refs
+                    }
+                }
+                result
+            }
+            def ourClassEntries = currentEntries.findAll { it.startsWith('com/ice2974/') && it.endsWith('.class') } as Set
+            def currentRefs = readIntermediaryRefs(currentJar, ourClassEntries)
+            def baselineRefs = readIntermediaryRefs(baselineJar, ourClassEntries)
+            ourClassEntries.sort().each { entryName ->
+                assert currentRefs[entryName] == baselineRefs[entryName]:
+                        "intermediary reference set differs for ${entryName} in ${currentJar.name} vs ${baselineJar.name}:\n" +
+                        "  only in current: ${(currentRefs[entryName] - baselineRefs[entryName]).sort()}\n" +
+                        "  only in baseline: ${(baselineRefs[entryName] - currentRefs[entryName]).sort()}"
+            }
+            println "intermediary refs OK: ${ourClassEntries.size()} classes (${currentJar.name})"
 
             println "L1-6 equivalence OK: ${currentJar.name}"
         }
