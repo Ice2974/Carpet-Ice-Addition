@@ -236,18 +236,359 @@ def verifyMixinConfigs = tasks.register('verifyMixinConfigs') {
     }
 }
 
-// L1-6 jar 内容级等价对照（Phase 2）：与迁移前全量构建快照逐平台比对。
-// 用法：.\gradlew.bat verifyJarEquivalence -PbaselineDir=<快照根目录>（含 versions/platform-*/build/libs 的目录，建议绝对路径）
-// 比对项：zip 条目清单、fabric.mod.json 解析后逐键语义、全部 *.mixins.json 字节、pack.mcmeta 的 pack_format、
-// 以及本模组全部 class 的 intermediary 引用集合（P4-1 新增，Phase 4 命名空间迁移语义防线，见任务内注释）；
-// 另核对两侧 sources jar 存在且同名。class 文件不做字节级比对（编译时间戳噪声，见 refactor-target-architecture R5）。
+// ==================== Phase 6（P6-1）：class rename 等价验证框架 ====================
+// 显式 class rename mapping（versions/class-rename-mapping.txt）是 verifyJarEquivalence 的唯一差异豁免通道：
+//   - 每行 `<oldFQCN> -> <newFQCN>`；仅允许项目自有类（com.ice2974.*）整类 rename，禁止链式映射；
+//   - per-platform bijective：mapping 应用到某平台 baseline 条目后必须与当前条目一一对应，
+//     同平台不得产生映射碰撞；不同平台的互斥历史名允许映射到同一目的地；
+//   - 无 wildcard / 字面量豁免：rename 之外的任何常量、方法、字段、指令、字符串字面量、
+//     注释或资源差异都必须失败并人工分析（fail closed）。
+// renamed-pair 等价证明优先级：
+//   channel A = sourcesJar 源码规范化等价（仅 code 段整词改写类名引用；字符串字面量 / char /
+//               text block / 注释逐字符原样比较，任何 literal 或注释差异都失败）；
+//   channel B = asm classfile 规范化等价（SimpleRemapper 重映射 internal name + 剔除 SourceFile
+//               self-name 元数据后重建字节做严格比较；字符串字面量不被重映射，差异即失败）；
+//   A/B 均不可用时 fail closed（不新增依赖、不自建宽松 comparator）。
+// baseline 快照永久只读：verifyJarEquivalence 只读不写。快照布局兼容两种形态：
+//   P4 系 versions/platform-*/build/libs 与 P5 系 platform-*/build/libs（flat）。
+//   不得为迎合验证器修改 / 重建 P5-baseline-final；若工具链漂移需要同工具链 P5 对照，
+//   只允许以 Phase 5 HEAD 5953a8e472b16e6007ab6158cc1cc68f4bb16eb7 clean build
+//   建立明确标记的辅助 P5 baseline，禁止从含 Phase 6 改动的工作区重建 P5 baseline。
+def classRenameMappingFile = rootProject.file('versions/class-rename-mapping.txt')
+
+def loadClassRenameMapping = {
+    def mapping = new LinkedHashMap<String, String>()
+    if (!classRenameMappingFile.isFile()) {
+        return mapping
+    }
+    classRenameMappingFile.eachLine { line, lineNo ->
+        def text = line.trim()
+        if (text.isEmpty() || text.startsWith('#')) {
+            return
+        }
+        def parts = text.split(/\s+->\s+/)
+        assert parts.size() == 2 && parts[0].trim() && parts[1].trim():
+                "class rename mapping 第 ${lineNo} 行格式错误（应为 `<oldFQCN> -> <newFQCN>`）: ${line}"
+        def oldFqcn = parts[0].trim()
+        def newFqcn = parts[1].trim()
+        assert oldFqcn.startsWith('com.ice2974.') && newFqcn.startsWith('com.ice2974.'):
+                "class rename mapping 只允许项目自有类（com.ice2974.*）: ${line}"
+        assert oldFqcn != newFqcn: "class rename mapping old == new: ${oldFqcn}"
+        assert !mapping.containsKey(oldFqcn): "class rename mapping old FQCN 重复: ${oldFqcn}"
+        mapping[oldFqcn] = newFqcn
+    }
+    def oldSimples = mapping.keySet().collect { it.substring(it.lastIndexOf('.') + 1) } as Set
+    mapping.each { oldFqcn, newFqcn ->
+        def newSimple = newFqcn.substring(newFqcn.lastIndexOf('.') + 1)
+        assert !oldSimples.contains(newSimple):
+                "class rename mapping 存在链式 / 交叠映射：目的地简名 ${newSimple} 同时是另一行的 old 简名"
+    }
+    return mapping
+}
+
+// ---- Java 源码分段（renamed-pair channel A 的 fail-closed 基础设施）----
+// 将源码切成 [kind, text] 段：code / lineComment / blockComment / string / char / textBlock。
+// canonicalization 只允许对 code 段做整词类名改写（Java 类型 / self-reference 语义）；
+// 字面量与注释段原样保留参与比较——任何 literal / 注释差异都会使比较失败，不得放行。
+def segmentJavaSource = { String source ->
+    def segments = []
+    def buf = new StringBuilder()
+    def emit = { String kind ->
+        if (buf.length() > 0) {
+            segments << [kind, buf.toString()]
+            buf.setLength(0)
+        }
+    }
+    int i = 0
+    int n = source.length()
+    while (i < n) {
+        char c = source.charAt(i)
+        if (c == '/' as char && i + 1 < n && source.charAt(i + 1) == '/' as char) {
+            emit('code')
+            int j = source.indexOf('\n', i)
+            j = j < 0 ? n : j
+            buf.append(source.substring(i, j))
+            emit('lineComment')
+            i = j
+        } else if (c == '/' as char && i + 1 < n && source.charAt(i + 1) == '*' as char) {
+            emit('code')
+            int j = source.indexOf('*/', i + 2)
+            j = j < 0 ? n : j + 2
+            buf.append(source.substring(i, j))
+            emit('blockComment')
+            i = j
+        } else if (c == '"' as char && i + 2 < n && source.charAt(i + 1) == '"' as char && source.charAt(i + 2) == '"' as char) {
+            emit('code')
+            int j = source.indexOf('"""', i + 3)
+            j = j < 0 ? n : j + 3
+            buf.append(source.substring(i, j))
+            emit('textBlock')
+            i = j
+        } else if (c == '"' as char) {
+            emit('code')
+            int j = i + 1
+            while (j < n) {
+                char d = source.charAt(j)
+                if (d == '\\' as char) {
+                    j += 2
+                } else if (d == '"' as char) {
+                    j++
+                    break
+                } else {
+                    j++
+                }
+            }
+            j = Math.min(j, n)
+            buf.append(source.substring(i, j))
+            emit('string')
+            i = j
+        } else if (c == '\'' as char) {
+            emit('code')
+            int j = i + 1
+            while (j < n) {
+                char d = source.charAt(j)
+                if (d == '\\' as char) {
+                    j += 2
+                } else if (d == '\'' as char) {
+                    j++
+                    break
+                } else {
+                    j++
+                }
+            }
+            j = Math.min(j, n)
+            buf.append(source.substring(i, j))
+            emit('char')
+            i = j
+        } else {
+            buf.append(c)
+            i++
+        }
+    }
+    emit('code')
+    return segments
+}
+
+def canonicalizeRenamedSource = { String oldSource, Collection renamePairs ->
+    def out = new StringBuilder()
+    segmentJavaSource(oldSource).each { segment ->
+        String text = segment[1]
+        if (segment[0] == 'code') {
+            renamePairs.each { pair ->
+                text = text.replaceAll(
+                        '\\b' + java.util.regex.Pattern.quote(pair.simpleOld) + '\\b',
+                        java.util.regex.Matcher.quoteReplacement(pair.simpleNew))
+            }
+        }
+        out.append(text)
+    }
+    return out.toString()
+}
+
+def firstDiffPreview = { String left, String right ->
+    int idx = 0
+    int limit = Math.min(left.length(), right.length())
+    while (idx < limit && left.charAt(idx) == right.charAt(idx)) {
+        idx++
+    }
+    int from = Math.max(0, idx - 80)
+    int to = Math.min(idx + 160, Math.max(left.length(), right.length()))
+    return "首个差异位置 ${idx}; left=[${left.substring(from, Math.min(to, left.length()))}] " +
+            "right=[${right.substring(from, Math.min(to, right.length()))}]"
+}
+
+// ---- mapping → jar 条目路径映射 ----
+def mapClassEntryPath = { String classEntry, Map<String, String> mapping ->
+    def withoutSuffix = classEntry.substring(0, classEntry.length() - '.class'.length())
+    String bestOldPath = null
+    String bestNewFqcn = null
+    mapping.each { oldFqcn, newFqcn ->
+        def oldPath = oldFqcn.replace('.', '/')
+        if ((withoutSuffix == oldPath || withoutSuffix.startsWith(oldPath + '$')) &&
+                (bestOldPath == null || oldPath.length() > bestOldPath.length())) {
+            bestOldPath = oldPath
+            bestNewFqcn = newFqcn
+        }
+    }
+    if (bestOldPath == null) {
+        return classEntry
+    }
+    return bestNewFqcn.replace('.', '/') + withoutSuffix.substring(bestOldPath.length()) + '.class'
+}
+
+def mapSourceEntryPath = { String javaEntry, Map<String, String> mapping ->
+    if (!javaEntry.endsWith('.java')) {
+        return javaEntry
+    }
+    def fqcn = javaEntry.substring(0, javaEntry.length() - '.java'.length()).replace('/', '.')
+    return mapping.containsKey(fqcn) ? mapping[fqcn].replace('.', '/') + '.java' : javaEntry
+}
+
+def mapMixinConfigEntries = { Object parsed, Map<String, String> mapping ->
+    if (mapping.isEmpty() || parsed == null) {
+        return parsed
+    }
+    def pkg = parsed.package?.toString()
+    def clone = new LinkedHashMap<Object, Object>(parsed)
+    ['mixins', 'client'].each { key ->
+        if (clone.containsKey(key) && clone[key] != null) {
+            clone[key] = (clone[key] as List).collect { entry ->
+                def fqcn = "${pkg}.${entry}".toString()
+                mapping.containsKey(fqcn) ? mapping[fqcn].substring(mapping[fqcn].lastIndexOf('.') + 1) : entry
+            }
+        }
+    }
+    return clone
+}
+
+// ---- channel B：asm classfile 规范化（探测构建环境既有 asm / Gradle 发行版自带 asm，零新增依赖）----
+def probeAsmClasses = { String pkg, ClassLoader loader ->
+    try {
+        Class.forName(pkg + '.ClassReader', false, loader)
+        Class.forName(pkg + '.ClassWriter', false, loader)
+        Class.forName(pkg + '.commons.ClassRemapper', false, loader)
+        Class.forName(pkg + '.commons.SimpleRemapper', false, loader)
+        return true
+    } catch (Throwable ignored) {
+        return false
+    }
+}
+
+def asmProbeCache = [:]
+def probeAsmSupport = { ->
+    if (!asmProbeCache.isEmpty()) {
+        return asmProbeCache.result
+    }
+    // 候选 1：脚本可见的 classloader 层级内既有 asm（含 Gradle 内部 impldep 着色副本）
+    def candidateLoaders = []
+    [this.class.classLoader, Thread.currentThread().contextClassLoader].each { start ->
+        def cl = start
+        while (cl != null) {
+            candidateLoaders << cl
+            cl = cl.parent
+        }
+    }
+    for (String pkg in ['org.objectweb.asm', 'org.gradle.internal.impldep.org.objectweb.asm']) {
+        for (ClassLoader loader in candidateLoaders.unique()) {
+            if (probeAsmClasses(pkg, loader)) {
+                asmProbeCache.result = [pkg: pkg, loader: loader, source: "classpath:${pkg}"]
+                return asmProbeCache.result
+            }
+        }
+    }
+    // 候选 2：Gradle 发行版 lib/ 自带的 asm / asm-tree / asm-commons（随发行版分发，零新增依赖）
+    try {
+        def libDir = new File(project.gradle.gradleHomeDir, 'lib')
+        def jars = ['asm', 'asm-tree', 'asm-commons'].collect { name ->
+            def found = libDir.listFiles().findAll {
+                it.name == "${name}.jar" || (it.name.startsWith("${name}-") && it.name.endsWith('.jar'))
+            }.sort()
+            assert !found.isEmpty(): "Gradle 发行版 lib/ 未找到 ${name} jar"
+            found.last()
+        }.unique()
+        def loader = new java.net.URLClassLoader(jars.collect { it.toURI().toURL() } as java.net.URL[], this.class.classLoader)
+        if (probeAsmClasses('org.objectweb.asm', loader)) {
+            asmProbeCache.result = [pkg: 'org.objectweb.asm', loader: loader, source: "gradle-dist:${jars*.name.sort().join(',')}"]
+            return asmProbeCache.result
+        }
+    } catch (Throwable ignored) {
+        // 探测失败 → channel B 不可用（fail closed）
+    }
+    asmProbeCache.result = null
+    return null
+}
+
+def asmCanonicalizerCache = [:]
+def loadAsmCanonicalizer = { String pkg, ClassLoader loader ->
+    def cacheKey = "${pkg}@${loader}".toString()
+    if (asmCanonicalizerCache.containsKey(cacheKey)) {
+        return asmCanonicalizerCache[cacheKey]
+    }
+    def dynamicLoader = new GroovyClassLoader(loader)
+    def parsed = dynamicLoader.parseClass("""
+        import ${pkg}.ClassReader
+        import ${pkg}.ClassWriter
+        import ${pkg}.ClassVisitor
+        import ${pkg}.Opcodes
+        import ${pkg}.commons.ClassRemapper
+        import ${pkg}.commons.SimpleRemapper
+
+        class RenameClassfileCanonicalizer {
+            // internal name 重映射 + SourceFile（self-name 元数据）剔除；字符串字面量不被重映射。
+            static byte[] canonicalize(byte[] classBytes, Map<String, String> internalRenames) {
+                def writer = new ClassWriter(0)
+                def stripSource = new ClassVisitor(Opcodes.ASM9, writer) {
+                    @Override
+                    void visitSource(String source, String debug) {
+                    }
+                }
+                new ClassReader(classBytes).accept(new ClassRemapper(stripSource, new SimpleRemapper(internalRenames)), 0)
+                return writer.toByteArray()
+            }
+
+            static byte[] buildSampleClass(String internalName, String sourceFile, String literal) {
+                def writer = new ClassWriter(0)
+                writer.visit(Opcodes.V17, Opcodes.ACC_PUBLIC | Opcodes.ACC_SUPER, internalName, null, 'java/lang/Object', null)
+                writer.visitSource(sourceFile, null)
+                def mv = writer.visitMethod(Opcodes.ACC_PUBLIC, 'hello', '()Ljava/lang/String;', null, null)
+                mv.visitCode()
+                mv.visitLdcInsn(literal)
+                mv.visitInsn(Opcodes.ARETURN)
+                mv.visitMaxs(1, 1)
+                mv.visitEnd()
+                writer.visitEnd()
+                return writer.toByteArray()
+            }
+        }
+    """)
+    def result = [
+            canonicalize: { byte[] bytes, Map renames ->
+                org.codehaus.groovy.runtime.InvokerHelper.invokeStaticMethod(parsed, 'canonicalize', [bytes, renames] as Object[])
+            },
+            buildSample : { String internalName, String sourceFile, String literal ->
+                org.codehaus.groovy.runtime.InvokerHelper.invokeStaticMethod(parsed, 'buildSampleClass', [internalName, sourceFile, literal] as Object[])
+            }
+    ]
+    asmCanonicalizerCache[cacheKey] = result
+    return result
+}
+
+def channelBEquivalence = { byte[] oldClassBytes, byte[] newClassBytes, String oldFqcn, String newFqcn ->
+    def asm = probeAsmSupport()
+    if (asm == null) {
+        return 'channel B 不可用（构建环境无既有 asm/asm-commons，按规约不新增依赖）'
+    }
+    try {
+        def canonicalizer = loadAsmCanonicalizer(asm.pkg, asm.loader)
+        def internalRenames = [(oldFqcn.replace('.', '/')): newFqcn.replace('.', '/')]
+        def canonicalOld = canonicalizer.canonicalize(oldClassBytes, internalRenames)
+        def canonicalNew = canonicalizer.canonicalize(newClassBytes, [:])
+        if (java.util.Arrays.equals(canonicalOld, canonicalNew)) {
+            return null
+        }
+        return 'channel B classfile 规范形态不等价（存在 rename 之外的结构 / 指令 / 字面量差异）'
+    } catch (Throwable t) {
+        return "channel B 执行失败（fail closed）: ${t}"
+    }
+}
+
+// Phase 6 jar 内容级等价对照：与基线快照逐平台比对（mapping 感知版）。
+// 用法：.\gradlew.bat verifyJarEquivalence -PbaselineDir=<快照根目录>（建议绝对路径）
+// 比对项：zip 条目清单（com/ice2974/ class 条目按显式 mapping 做 bijective 对齐）、
+// fabric.mod.json 解析后逐键语义、*.mixins.json（字节一致，或 mapping 感知解析等价）、
+// pack.mcmeta 的 pack_format、全部 class 的 intermediary 引用集合（P4-1 防线），
+// 以及 renamed-pair 的 channel A/B 等价证明；sources jar 存在性 + mapping 感知条目覆盖。
 def verifyJarEquivalence = tasks.register('verifyJarEquivalence') {
     doLast {
         def baselineDirName = project.findProperty('baselineDir')
         if (baselineDirName == null) {
-            throw new GradleException('缺少 -PbaselineDir=<迁移前全量构建快照根目录>（指向含 versions/platform-*/build/libs 的目录，建议绝对路径）')
+            throw new GradleException('缺少 -PbaselineDir=<全量构建快照根目录>（支持 versions/platform-*/build/libs 与 platform-*/build/libs 两种布局，建议绝对路径）')
         }
         def baselineRoot = rootProject.file(baselineDirName)
+        def mapping = loadClassRenameMapping()
+        if (!mapping.isEmpty()) {
+            println "class rename mapping: ${mapping.size()} 条（verifyJarEquivalence 按 mapping 做 bijective 对齐与 renamed-pair 等价验证）"
+        }
 
         platformProjects.each { projectPath ->
             def platform = project(projectPath)
@@ -256,29 +597,26 @@ def verifyJarEquivalence = tasks.register('verifyJarEquivalence') {
             assert currentJar.isFile(): "Missing release JAR for ${projectPath}: ${currentJar}"
 
             def platformCode = platform.name.substring('platform-'.length())
-            def baselineJar = new File(baselineRoot, "versions/platform-${platformCode}/build/libs/${currentJar.name}")
-            assert baselineJar.isFile(): "Baseline JAR not found for ${projectPath}: ${baselineJar}"
+            def baselineJarCandidates = [
+                    new File(baselineRoot, "versions/platform-${platformCode}/build/libs/${currentJar.name}"),
+                    new File(baselineRoot, "platform-${platformCode}/build/libs/${currentJar.name}")
+            ]
+            def baselineJar = baselineJarCandidates.find { it.isFile() }
+            assert baselineJar != null:
+                    "Baseline JAR not found for ${projectPath}（尝试过: ${baselineJarCandidates*.path}）；" +
+                    'baseline 快照永久只读，不得修改 / 重建 P5-baseline-final'
 
             def sourcesName = { String jarName -> "${jarName.substring(0, jarName.length() - 4)}-sources.jar" }
-            assert new File(currentJar.parentFile, sourcesName(currentJar.name)).isFile():
-                    "Missing current sources JAR for ${projectPath}"
-            assert new File(baselineJar.parentFile, sourcesName(baselineJar.name)).isFile():
-                    "Baseline sources JAR not found for ${projectPath}"
+            def currentSourcesJar = new File(currentJar.parentFile, sourcesName(currentJar.name))
+            def baselineSourcesJar = new File(baselineJar.parentFile, sourcesName(baselineJar.name))
+            assert currentSourcesJar.isFile(): "Missing current sources JAR for ${projectPath}"
+            assert baselineSourcesJar.isFile(): "Baseline sources JAR not found for ${projectPath}"
 
             def readEntries = { File jarFile ->
                 new java.util.zip.ZipFile(jarFile).withCloseable { zip ->
                     zip.entries().collect { entry -> entry.name } as Set<String>
                 }
             }
-            def currentEntries = readEntries(currentJar)
-            def baselineEntries = readEntries(baselineJar)
-            def missingEntries = (baselineEntries - currentEntries).sort()
-            def extraEntries = (currentEntries - baselineEntries).sort()
-            if (missingEntries || extraEntries) {
-                throw new GradleException("Zip entry mismatch for ${currentJar.name} vs ${baselineJar.name}:\n" +
-                        "  missing in current: ${missingEntries}\n  extra in current: ${extraEntries}")
-            }
-
             def readEntryBytes = { File jarFile, String entryName ->
                 new java.util.zip.ZipFile(jarFile).withCloseable { zip ->
                     def entry = zip.getEntry(entryName)
@@ -291,6 +629,97 @@ def verifyJarEquivalence = tasks.register('verifyJarEquivalence') {
             def readEntryText = { File jarFile, String entryName ->
                 new String(readEntryBytes(jarFile, entryName), java.nio.charset.StandardCharsets.UTF_8)
             }
+            def currentEntries = readEntries(currentJar)
+            def baselineEntries = readEntries(baselineJar)
+
+            // ---- 1) 条目集合：com/ice2974/ class 条目按显式 mapping 做 bijective 对齐，其余条目严格同名 ----
+            def isOurClassEntry = { String name -> name.startsWith('com/ice2974/') && name.endsWith('.class') }
+            def baselineClassEntries = (baselineEntries.findAll(isOurClassEntry) as Set) as List
+            def currentClassEntriesSet = currentEntries.findAll(isOurClassEntry) as Set
+            def mappedBaseline = [:]
+            baselineClassEntries.each { entry ->
+                def mapped = mapClassEntryPath(entry, mapping)
+                if (mapped != entry) {
+                    mappedBaseline[entry] = mapped
+                }
+            }
+            def unmappedBaseline = baselineClassEntries.findAll { !mappedBaseline.containsKey(it) }
+            def expectedClassEntries = (unmappedBaseline.collect() + mappedBaseline.values()) as Set
+            assert expectedClassEntries.size() == baselineClassEntries.size():
+                    "class rename mapping 在 ${projectPath} 产生映射碰撞：mapping 应用后期望 ${expectedClassEntries.size()} 条，" +
+                    "baseline 有 ${baselineClassEntries.size()} 条（同一平台内映射后必须一一对应）"
+            assert currentClassEntriesSet == expectedClassEntries:
+                    "Zip class entry mismatch for ${currentJar.name} vs ${baselineJar.name} (mapping-aware):\n" +
+                    "  missing in current: ${(expectedClassEntries - currentClassEntriesSet).sort()}\n" +
+                    "  extra in current: ${(currentClassEntriesSet - expectedClassEntries).sort()}"
+            def currentOtherEntries = currentEntries.findAll { !isOurClassEntry(it) } as Set
+            def baselineOtherEntries = baselineEntries.findAll { !isOurClassEntry(it) } as Set
+            assert currentOtherEntries == baselineOtherEntries:
+                    "Zip non-class entry mismatch for ${currentJar.name} vs ${baselineJar.name}:\n" +
+                    "  missing in current: ${(baselineOtherEntries - currentOtherEntries).sort()}\n" +
+                    "  extra in current: ${(currentOtherEntries - baselineOtherEntries).sort()}"
+
+            // ---- 2) sources jar 条目覆盖（mapping 感知）----
+            // 门控空文件被同路径 override 吸收时条目数可合并减少，故做双向覆盖检查而非条目数相等。
+            def isOurSourceEntry = { String name -> name.startsWith('com/ice2974/') && name.endsWith('.java') }
+            def currentSourcesEntries = readEntries(currentSourcesJar)
+            def baselineSourcesEntries = readEntries(baselineSourcesJar)
+            def expectedSourcesDestinations = baselineSourcesEntries.findAll(isOurSourceEntry)
+                    .collect { mapSourceEntryPath(it, mapping) } as Set
+            baselineSourcesEntries.findAll(isOurSourceEntry).each { entry ->
+                def dest = mapSourceEntryPath(entry, mapping)
+                assert currentSourcesEntries.contains(dest):
+                        "sources entry ${entry} 期望映射到 ${dest} 但当前 sources jar 缺失（${projectPath}）"
+            }
+            def unexplainedSources = currentSourcesEntries.findAll(isOurSourceEntry)
+                    .findAll { !expectedSourcesDestinations.contains(it) }
+            assert unexplainedSources.isEmpty():
+                    "当前 sources jar 存在 baseline 中无来源的条目（${projectPath}）: ${unexplainedSources.sort()}"
+
+            // ---- 3) renamed-pair 等价证明（channel A 源码规范化等价 → channel B classfile 规范化等价）----
+            def renamedPairs = mappedBaseline.findAll { oldEntry, destEntry -> !oldEntry.contains('$') }
+            if (!renamedPairs.isEmpty()) {
+                def renamePairs = mapping.collect { oldFqcn, newFqcn ->
+                    [simpleOld: oldFqcn.substring(oldFqcn.lastIndexOf('.') + 1),
+                     simpleNew: newFqcn.substring(newFqcn.lastIndexOf('.') + 1)]
+                }
+                def renamedPairFailures = []
+                renamedPairs.each { oldEntry, newEntry ->
+                    def oldFqcn = oldEntry.substring(0, oldEntry.length() - '.class'.length()).replace('/', '.')
+                    def newFqcn = newEntry.substring(0, newEntry.length() - '.class'.length()).replace('/', '.')
+                    def oldSourceEntry = oldFqcn.replace('.', '/') + '.java'
+                    def newSourceEntry = newFqcn.replace('.', '/') + '.java'
+                    def oldSourceBytes = new java.util.zip.ZipFile(baselineSourcesJar).withCloseable { zip ->
+                        zip.getEntry(oldSourceEntry) == null ? null : zip.getInputStream(zip.getEntry(oldSourceEntry)).withCloseable { it.readAllBytes() }
+                    }
+                    def newSourceBytes = new java.util.zip.ZipFile(currentSourcesJar).withCloseable { zip ->
+                        zip.getEntry(newSourceEntry) == null ? null : zip.getInputStream(zip.getEntry(newSourceEntry)).withCloseable { it.readAllBytes() }
+                    }
+                    if (oldSourceBytes == null || newSourceBytes == null) {
+                        renamedPairFailures << "${oldFqcn} -> ${newFqcn}: sources entry 缺失（old=${oldSourceBytes != null}, new=${newSourceBytes != null}）"
+                        return
+                    }
+                    def oldText = new String(oldSourceBytes, java.nio.charset.StandardCharsets.UTF_8)
+                    def newText = new String(newSourceBytes, java.nio.charset.StandardCharsets.UTF_8)
+                    def canonicalOld = canonicalizeRenamedSource(oldText, renamePairs)
+                    if (canonicalOld == newText) {
+                        println "renamed pair OK (channel A sources): ${oldFqcn} -> ${newFqcn} (${projectPath})"
+                        return
+                    }
+                    // channel A 不等价 → channel B classfile 规范化等价兜底
+                    def oldClassBytes = readEntryBytes(baselineJar, oldEntry)
+                    def newClassBytes = readEntryBytes(currentJar, newEntry)
+                    def channelBResult = channelBEquivalence(oldClassBytes, newClassBytes, oldFqcn, newFqcn)
+                    if (channelBResult == null) {
+                        println "renamed pair OK (channel B classfile): ${oldFqcn} -> ${newFqcn} (${projectPath})"
+                        return
+                    }
+                    renamedPairFailures << "${oldFqcn} -> ${newFqcn}: channel A 源码不等价（${firstDiffPreview(canonicalOld, newText)}）；${channelBResult}"
+                }
+                assert renamedPairFailures.isEmpty():
+                        "renamed class 等价验证失败（fail closed，请人工分析；唯一允许的差异来源是显式 class rename mapping）:\n" +
+                        renamedPairFailures.collect { '  - ' + it }.join('\n')
+            }
 
             // fabric.mod.json：模板展开值应完全相同，解析后逐键语义一致
             def slurper = new groovy.json.JsonSlurper()
@@ -299,10 +728,20 @@ def verifyJarEquivalence = tasks.register('verifyJarEquivalence') {
             assert currentModJson == baselineModJson:
                     "fabric.mod.json semantic mismatch for ${currentJar.name} vs ${baselineJar.name}"
 
-            // 全部 mixin 配置文件逐字节一致（其内容不参与模板展开）
+            // mixin 配置：优先字节级一致（最严格）；字节不一致时按 mapping 做解析级等价（rename 场景）
             currentEntries.findAll { it.endsWith('.mixins.json') }.sort().each { entryName ->
-                assert java.util.Arrays.equals(readEntryBytes(currentJar, entryName), readEntryBytes(baselineJar, entryName)):
-                        "mixin config ${entryName} differs between ${currentJar.name} and ${baselineJar.name}"
+                def baselineConfigBytes = readEntryBytes(baselineJar, entryName)
+                def currentConfigBytes = readEntryBytes(currentJar, entryName)
+                if (java.util.Arrays.equals(baselineConfigBytes, currentConfigBytes)) {
+                    return
+                }
+                def baselineConfig = slurper.parseText(new String(baselineConfigBytes, java.nio.charset.StandardCharsets.UTF_8))
+                def currentConfig = slurper.parseText(new String(currentConfigBytes, java.nio.charset.StandardCharsets.UTF_8))
+                def mappedConfig = mapMixinConfigEntries(baselineConfig, mapping)
+                assert mappedConfig == currentConfig:
+                        "mixin config ${entryName} differs between ${currentJar.name} and ${baselineJar.name}（mapping 之外的差异）:\n" +
+                        "  baseline(mapped): ${mappedConfig}\n  current: ${currentConfig}"
+                println "mixin config OK (mapping-aware parse equality): ${entryName} (${currentJar.name})"
             }
 
             // 珊瑚资源包 pack.mcmeta 的 pack_format 逐平台一致
@@ -312,13 +751,11 @@ def verifyJarEquivalence = tasks.register('verifyJarEquivalence') {
             assert currentPackFormat == baselinePackFormat:
                     "pack_format mismatch for ${currentJar.name}: current=${currentPackFormat} baseline=${baselinePackFormat}"
 
-            // P4-1 intermediary 引用集合语义比较（Phase 4 命名空间迁移等价防线）。
+            // P4-1 intermediary 引用集合语义比较（mapping 感知：renamed class 与 baseline 对位条目比较）。
             // 实证记录：本项目 loom 构建不产出 refmap（注解目标在 remapJar 时直接重映射进 class 常量池，
-            // mixin json 无 refmap 指针），因此 Yarn→Mojmap 迁移的语义验证对象是 class 文件内的
-            // (class|method|field)_NNNN intermediary 引用集合：同名 class 在两侧 jar 中集合必须完全一致。
-            // 覆盖 mixin 注解目标（@Mixin/@Inject/@At/@Shadow/@Accessor 字符串）与全部编译期 MC 成员调用；
-            // 检出案例：BeaconBlockEntityMixin 的 @At target 在自动迁移中未被重映射（getOpacity→getLightBlock），
-            // 该差异在本比较下必现，杜绝 blanket 忽略。
+            // mixin json 无 refmap 指针），因此命名空间迁移的语义验证对象是 class 文件内的
+            // (class|method|field)_NNNN intermediary 引用集合：对位 class 在两侧 jar 中集合必须完全一致。
+            // plain 形态（26.x）无 intermediary，该检查空集通过，renamed-pair 语义由 channel A/B 承担。
             def intermediaryPattern = ~/(?:class|method|field)_[0-9]+/
             def readIntermediaryRefs = { File jarFile, Collection<String> entryNames ->
                 def result = [:]
@@ -335,19 +772,270 @@ def verifyJarEquivalence = tasks.register('verifyJarEquivalence') {
                 }
                 result
             }
-            def ourClassEntries = currentEntries.findAll { it.startsWith('com/ice2974/') && it.endsWith('.class') } as Set
-            def currentRefs = readIntermediaryRefs(currentJar, ourClassEntries)
-            def baselineRefs = readIntermediaryRefs(baselineJar, ourClassEntries)
-            ourClassEntries.sort().each { entryName ->
-                assert currentRefs[entryName] == baselineRefs[entryName]:
-                        "intermediary reference set differs for ${entryName} in ${currentJar.name} vs ${baselineJar.name}:\n" +
-                        "  only in current: ${(currentRefs[entryName] - baselineRefs[entryName]).sort()}\n" +
-                        "  only in baseline: ${(baselineRefs[entryName] - currentRefs[entryName]).sort()}"
+            def destToOldEntry = mappedBaseline.collectEntries { oldEntry, destEntry -> [destEntry, oldEntry] }
+            def currentRefs = readIntermediaryRefs(currentJar, currentClassEntriesSet.sort())
+            def baselineRefs = readIntermediaryRefs(baselineJar, baselineClassEntries.sort())
+            currentClassEntriesSet.sort().each { entryName ->
+                def baselinePartner = destToOldEntry.containsKey(entryName) ? destToOldEntry[entryName] : entryName
+                assert currentRefs[entryName] == baselineRefs[baselinePartner]:
+                        "intermediary reference set differs for ${entryName} (baseline: ${baselinePartner}) in ${currentJar.name} vs ${baselineJar.name}:\n" +
+                        "  only in current: ${(currentRefs[entryName] - baselineRefs[baselinePartner]).sort()}\n" +
+                        "  only in baseline: ${(baselineRefs[baselinePartner] - currentRefs[entryName]).sort()}"
             }
-            println "intermediary refs OK: ${ourClassEntries.size()} classes (${currentJar.name})"
+            println "intermediary refs OK: ${currentClassEntriesSet.size()} classes (${currentJar.name})"
 
-            println "L1-6 equivalence OK: ${currentJar.name}"
+            println "Phase 6 equivalence OK: ${currentJar.name}"
         }
+    }
+}
+
+// ==================== Phase 6（P6-1）：class rename mapping 仓库一致性防线 ====================
+// 分层检查（不做全仓 raw grep）：
+//   层 1 mapping 文件：语法、终态、简名交叠断言（loadClassRenameMapping）；mapping 文件自身排除在扫描外；
+//   层 2 active Java 类型 / 文件：old FQCN 的源文件与类型声明必须已不存在；new FQCN 源文件与类型声明必须存在；
+//   层 3 Mixin JSON：平台 mixin 配置不得再引用 old 简名；
+//   层 4 功能性引用：active .java 的 code 段 / 字面量段出现 old 简名必须失败；
+//        注释段仅报告不失败（历史说明允许保留）；gradle / CI / 资源文件出现 old 简名或 FQCN 必须失败；
+//   范围排除：docs/、references/、README*、AGENTS.md、构建输出与历史快照（历史文档允许保留旧名）。
+def verifyClassRenameMapping = tasks.register('verifyClassRenameMapping') {
+    group = 'verification'
+    description = 'Phase 6：显式 class rename mapping 与仓库现状的分层一致性检查'
+    doLast {
+        def mapping = loadClassRenameMapping()
+        println "class rename mapping: ${mapping.size()} 条"
+
+        def activeJavaRoots = [new File(rootDir, 'src/main/java'),
+                               new File(rootDir, 'common/src/main/java'),
+                               new File(rootDir, 'common/src/test/java')]
+        def versionsDir = new File(rootDir, 'versions')
+        def platformDirs = versionsDir.isDirectory()
+                ? versionsDir.listFiles().findAll { it.isDirectory() && it.name.startsWith('platform-') }
+                : []
+        platformDirs.each { platformDir ->
+            ['src/main/java', 'src/test/java'].each { sub ->
+                def candidate = new File(platformDir, sub)
+                if (candidate.isDirectory()) {
+                    activeJavaRoots << candidate
+                }
+            }
+        }
+        def activeJavaFiles = []
+        activeJavaRoots.each { root ->
+            root.eachFileRecurse(groovy.io.FileType.FILES) { f ->
+                if (f.name.endsWith('.java')) {
+                    activeJavaFiles << f
+                }
+            }
+        }
+
+        def declaredNewSimples = mapping.keySet().collect { oldFqcn ->
+            def newFqcn = mapping[oldFqcn]
+            newFqcn.substring(newFqcn.lastIndexOf('.') + 1)
+        }.collectEntries { simple -> [simple, []] }
+
+        def commentMentions = [:].withDefault { [] }
+        activeJavaFiles.each { f ->
+            def text = f.getText('UTF-8')
+            def segments = segmentJavaSource(text)
+            mapping.each { oldFqcn, newFqcn ->
+                def oldSimple = oldFqcn.substring(oldFqcn.lastIndexOf('.') + 1)
+                def newSimple = newFqcn.substring(newFqcn.lastIndexOf('.') + 1)
+                segments.each { segment ->
+                    def kind = segment[0]
+                    def segText = segment[1]
+                    if (kind == 'code') {
+                        if (segText =~ (/\b/ + java.util.regex.Pattern.quote(oldSimple) + /\b/)) {
+                            throw new GradleException("active Java code 仍引用已改名类 ${oldSimple}: ${f}")
+                        }
+                        if (segText =~ (/\b(class|interface|enum|record)\s+/ + java.util.regex.Pattern.quote(oldSimple) + /\b/)) {
+                            throw new GradleException("active Java 仍声明已改名类型 ${oldSimple}: ${f}")
+                        }
+                        if (segText =~ (/\b(class|interface|enum|record)\s+/ + java.util.regex.Pattern.quote(newSimple) + /\b/)) {
+                            declaredNewSimples[newSimple] << f
+                        }
+                    } else if (kind == 'string' || kind == 'char' || kind == 'textBlock') {
+                        if (segText =~ (/\b/ + java.util.regex.Pattern.quote(oldSimple) + /\b/)) {
+                            throw new GradleException("active Java 字符串字面量仍引用已改名类 ${oldSimple}（功能性引用必须更新）: ${f}")
+                        }
+                    } else if (segText =~ (/\b/ + java.util.regex.Pattern.quote(oldSimple) + /\b/)) {
+                        commentMentions[oldSimple] << f
+                    }
+                }
+            }
+        }
+        mapping.each { oldFqcn, newFqcn ->
+            def oldRelPath = oldFqcn.replace('.', '/') + '.java'
+            def newRelPath = newFqcn.replace('.', '/') + '.java'
+            assert !activeJavaRoots.any { root -> new File(root, oldRelPath).isFile() }:
+                    "old 类源文件仍存在: ${oldRelPath}"
+            assert activeJavaRoots.any { root -> new File(root, newRelPath).isFile() }:
+                    "new 类源文件不存在于任何 active source root: ${newRelPath}"
+            def newSimple = newFqcn.substring(newFqcn.lastIndexOf('.') + 1)
+            assert !declaredNewSimples[newSimple].isEmpty():
+                    "new 类 ${newSimple} 在 active Java 中没有类型声明"
+        }
+
+        def mixinConfigFiles = []
+        platformDirs.each { platformDir ->
+            def resources = new File(platformDir, 'src/main/resources')
+            if (resources.isDirectory()) {
+                resources.eachFileRecurse(groovy.io.FileType.FILES) { f ->
+                    if (f.name.endsWith('.mixins.json')) {
+                        mixinConfigFiles << f
+                    }
+                }
+            }
+        }
+        mixinConfigFiles.each { f ->
+            def config = new groovy.json.JsonSlurper().parse(f)
+            def entries = ((config.mixins ?: []) + (config.client ?: [])) as Set
+            mapping.each { oldFqcn, _ ->
+                def oldSimple = oldFqcn.substring(oldFqcn.lastIndexOf('.') + 1)
+                assert !entries.contains(oldSimple):
+                        "mixin 配置仍引用已改名条目 ${oldSimple}: ${f}"
+            }
+        }
+
+        // 功能性非 Java 文本（gradle / CI / 平台资源 / shared 资源）：old 简名或 FQCN 必须不存在。
+        // 排除：mapping 文件自身、构建输出 / .gradle / .git / gradle wrapper（含二进制）、
+        // docs / references / README* / AGENTS.md / LICENSE / THIRD_PARTY_NOTICES.md（历史文档允许保留旧名）。
+        def textScanNameExclusions = ['AGENTS.md', 'README.md', 'README_en.md', 'LICENSE',
+                                      'THIRD_PARTY_NOTICES.md', 'gradlew', 'gradlew.bat']
+        def textTargets = []
+        ['build.gradle', 'settings.gradle', 'common.gradle', 'gradle.properties', 'settings.json'].each { name ->
+            def f = new File(rootDir, name)
+            if (f.isFile()) {
+                textTargets << f
+            }
+        }
+        def githubDir = new File(rootDir, '.github')
+        if (githubDir.isDirectory()) {
+            githubDir.eachFileRecurse(groovy.io.FileType.FILES) { textTargets << it }
+        }
+        def sharedDir = new File(rootDir, 'versions/shared')
+        if (sharedDir.isDirectory()) {
+            sharedDir.eachFileRecurse(groovy.io.FileType.FILES) { textTargets << it }
+        }
+        ([rootDir] + platformDirs + [new File(rootDir, 'common')]).each { dir ->
+            if (!dir.isDirectory()) {
+                return
+            }
+            dir.eachFileRecurse(groovy.io.FileType.FILES) { f ->
+                def rel = rootDir.toPath().relativize(f.toPath()).toString().replace('\\', '/')
+                def segments = rel.split('/')
+                if (rel.endsWith('.java') || rel.endsWith('.mixins.json') || f == classRenameMappingFile ||
+                        textScanNameExclusions.contains(f.name) ||
+                        segments.any { it in ['build', '.gradle', '.git', 'gradle', 'docs', 'references'] } ||
+                        f.length() > 4 * 1024 * 1024) {
+                    return
+                }
+                textTargets << f
+            }
+        }
+        textTargets.unique().each { f ->
+            String text
+            try {
+                text = f.getText('UTF-8')
+            } catch (IOException e) {
+                println "警告：无法读取 ${f}（文件被占用或不可读），跳过该文件的 old 引用扫描"
+                return
+            }
+            mapping.each { oldFqcn, _ ->
+                def oldSimple = oldFqcn.substring(oldFqcn.lastIndexOf('.') + 1)
+                def hit = text.contains(oldSimple)
+                assert !hit: "功能性文本文件仍引用已改名类 ${oldSimple}: ${f}"
+            }
+        }
+
+        commentMentions.each { simple, files ->
+            if (!files.isEmpty()) {
+                println "提示：${files.unique().size()} 个 active Java 文件的注释中保留旧名 ${simple} 的历史说明（允许，不阻断）"
+            }
+        }
+        println "verifyClassRenameMapping OK（active Java / mixin 配置 / 功能性文本均无 old 引用）"
+    }
+}
+
+// ==================== Phase 6（P6-1）：等价验证器自测 ====================
+// 锁定 renamed-pair 等价验证的 fail-closed 语义：
+//   - channel A：code 段整词类名改写生效；字符串字面量 / 注释 / 前缀标识符差异必须失败；
+//   - mapping 条目映射：class / sources 路径映射与内部类前缀传播；不相关条目保持不变；
+//   - channel B（探测可用时）：asm 规范化对干净 rename 通过、对字面量差异失败。
+def selfTestRenameEquivalence = tasks.register('selfTestRenameEquivalence') {
+    group = 'verification'
+    description = 'Phase 6：renamed-class 等价验证器自测（fail-closed 语义回归）'
+    doLast {
+        def mapping = loadClassRenameMapping()
+        println "selfTest: 当前 class rename mapping 共 ${mapping.size()} 条（语法与终态断言通过）"
+
+        def testMapping = ['com.ice2974.carpeticeaddition.mixins.Old': 'com.ice2974.carpeticeaddition.mixins.New']
+        assert mapClassEntryPath('com/ice2974/carpeticeaddition/mixins/Old.class', testMapping) ==
+                'com/ice2974/carpeticeaddition/mixins/New.class'
+        assert mapClassEntryPath('com/ice2974/carpeticeaddition/mixins/Old$1.class', testMapping) ==
+                'com/ice2974/carpeticeaddition/mixins/New$1.class'
+        assert mapClassEntryPath('com/ice2974/carpeticeaddition/mixins/OldOther.class', testMapping) ==
+                'com/ice2974/carpeticeaddition/mixins/OldOther.class'
+        assert mapClassEntryPath('com/ice2974/carpeticeaddition/mixins/Unrelated.class', testMapping) ==
+                'com/ice2974/carpeticeaddition/mixins/Unrelated.class'
+        assert mapSourceEntryPath('com/ice2974/carpeticeaddition/mixins/Old.java', testMapping) ==
+                'com/ice2974/carpeticeaddition/mixins/New.java'
+        assert mapSourceEntryPath('com/ice2974/carpeticeaddition/mixins/Unrelated.java', testMapping) ==
+                'com/ice2974/carpeticeaddition/mixins/Unrelated.java'
+
+        def renames = [[simpleOld: 'Old', simpleNew: 'New']]
+        def oldSource = 'package p;\n' +
+                '\n' +
+                'import p.Old;\n' +
+                '\n' +
+                '/** comment mentions Old here */\n' +
+                'class Old extends Base {\n' +
+                '    String s = "text Old stays";\n' +
+                "    char c = 'x';\n" +
+                '    Object o = Old.class;\n' +
+                '}\n'
+        def cleanNewSource = 'package p;\n' +
+                '\n' +
+                'import p.New;\n' +
+                '\n' +
+                '/** comment mentions Old here */\n' +
+                'class New extends Base {\n' +
+                '    String s = "text Old stays";\n' +
+                "    char c = 'x';\n" +
+                '    Object o = New.class;\n' +
+                '}\n'
+        assert canonicalizeRenamedSource(oldSource, renames) == cleanNewSource:
+                'selfTest: channel A 干净 rename 应通过'
+        assert canonicalizeRenamedSource(oldSource, renames) !=
+                cleanNewSource.replace('"text Old stays"', '"text New changed"'):
+                'selfTest: channel A 字符串字面量差异必须失败（fail closed）'
+        assert canonicalizeRenamedSource(oldSource, renames) !=
+                cleanNewSource.replace('/** comment mentions Old here */', '/** comment mentions New here */'):
+                'selfTest: channel A 注释差异必须失败（fail closed）'
+        def prefixSource = oldSource.replace('Object o = Old.class;', 'Object o = OldPrefix.class;')
+        def canonicalPrefix = canonicalizeRenamedSource(prefixSource, renames)
+        assert canonicalPrefix.contains('OldPrefix') && !canonicalPrefix.contains('NewPrefix'):
+                'selfTest: channel A 前缀标识符不得被整词替换波及'
+
+        def asm = probeAsmSupport()
+        if (asm == null) {
+            println 'selfTest: channel B 探测不可用（构建环境无既有 asm），跳过 classfile 自测'
+        } else {
+            def canonicalizer = loadAsmCanonicalizer(asm.pkg, asm.loader)
+            def oldClass = canonicalizer.buildSample('p/Old', 'Old.java', 'hello world')
+            def newClass = canonicalizer.buildSample('p/New', 'New.java', 'hello world')
+            def internalRenames = ['p/Old': 'p/New']
+            assert java.util.Arrays.equals(
+                    canonicalizer.canonicalize(oldClass, internalRenames),
+                    canonicalizer.canonicalize(newClass, [:])):
+                    'selfTest: channel B 干净 rename 应通过'
+            def literalMutated = canonicalizer.buildSample('p/New', 'New.java', 'hello mutated')
+            assert !java.util.Arrays.equals(
+                    canonicalizer.canonicalize(oldClass, internalRenames),
+                    canonicalizer.canonicalize(literalMutated, [:])):
+                    'selfTest: channel B 字符串字面量差异必须失败（fail closed）'
+            println "selfTest: channel B classfile 自测通过（asm=${asm.pkg}）"
+        }
+        println 'selfTestRenameEquivalence OK'
     }
 }
 

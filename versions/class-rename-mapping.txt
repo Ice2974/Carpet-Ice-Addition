@@ -1,0 +1,19 @@
+# Phase 6（P6-1）：项目自有类名统一 —— 显式 class rename mapping
+#
+# 用途：verifyJarEquivalence 的唯一差异豁免通道。每个 rename commit 追加一行：
+#   <oldFQCN> -> <newFQCN>
+# 约束：
+#   - 仅允许项目自有类（com.ice2974.*）的整类 rename；禁止链式映射（目的地不得再作为任何行的 old 出现）；
+#   - 同一平台内 mapping 应用后必须保持条目一一对应（不允许映射碰撞）；
+#     不同平台的互斥历史名允许映射到同一目的地；
+#   - 不存在 wildcard / 字面量豁免：rename 之外的任何常量、方法、字段、指令、
+#     字符串字面量、注释或资源差异都必须失败并人工分析（fail closed）。
+# 语义：mapping 行只解释「类条目改名 + 源码 / Jar 内对该类名的引用」；
+#   renamed-pair 等价由 channel A（sourcesJar 规范化源码逐字符等价：仅 code 段整词改写类名，
+#   字符串字面量 / char / text block / 注释原样比较）优先证明，channel B（asm classfile 规范化：
+#   SimpleRemapper 重映射 internal name + 剔除 SourceFile 后重建字节严格比较）兜底；
+#   A/B 均不可用时 fail closed，不自建宽松 comparator。
+# baseline 快照永久只读：P5-baseline-final（flat 布局）不得修改或重建；
+#   若工具链漂移需要同工具链 P5 对照，只允许以 Phase 5 HEAD
+#   5953a8e472b16e6007ab6158cc1cc68f4bb16eb7 clean build 建立明确标记的辅助 P5 baseline，
+#   禁止从含 Phase 6 改动的工作区重建 P5 baseline。P6-baseline-final 只能在 Phase 6 完整验收后建立。
