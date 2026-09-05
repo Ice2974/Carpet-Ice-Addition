@@ -66,7 +66,7 @@ P4-0 无代码变更（基线与清单在仓库外 `D:\Project\Carpet-Ice-Additi
 2. **两类系统性缺口**（每平台预修 + 语义防线兜底）：
    - 子类 override 方法名不随父类改名传播（`MultiTickTask.shouldRun/run` → `Behavior.checkExtraStartConditions/start`，逐版本 tiny 实证）；
    - 个别 `@At target` 字符串不重映射且正确名逐版本不同（`getOpacity` → `getLightBlock`，1.21.1 为双参重载、1.21.3+ 为无参、26.x 为 `getLightDampening`）。
-3. **Mojmap 名漂移（Yarn 名稳定）造成 3 处内容分叉**（档位据此拆分，全部实证于对应版本 layered tiny）：`TrialSpawnerData→TrialSpawnerStateData`（1.21.6）、`Entity.getCommandSenderWorld()→level()`（1.21.9）、1.21.11 批量改名（24 文件，villager/AI 族）。
+3. **Mojmap 名漂移（Yarn 名稳定）造成 3 处内容分叉**（档位据此拆分，全部实证于对应版本 layered tiny）：`TrialSpawnerData→TrialSpawnerStateData`（1.21.6）、`Entity` 世界访问器（Phase 5 P5-0 复核修正：`getCommandSenderWorld()` = method_5770，1.21.1-1.21.5 存在、1.21.6 移除；`level()` = method_37908，1.21.1-1.21.8 存在于 Entity、1.21.9 起迁移 owner（ServerPlayer 等自身声明、intermediary 换 id、source 名不变）。二者是并存过的两个独立方法而非互相改名，本文档初稿"getCommandSenderWorld→level()（1.21.9）"的表述不准确，参见 docs/refactor-phase5-verification.md §4）、1.21.11 批量改名（24 文件，villager/AI 族）。
 4. **档位策略**：合并宽档会破坏平台可见性（mc1215 实证：合并档使旧 ClickEvent 变体错误可见，重复类 + HoverEvent 抽象化编译错误），正确形态为 **1:1 镜像 Yarn 档位拓扑**，内容级归一（零差异）再以纯移动合并。
 
 ## 5. P4-3 去重明细
