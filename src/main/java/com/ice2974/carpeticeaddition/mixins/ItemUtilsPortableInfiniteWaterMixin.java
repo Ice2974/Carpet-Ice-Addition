@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(ItemUtils.class)
-public abstract class ItemUsagePortableInfiniteWaterMixin {
+public abstract class ItemUtilsPortableInfiniteWaterMixin {
     @Inject(
             method = "createFilledResult(Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/item/ItemStack;)Lnet/minecraft/world/item/ItemStack;",
             at = @At("HEAD"),

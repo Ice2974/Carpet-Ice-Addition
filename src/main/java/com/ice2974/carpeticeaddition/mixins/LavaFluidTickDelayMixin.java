@@ -32,7 +32,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * ensures third-party fluids that extend {@link LavaFluid} are not affected.
  */
 @Mixin(LavaFluid.class)
-public abstract class LavaFluidTickRateMixin {
+public abstract class LavaFluidTickDelayMixin {
 
     @Inject(method = "getTickDelay", at = @At("HEAD"), cancellable = true)
     private void carpetIceAddition$lavaTickRate(LevelReader world, CallbackInfoReturnable<Integer> cir) {

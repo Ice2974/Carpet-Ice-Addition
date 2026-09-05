@@ -1,10 +1,8 @@
-//#if MC<260000
 package com.ice2974.carpeticeaddition.mixins;
 
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionFluidSettings;
 import net.minecraft.core.BlockPos;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.material.FlowingFluid;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.FluidState;
@@ -27,14 +25,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * the stale {@code this}), so that if the block has been replaced the stale
  * schedule dies out instead of creating ghost ticks.
  *
- * <p>1.21.3-1.21.11 variant: {@code onScheduledTick(ServerWorld, BlockPos, BlockState, FluidState)}.
+ * <p>1.21.1 variant: {@code onScheduledTick(World, BlockPos, FluidState)}.
  */
 @Mixin(FlowingFluid.class)
-public abstract class FlowableFluidFreezeMixin {
+public abstract class FlowingFluidFreezeMixin {
 
     @Inject(method = "tick", at = @At("HEAD"), cancellable = true)
     private void carpetIceAddition$freezeFluidTick(
-            ServerLevel world, BlockPos pos, BlockState blockState, FluidState state, CallbackInfo ci) {
+            Level world, BlockPos pos, FluidState state, CallbackInfo ci) {
         Fluid self = (Fluid) (Object) this;
 
         boolean isWater = self == Fluids.WATER || self == Fluids.FLOWING_WATER;
@@ -58,4 +56,3 @@ public abstract class FlowableFluidFreezeMixin {
         ci.cancel();
     }
 }
-//#endif

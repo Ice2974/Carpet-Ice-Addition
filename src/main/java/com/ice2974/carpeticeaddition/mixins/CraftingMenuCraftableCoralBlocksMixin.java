@@ -19,7 +19,7 @@ import org.spongepowered.asm.mixin.Mixin;
  * {@code getInputSlots()} 取输入槽、再取其 {@code inventory} 作为 {@code onContentChanged} 参数。
  */
 @Mixin(CraftingMenu.class)
-public abstract class CraftingScreenHandlerCraftableCoralBlocksMixin implements CraftableCoralCraftingRefresher {
+public abstract class CraftingMenuCraftableCoralBlocksMixin implements CraftableCoralCraftingRefresher {
     @Override
     public void carpetIceAddition$refreshCraftingResult() {
         CraftingMenu self = (CraftingMenu) (Object) this;

@@ -23,7 +23,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * ensures third-party fluids that extend {@link WaterFluid} are not affected.
  */
 @Mixin(WaterFluid.class)
-public abstract class WaterFluidTickRateMixin {
+public abstract class WaterFluidTickDelayMixin {
 
     @Inject(method = "getTickDelay", at = @At("HEAD"), cancellable = true)
     private void carpetIceAddition$waterTickRate(LevelReader world, CallbackInfoReturnable<Integer> cir) {

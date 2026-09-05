@@ -14,7 +14,7 @@ import org.spongepowered.asm.mixin.Shadow;
  * 让 vanilla 自行走完 {@code updateResult} 流程（B2 过滤在此生效，结果槽被清空/填充并由 vanilla 发包同步客户端）。
  */
 @Mixin(CraftingMenu.class)
-public abstract class CraftingScreenHandlerCraftableCoralBlocksMixin implements CraftableCoralCraftingRefresher {
+public abstract class CraftingMenuCraftableCoralBlocksMixin implements CraftableCoralCraftingRefresher {
     @Shadow @Final private CraftingContainer craftSlots;
 
     @Override

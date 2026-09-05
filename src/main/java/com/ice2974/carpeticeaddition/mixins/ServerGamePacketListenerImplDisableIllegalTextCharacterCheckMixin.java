@@ -11,7 +11,7 @@ import java.util.function.Function;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
 
 @Mixin(ServerGamePacketListenerImpl.class)
-public abstract class ServerPlayNetworkHandlerDisableIllegalTextCharacterCheckMixin {
+public abstract class ServerGamePacketListenerImplDisableIllegalTextCharacterCheckMixin {
 
     @ModifyArg(
             method = "handleSignUpdate(Lnet/minecraft/network/protocol/game/ServerboundSignUpdatePacket;)V",

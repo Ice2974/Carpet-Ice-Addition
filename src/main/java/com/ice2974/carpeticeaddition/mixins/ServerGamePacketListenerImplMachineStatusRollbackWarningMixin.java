@@ -18,8 +18,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Mixin(ServerGamePacketListenerImpl.class)
-public abstract class ServerPlayNetworkHandlerMachineStatusRollbackWarningMixin {
-    private static final Logger LOGGER = LoggerFactory.getLogger(ServerPlayNetworkHandlerMachineStatusRollbackWarningMixin.class);
+public abstract class ServerGamePacketListenerImplMachineStatusRollbackWarningMixin {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ServerGamePacketListenerImplMachineStatusRollbackWarningMixin.class);
 
     @Shadow public ServerPlayer player;
 
