@@ -16,9 +16,9 @@ Phase 4 实施内容（与批准计划一致）：
 | P4-3 | 零差异双胞胎合并（含 mc26x 受限合并）、入口类错误上报逐字抽取、命令家族版本边界助手合并 | implementation complete，acceptance accepted（Level 3，2026-09-05） |
 | P4-4 | 最终基线、静态核算、本文档与 docs/ 修正、target 文档最终目标/Phase 5 重写 | implementation complete，acceptance accepted（Level 3，2026-09-05） |
 
-净效果：**11 个平台全部统一 officialMojangMappings（layered），Yarn 依赖彻底移除**；1.21.x 侧由 18 个 mojmap 档位承载（14 个 1:1 镜像原 Yarn 拓扑 + 4 个 Mojmap 名漂移分叉档）；mc26x 95→82 文件（13 个零差异双胞胎移入全平台档）。物理 java 257→267（Mojmap 名漂移导致的档位拆分略增副本，换取单一命名空间），唯一类名 147→149（新增 2 个版本边界助手类；`FeatureCompatibilityReporter` 在 common，不计入 versions/）。
+净效果：**11 平台统一 Mojmap 源码命名空间，Yarn 依赖彻底移除**（其中 9 个 1.21.x remap 平台经 `officialMojangMappings()`（layered）编译并产出 intermediary 命名产物；mc261/mc262 为免混淆 plain 形态，不配置 mappings，源码即官方命名）。1.21.x 侧由 18 个 mojmap 档位承载（14 个 1:1 镜像原 Yarn 拓扑 + 4 个 Mojmap 名漂移分叉档）；mc26x 95→82 文件（13 个零差异双胞胎移入全平台档）。物理 java 257→267（Mojmap 名漂移导致的档位拆分略增副本，换取单一命名空间），唯一类名 147→149（新增 2 个版本边界助手类；`FeatureCompatibilityReporter` 在 common，不计入 versions/）。
 
-## 2. 提交清单（分支 `phase4-mojmap`，13 commit，每个正式 commit 均全绿）
+## 2. 提交清单（分支 `phase4-mojmap` 上 P4-1～P4-3d 的 13 个实施 commit，每个正式 commit 均全绿；P4-4 的收尾文档提交见 git 历史）
 
 | commit | 步骤 | 摘要 |
 |---|---|---|
@@ -112,7 +112,9 @@ javac 重复类编译错误为机械兜底；全周期未触发。
 
 ## 8. Phase 4 最终状态
 
-P4-0 ~ P4-4 implementation 与 acceptance 全部完成（2026-09-05）。分支 `phase4-mojmap`（14 commit，`e480181..e02a90f`）待合并 main。Phase 4 至此状态冻结；完整迁移的后续收敛见 §9 Phase 5（独立立项，受供应链门禁约束）。
+P4-0 ~ P4-4 implementation 与 acceptance 全部完成（2026-09-05）。分支 `phase4-mojmap` 待合并 main。Phase 4 至此状态冻结；完整迁移的后续收敛见 §10 Phase 5（独立立项，受供应链门禁约束）。
+
+流程例外追认：P4-2 收尾删除 Yarn 源码发生在各平台 L1-5 冒烟与 jar 等价验证通过之后、Phase 4 最终 Level 3 回归之前（即旧源码删除先于最终 Level 3）；最终 Level 3 已于 2026-09-05 全平台通过，本阶段对该流程例外予以追认。Phase 5 起恢复严格执行「Level 3 通过后再删除旧源码」的门禁。
 
 ## 9. 已知限制
 

@@ -238,7 +238,7 @@ carpet-ice-addition/
 - ~~独立于 Fallen 架构迁移的独立决策；**不是任何前置条件**。~~ **已执行**：最终目标锁定后由人工决策直接启动。
 - ~~触发判据（建议）：Yarn↔Mojmap 双胞胎（约 30 对）的漏改事故频发，或 preprocess 收益论证需要。~~ 实测权威口径为 **58 对**（P4-0 清单，基线"约 30"与 phase3"~45"为口径不明的手工估算）。
 - 原成本量级预估"约 150 个 Yarn 源文件重写 + 全量 Level 3 回归"与实际相符（loom `migrateMappings` 自动迁移 + 人工修复两类系统性缺口）。
-- 执行记录与验收见 [refactor-phase4-verification.md](refactor-phase4-verification.md)；净效果：11 平台统一 officialMojangMappings，Yarn 依赖彻底移除，零差异双胞胎（13 组入全平台档 `mojmap-unified` + 3 组档位内归一）与命令家族/入口类定向去重落地。
+- 执行记录与验收见 [refactor-phase4-verification.md](refactor-phase4-verification.md)；净效果：11 平台统一 Mojmap 源码命名空间（9 个 1.21.x remap 平台经 `officialMojangMappings()`（layered）；mc261/mc262 为免混淆 plain 形态，不配置 mappings），Yarn 依赖彻底移除，零差异双胞胎（13 组入全平台档 `mojmap-unified` + 3 组档位内归一）与命令家族/入口类定向去重落地。
 
 ### Phase 5：preprocess 版本图 + 根 src + per-version override 收敛（最终目标收敛相，独立立项）
 
