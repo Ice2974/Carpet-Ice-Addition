@@ -68,9 +68,9 @@
 ## 版本注册表与构建配置
 
 - `settings.json` 是支持版本清单的唯一来源；`settings.gradle` 据此动态生成平台子项目（根直接子项目 `:platform-mcXXXX`，磁盘目录仍为 `versions/platform-*`），并断言注册表与 `versions/platform-*` 目录一致。
-- 新增 Minecraft 平台 = 在 `settings.json` 按版本升序登记 + 新建 `versions/platform-*/`（per-version `gradle.properties`、薄包装 `build.gradle`、src）+ 根 `build.gradle` 版本图 `createNode` 登记节点并与相邻版本 `link`（含新建对应 `versions/mapping-*.txt`），不要手写 include 清单。
-- 平台版本数据（minecraft、loader、fabric-api、carpet、pack_format、preprocess_enabled 等）放在 `versions/platform-*/gradle.properties`，不要向根 `gradle.properties` 回填平台前缀键。
-- 平台共通构建逻辑在根 `common.gradle`，差异由 per-version 数据键驱动；修改共通逻辑时必须同时验证两种 loom 形态（Mojmap layered remap 与免混淆 plain）。
+- 新增 Minecraft 平台 = 在 `settings.json` 按版本升序登记 + 新建 `versions/platform-*/`（per-version `gradle.properties`、src）+ 根 `build.gradle` 版本图 `createNode` 登记节点并与相邻版本 `link`（含新建对应 `versions/mapping-*.txt`），不要手写 include 清单；平台不写独立 `build.gradle`，`settings.gradle` 按 per-version `gradle.properties` 的 `loom_plugin` 完整 `id:version` 自动选择共享 family 构建入口（`build-remap.gradle` / `build-plain.gradle`，未知值 fail closed）。
+- 平台版本数据（minecraft、loader、fabric-api、carpet、pack_format 等）放在 `versions/platform-*/gradle.properties`，不要向根 `gradle.properties` 回填平台前缀键。
+- 平台共通构建逻辑在根 `common.gradle`（由共享 family 构建入口在 plugins 块之后 apply from 引入），差异由 per-version 数据键驱动；修改共通逻辑时必须同时验证两种 loom 形态（Mojmap layered remap 与免混淆 plain）。
 
 ## 规则 / 命令 / 记录器修改
 

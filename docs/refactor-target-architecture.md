@@ -50,7 +50,7 @@
 | settings.gradle 动态生成子项目 | 新增版本 = 注册表 + 一个目录 + 一份 per-version properties，不再复制 140 行 build.gradle |
 | per-version gradle.properties | 版本数据归版本目录，根 properties 回归全局属性 |
 | 唯一 common.gradle | 消灭 11 份克隆；发布命名逻辑（45 行）只写一份 |
-| platform 薄包装（本项目过渡形态） | 比参考实现更保守：允许平台 build.gradle 保留为"声明差异 + 应用共通脚本"的薄文件，不强删（用户补充约束） |
+| platform 薄包装（本项目过渡形态） | 比参考实现更保守：允许平台 build.gradle 保留为"声明差异 + 应用共通脚本"的薄文件，不强删（用户补充约束）**（Phase 7 起已收敛删除，由共享 family 构建入口替代，见 §6 Phase 7）** |
 
 ### B. 延后评估 / 改造后采用（Phase 3+，均非承诺）
 
@@ -255,6 +255,13 @@ carpet-ice-addition/
 - **等价验证**：每次 flip 均全量 build + 4 verify + `verifyJarEquivalence` 对 P4-baseline-final 11/11 零适配零忽略；全仓 clean 冷重建通过；Level 3 人工回归通过（2026-09-05）。
 - **Phase 6 执行结果（2026-09-05，main 分支，完整记录见 [refactor-phase6-verification.md](refactor-phase6-verification.md)）**：项目自有类名统一完成——47 条显式 mapping / 47 个分叉族（golem 16 含 P6-R1 补齐的 GoToWantedItem + 实体名 9 + 杂项 9 + BlockItem consolidation 1 + villagerevents 6 对 11 行 mapping）按 `@Mixin` 目标类最新 Mojmap 拼写统一 FQCN（mc26x 平台 P6-2～P6-5 零改动）；`versions/class-rename-mapping.txt` 显式 mapping 成为 `verifyJarEquivalence` 的唯一差异豁免通道（全部项目 class partner 内容级等价经 byte-identical / channel A 源码规范化 / channel B asm classfile 规范化证明，普通资源另按路径字节级比较，无 wildcard / 字面量豁免）；新增 `verifyClassRenameMapping` 与 `selfTestRenameEquivalence` 并接入 CI；Level 3 人工回归通过（2026-09-06 人工确认），Phase 6 验收完成，P6-baseline-final 已建立。
 
+### Phase 7：构建骨架收敛（preprocess_enabled 移除 + 共享 family 构建入口）——**已完成（2026-09-06）**
+
+- 范围：仅构建脚本层，依赖与数据模型全部冻结。① **P7-A**：`preprocess_enabled` 应急回滚开关移除——P5-7 删除旧共享 Java 组织后，false 分支只能产出缺源码 / 缺资源的废 jar，实证为死开关（11 平台全 true、唯一消费点是 common.gradle 条件分支、CI / verify 任务 / publish 零消费），11 份 per-version `gradle.properties` 数据键与 `common.gradle` 条件分支删除，preprocess 接入改为无条件。② **P7-B/C**：参考实现同款的 `buildFileName` 机制落地——`settings.gradle` 显式解析 `versions/platform-*/gradle.properties` 取 `loom_plugin` 并按**完整 `id:version`** 精确匹配选择共享 family 构建入口（`fabric-loom:1.13.6` → 仓库根 `build-remap.gradle`，9 个 remap 平台；`net.fabricmc.fabric-loom:1.15.1` → 仓库根 `build-plain.gradle`，2 个 plain 平台；缺文件 / 缺键 / 重复键 / 解析异常 / 未知值 fail closed；per-version `gradle.properties` 仍是唯一数据来源，不新建第二套 family 注册表），11 份逐平台薄包装 `build.gradle` 删除。
+- 与参考实现的差异：参考实现在 `common.gradle` 内按 mcVersion 阈值切换 loom 形态且版本为 SNAPSHOT；本项目两种 loom 形态的插件 id 与冻结版本不同（`fabric-loom:1.13.6` vs `net.fabricmc.fabric-loom:1.15.1`），plugins 块的插件 id 必须是字面量，故保留两份 family 入口文件、由 `loom_plugin` 完整坐标精确选择。
+- 外部行为不变式（结构 preflight 实证）：项目路径 `:platform-mcXXXX`、`projectDir`、`buildDir`、任务形态（remap 家族 remapJar/remapSourcesJar，plain 家族 jar/sourcesJar）、发布 jar 命名与产物路径、preprocess 节点图（rootNode = platform-mc12111）、CI 构建命令与 publish.yml 产物路径、verifyJarEquivalence 基线布局全部不变；唯 `buildFile` 指向从 `versions/platform-*/build.gradle` 变为仓库根共享入口（属 Phase 7 目标本身）。
+- 完整记录见 [refactor-phase7-verification.md](refactor-phase7-verification.md)。
+
 ## 7. 风险登记册
 
 | # | 风险 | 等级 | 缓解 |
@@ -285,6 +292,6 @@ carpet-ice-addition/
 3. **mixin json 统一管理形态**：~~方案 A（单模板生成）vs 方案 B（多份 + 校验任务），Phase 3 决策~~ **已决策：方案 B（2026-09-04，见 §6 执行结果与 §2.B）**。
 4. **注册表文件名**：`settings.json`（TIS 命名）vs `minecraftVersions.json`（参考实现命名）。
 5. **旧 jar 对照基线留存位置**：建议 Phase 1 动工前本地 `gradlew build` 产物复制到仓库外目录（或 `.minecraft/` 部署实例），Release 2.13.1 资产作历史参考。
-6. **loom 插件选择的数据化形态**：`loom_plugin` 属性 + common.gradle 按 id apply（版本冻结），是否接受。
+6. ~~**loom 插件选择的数据化形态**：`loom_plugin` 属性 + common.gradle 按 id apply（版本冻结），是否接受。~~ **已关闭**（Phase 1 起数据化运行；Phase 7 起由 settings.gradle 按 `loom_plugin` 完整 `id:version` 选择共享 family 构建入口，common.gradle 保留 id 级运行期断言，见 §6 Phase 7）。
 7. **publish.yml 联动**（R9）：settings.gradle 改造后其平台解析段需要同步调整（仅解析方式，不改行为），是否纳入 Phase 1 范围一并处理。
 8. ~~**AGENTS.md 同步**：Phase 1 落地后，`AGENTS.md` 中涉及 settings.gradle / shared 档位 / gradle.properties 的协作规则需同步改写（本轮不动，列为 Phase 1 收尾待办）。~~ **已关闭**（2026-09-05，Phase 5 收尾 P5-8a 一并改写为根 src + preprocess 版本图 + per-version override 架构口径）。
