@@ -40,4 +40,5 @@ jobs:
         uses: gradle/actions/setup-gradle@v6
 
       - name: Build and verify
-        run: ./gradlew build verifyCraftableCoralBlocksJars verifyFabricModJson verifyMixinConfigs verifyClassRenameMapping selfTestRenameEquivalence --stacktrace
+        # P9：单元测试归属 :1.21.11（versions/1.21.11/src/test/java），显式执行保证测试入口不被静默跳过
+        run: ./gradlew build :1.21.11:test verifyCraftableCoralBlocksJars verifyFabricModJson verifyMixinConfigs verifyClassRenameMapping selfTestRenameEquivalence --stacktrace

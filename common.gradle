@@ -49,7 +49,8 @@ base {
 }
 
 dependencies {
-    implementation project(':common')
+    // P9：implementation project(':common') 已随 common Java 子项目退出删除；
+    // 原 common 27 个 source owner 迁入根 src/main/java，由各平台经 preprocess 变换自行编译。
 
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
     // Phase 4（P4-2 收尾）：全部 remap 形态平台统一 officialMojangMappings（layered），
@@ -85,7 +86,8 @@ def extraResourceTiers = project.hasProperty('extra_resource_dirs')
 sourceSets {
     main {
         resources {
-            srcDir project(':common').file('src/main/resources')
+            // P9：common/src/main/resources 本轮不迁移（Phase 10 处理），改为 rootProject 物理路径引用
+            srcDir rootProject.file('common/src/main/resources')
             extraResourceTiers.each { tier ->
                 srcDir rootProject.file("versions/shared/${tier}/src/main/resources")
             }
@@ -107,11 +109,18 @@ sourceSets {
 project.pluginManager.apply('com.replaymod.preprocess')
 afterEvaluate {
     def expectedResourceDirs = ([new File(project.projectDir, 'src/main/resources'),
-                                 project(':common').file('src/main/resources')] +
+                                 rootProject.file('common/src/main/resources')] +
                                 extraResourceTiers.collect { tier ->
                                     rootProject.file("versions/shared/${tier}/src/main/resources")
                                 })
     sourceSets.main.resources.setSrcDirs(expectedResourceDirs)
+    // P9：preprocess 插件会重写全部平台 sourceSet 的 java srcDirs：core 平台的 test 源会被插件
+    // 经版本图变换传播进各平台 build/preprocessed/test 并改写其 test srcDirs（实测
+    // :1.21.1:compileTestJava 由此出现 junit 依赖缺失编译错误）。统一恢复 test sourceSet 为
+    // 本平台本地 src/test/java：core（versions/1.21.11）存在该目录（单元测试归属地，JUnit 依赖
+    // 仅 core 接线），非 core 平台默认无此目录 → test 保持 NO-SOURCE，单元测试仅由
+    // :<mainProjectName>:test 单一入口承担（与上方 main 资源恢复同时序语义：restore 晚于插件改写）。
+    sourceSets.test.java.setSrcDirs([new File(project.projectDir, 'src/test/java')])
     assert !rootProject.file('src/main/resources').isDirectory():
             '根项目不得创建 src/main/resources（Phase 5 资源语义不变式：根 src 仅 java）'
 }
@@ -156,10 +165,18 @@ java {
     }
 }
 
-tasks.named('jar') {
-    // 惰性解析：P8 正名后项目配置顺序由 preprocess 图驱动（core 平台先于 :common），
-    // config action 在执行期才取 :common 产物，不依赖配置顺序
-    from { project(':common').sourceSets.main.output.classesDirs }
+// P9：单元测试归属 core 平台（versions/mainProject = rootProject.ext.mainProjectName，根 build.gradle
+// fail-closed 推导：trim 非空且为注册表登记版本项目）。测试源码位于 versions/<core>/src/test/java；
+// 非 core 平台无测试源码，test 任务保持 NO-SOURCE。JUnit / gson 版本与原 :common:test 完全一致（不升级）。
+if (project.name == rootProject.ext.mainProjectName) {
+    dependencies {
+        testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
+        testImplementation 'com.google.code.gson:gson:2.11.0'
+        testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.10.2'
+    }
+    tasks.withType(Test).configureEach {
+        useJUnitPlatform()
+    }
 }
 
 // 发布 jar 命名：由 release_minecraft_range 推导 label（原各平台 build.gradle 逐字搬移，仅写一份）

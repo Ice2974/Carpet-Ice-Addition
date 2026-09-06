@@ -43,7 +43,8 @@ def diskDirNames = versionsDir.listFiles().findAll { it.isDirectory() }*.name as
 assert diskDirNames == expectedDirNames:
         "versions/ 目录集合与注册表不一致：disk=${(diskDirNames as List).sort()} expected=${(expectedDirNames as List).sort()}"
 
-include 'common'
+// P9：include 'common' 已随 common Java 子项目退出删除；common/ 仅保留纯资源目录
+// src/main/resources（Phase 9 内由 common.gradle 按 rootProject 物理路径引用，Phase 10 处理迁移）。
 
 // Phase 7（P7-B）：共享 family 构建入口选择。per-version gradle.properties 仍是平台构建数据唯一来源
 // （不新建第二套 family 注册表）；Settings 阶段读不到子项目目录的 gradle.properties 普通属性，

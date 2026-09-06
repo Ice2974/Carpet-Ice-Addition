@@ -63,6 +63,15 @@ def platformProjects = versionRegistry.collect { version -> ":${version}" }
 // P8 正名后的版本项目名登记（common.gradle 的 platform-only 三重断言数据源；根项目先于子项目配置，时序安全）
 ext.versionProjectNames = versionRegistry.collect { it.toString() }
 
+// P9：单元测试归属 core 平台。versions/mainProject 文件内容 = 主源码命名基准 = core 版本项目名，
+// common.gradle 据此为该项目接线 test sourceSet（其余平台 test 保持 NO-SOURCE）。
+// fail closed：内容 trim 后非空，且必须是 settings.json 注册表登记的版本项目。
+def mainProjectNameRaw = file('versions/mainProject').getText('UTF-8').trim()
+assert !mainProjectNameRaw.isEmpty(): 'versions/mainProject 内容不得为空'
+assert mainProjectNameRaw in versionRegistry.collect { it.toString() }:
+        "versions/mainProject=${mainProjectNameRaw} 必须是 settings.json 版本注册表登记的版本项目"
+ext.mainProjectName = mainProjectNameRaw
+
 // P6 baseline 快照目录使用正名前（legacy）的平台目录名（platform-mcXXXX，快照永久只读不重建）；
 // 键集必须与注册表完全一致（防漂移断言），新增平台时同步维护
 def legacyBaselineDirNames = [
@@ -588,14 +597,11 @@ def loadAsmCanonicalizer = { String pkg, ClassLoader loader ->
 
         // 注意：parseClass 返回源码中的第一个类，目标入口类必须排在辅助类之前
         class RenameClassfileCanonicalizer {
-            // internal name 重映射 + 编译期调试元数据剔除（SourceFile / LineNumberTable）；
-            // 字符串字面量不被重映射。B 通道比较对象是结构与指令：SourceFile 为 self-name 元数据，
+            // 编译期调试元数据剔除（SourceFile / LineNumberTable）：SourceFile 为 self-name 元数据，
             // LineNumberTable 随源码行号布局变化（如 consolidation 引入门控注释行），
             // 二者均非语义载体，两侧统一剔除后做严格字节比较。
-            static byte[] canonicalize(byte[] classBytes, List renameEntries) {
-                def api = Opcodes.ASM9
-                def writer = new ClassWriter(0)
-                def stripDebug = new ClassVisitor(api, writer) {
+            private static ClassVisitor stripDebugVisitor(int api, ClassWriter writer) {
+                return new ClassVisitor(api, writer) {
                     @Override
                     void visitSource(String source, String debug) {
                     }
@@ -613,15 +619,40 @@ def loadAsmCanonicalizer = { String pkg, ClassLoader loader ->
                         }
                     }
                 }
-                new ClassReader(classBytes).accept(new ClassRemapper(stripDebug, new PrefixClassRemapper(renameEntries)), 0)
+            }
+
+            // internal name 重映射 + 编译期调试元数据剔除；字符串字面量不被重映射。
+            // B 通道比较对象是结构与指令。严格路径：方法名不参与任何规范化。
+            static byte[] canonicalize(byte[] classBytes, List renameEntries) {
+                def api = Opcodes.ASM9
+                def writer = new ClassWriter(0)
+                new ClassReader(classBytes).accept(new ClassRemapper(stripDebugVisitor(api, writer), new PrefixClassRemapper(renameEntries)), 0)
+                return writer.toByteArray()
+            }
+
+            // P9-C2a（2026-09-06 人工授权的最小规范化，仅限 ownership-transferred entries）：
+            // 在严格 channel B 之上额外规范化 javac lambda 合成方法名序号。背景：javac 在 JDK 21→25 间
+            // 将 lambda 序号分配从类全局计数改为按方法计数（实证：同一源文件 javac 21 产出 lambda\$new\$0 +
+            // lambda\$start\$1，javac 25 产出 lambda\$new\$0 + lambda\$start\$0），旧 :common（javac 21）
+            // 与 26.x 平台（java_toolchain=25，--release 25 必须 javac 25）之间不存在可消除该差异的
+            // 构建模型改法。声明与全部 Methodref / MethodHandle / NameAndType 引用经同一 remapper 入口
+            // 一致改写；字符串字面量不重映射；major 之外其余结构 / 指令 / 字面量差异仍 fail closed。
+            static byte[] canonicalizeTransferred(byte[] classBytes, List renameEntries) {
+                def api = Opcodes.ASM9
+                def writer = new ClassWriter(0)
+                new ClassReader(classBytes).accept(new ClassRemapper(stripDebugVisitor(api, writer), new TransferredLambdaCanonicalRemapper(renameEntries)), 0)
                 return writer.toByteArray()
             }
 
             static byte[] buildSampleClass(String internalName, String sourceFile, String literal, int lineNo) {
+                return buildNamedMethodSample(internalName, sourceFile, 'hello', literal, lineNo)
+            }
+
+            static byte[] buildNamedMethodSample(String internalName, String sourceFile, String methodName, String literal, int lineNo) {
                 def writer = new ClassWriter(0)
                 writer.visit(Opcodes.V17, Opcodes.ACC_PUBLIC | Opcodes.ACC_SUPER, internalName, null, 'java/lang/Object', null)
                 writer.visitSource(sourceFile, null)
-                def mv = writer.visitMethod(Opcodes.ACC_PUBLIC, 'hello', '()Ljava/lang/String;', null, null)
+                def mv = writer.visitMethod(Opcodes.ACC_PUBLIC, methodName, '()Ljava/lang/String;', null, null)
                 mv.visitCode()
                 def label = new org.objectweb.asm.Label()
                 mv.visitLabel(label)
@@ -672,13 +703,46 @@ def loadAsmCanonicalizer = { String pkg, ClassLoader loader ->
                 return internalName
             }
         }
+
+        class TransferredLambdaCanonicalRemapper extends PrefixClassRemapper {
+            // P9-C2a（2026-09-06 人工授权）：仅额外规范化 javac lambda 合成方法名序号
+            // （lambda\$<method>\$<ordinal> 末段纯数字序号剥离 → lambda\$<method>）；
+            // 方法声明与全部方法引用经 ClassRemapper 同一入口一致改写，不产生同名合并
+            // （同方法多 lambda 剥离后重名时，两侧方法表顺序均为源码顺序，仍逐字节可比）。
+            // 非 lambda 名称保持 map() 前缀语义；严格 channel B 不使用本类。
+            TransferredLambdaCanonicalRemapper(List entries) { super(entries) }
+            String mapMethodName(String owner, String name, String descriptor) {
+                if (name.startsWith('lambda\$')) {
+                    int ordinalSep = name.lastIndexOf('\$')
+                    if (ordinalSep > 'lambda\$'.length()) {
+                        String tail = name.substring(ordinalSep + 1)
+                        boolean allDigits = !tail.isEmpty()
+                        for (int i = 0; allDigits && i < tail.length(); i++) {
+                            if (!Character.isDigit(tail.charAt(i))) {
+                                allDigits = false
+                            }
+                        }
+                        if (allDigits) {
+                            return name.substring(0, ordinalSep)
+                        }
+                    }
+                }
+                return map(name)
+            }
+        }
     """)
     def result = [
             canonicalize: { byte[] bytes, List renameEntries ->
                 org.codehaus.groovy.runtime.InvokerHelper.invokeStaticMethod(parsed, 'canonicalize', [bytes, renameEntries] as Object[])
             },
+            canonicalizeTransferred: { byte[] bytes, List renameEntries ->
+                org.codehaus.groovy.runtime.InvokerHelper.invokeStaticMethod(parsed, 'canonicalizeTransferred', [bytes, renameEntries] as Object[])
+            },
             buildSample : { String internalName, String sourceFile, String literal, int lineNo ->
                 org.codehaus.groovy.runtime.InvokerHelper.invokeStaticMethod(parsed, 'buildSampleClass', [internalName, sourceFile, literal, lineNo] as Object[])
+            },
+            buildNamedMethodSample: { String internalName, String sourceFile, String methodName, String literal, int lineNo ->
+                org.codehaus.groovy.runtime.InvokerHelper.invokeStaticMethod(parsed, 'buildNamedMethodSample', [internalName, sourceFile, methodName, literal, lineNo] as Object[])
             },
             buildRefSample: { String internalName, String sourceFile, String targetInternal, int lineNo ->
                 org.codehaus.groovy.runtime.InvokerHelper.invokeStaticMethod(parsed, 'buildRefSampleClass', [internalName, sourceFile, targetInternal, lineNo] as Object[])
@@ -720,8 +784,12 @@ def channelBEquivalence = { byte[] oldClassBytes, byte[] newClassBytes, Map<Stri
 //     （nested record / enum / inner / synthetic 命名），每个 entry 独立通过 step 1 的
 //     mapping-aware bijective 对位，且独立通过下方 proveTransferredEntry 证明。
 // proveTransferredEntry：major invariant（baseline==65；current==java_release+44；minor==0 非 preview）
-//   + 字节一致 → scoped channel B（仅预期 major 字节差异被规范化，其余全部严格比较）。
-// 非 transferred class 的证明路径与 classfile version 严格性完全不变。
+//   + 字节一致 → scoped channel B。scoped 规范化范围（2026-09-06 人工授权，仅限 transferred entries）：
+//   ① 预期 major 字节（65 → java_release+44，javac --release 差异）；
+//   ② javac lambda 合成方法名序号（javac 21 类全局计数 → 25 按方法计数，javac 21→25 编译器行为差异，
+//      26.x toolchain=25 与旧 :common javac 21 之间不存在可消除它的构建模型改法）。
+//   minor 与其余全部结构 / 指令 / 字面量差异 fail closed；非 transferred class 的证明路径与
+//   classfile version 严格性完全不变（严格 channel B 不做任何 lambda 序号规范化）。
 def readClassfileVersion = { byte[] bytes ->
     [minor: ((bytes[4] & 0xFF) << 8) | (bytes[5] & 0xFF),
      major: ((bytes[6] & 0xFF) << 8) | (bytes[7] & 0xFF)]
@@ -764,9 +832,10 @@ def proveTransferredEntry = { byte[] baselineBytes, byte[] currentBytes, int exp
     try {
         def canonicalizer = loadAsmCanonicalizer(asm.pkg, asm.loader)
         def renameEntries = buildInternalRenameEntries(mapping)
-        def canonicalOld = canonicalizer.canonicalize(baselineBytes, renameEntries)
-        def canonicalNew = canonicalizer.canonicalize(currentBytes, [])
-        // scoped 规范化：仅预期 major 字节（offset 6-7）允许不同（65 → java_release+44），
+        def canonicalOld = canonicalizer.canonicalizeTransferred(baselineBytes, renameEntries)
+        def canonicalNew = canonicalizer.canonicalizeTransferred(currentBytes, [])
+        // scoped 规范化（2026-09-06 人工授权，仅限 transferred entries）：预期 major 字节（offset 6-7）
+        // 与 javac lambda 合成方法名序号（javac 21 类全局计数 → 25 按方法计数）允许不同；
         // minor 与其余全部结构 / 指令 / 字面量字节严格比较
         [canonicalOld, canonicalNew].each { bytes ->
             bytes[6] = 0 as byte
@@ -1170,9 +1239,9 @@ def verifyClassRenameMapping = tasks.register('verifyClassRenameMapping') {
         def mapping = loadClassRenameMapping()
         println "class rename mapping: ${mapping.size()} 条"
 
-        def activeJavaRoots = [new File(rootDir, 'src/main/java'),
-                               new File(rootDir, 'common/src/main/java'),
-                               new File(rootDir, 'common/src/test/java')]
+        // P9：common/src/{main,test}/java 已随 common Java 子项目退出删除（原 27 个 source owner 迁入根 src/main/java）；
+        // core 平台单元测试目录 versions/<mainProject>/src/test/java 存在时由下方平台循环自动纳入扫描
+        def activeJavaRoots = [new File(rootDir, 'src/main/java')]
         def versionsDir = new File(rootDir, 'versions')
         // P8 正名后平台目录名 = 注册表条目（实际版本号）；此处从注册表派生而非目录名模式匹配
         def platformDirs = versionRegistry.collect { new File(versionsDir, it.toString()) }.findAll { it.isDirectory() }
@@ -1503,7 +1572,7 @@ def selfTestRenameEquivalence = tasks.register('selfTestRenameEquivalence') {
                     canonicalizer.canonicalize(innerNew, [])):
                     'selfTest: channel B $ 内部类前缀传播应通过'
 
-            // ---- P9-C1 ownership-transfer 证明语义自测（两层模型 fail-closed 回归，5 例）----
+            // ---- P9 ownership-transfer 证明语义自测（两层模型 fail-closed 回归，7 例）----
             // 用例 1 前置：Layer 2 成员推导必须纳入 X.class 与 X$*.class（nested/synthetic）且不纳入无关条目
             def ownerEntriesLayer2 = ownershipTransferredEntriesForOwner('com.ice2974.carpeticeaddition.rules.MockOwner', [
                     'com/ice2974/carpeticeaddition/rules/MockOwner.class',
@@ -1547,7 +1616,19 @@ def selfTestRenameEquivalence = tasks.register('selfTestRenameEquivalence') {
             def plainInnerNew69 = withClassfileMajor(canonicalizer.buildSample('p/Plain$1', 'Plain.java', 'same', 42), 69)
             assert channelBEquivalence(plainInnerOld65, plainInnerNew69, [:]) != null:
                     'selfTest: 非 ownership nested $ class 仅 version 差异必须失败（fail closed）'
-            println 'selfTest: P9 ownership-transfer 证明语义 5 例自测通过'
+            // 用例 6：transferred lambda 合成方法名序号差异（javac 21 类全局 → 25 按方法计数的产物，
+            // VanillaLanguageService 实测场景）→ scoped 规范化应通过
+            def lambdaOld = withClassfileMajor(
+                    canonicalizer.buildNamedMethodSample('p/T', 'T.java', 'lambda$start$1', 'v', 42), 65)
+            def lambdaNew = withClassfileMajor(
+                    canonicalizer.buildNamedMethodSample('p/T', 'T.java', 'lambda$start$0', 'v', 7), 69)
+            def proof6 = proveTransferredEntry(lambdaOld, lambdaNew, 69, [:])
+            assert proof6.ok && proof6.mode == 'channelB':
+                    "selfTest: transferred lambda 序号差异应通过 scoped 规范化（${proof6.reason}）"
+            // 用例 7：同一 lambda 序号差异落在非 ownership class 上 → 严格 channel B 必须 FAIL
+            assert channelBEquivalence(lambdaOld, lambdaNew, [:]) != null:
+                    'selfTest: 非 ownership class lambda 序号差异必须失败（fail closed，严格路径无 lambda 规范化）'
+            println 'selfTest: P9 ownership-transfer 证明语义 7 例自测通过'
             println "selfTest: channel B classfile 自测通过（asm=${asm.pkg}）"
         }
         println 'selfTestRenameEquivalence OK'
@@ -1555,8 +1636,8 @@ def selfTestRenameEquivalence = tasks.register('selfTestRenameEquivalence') {
 }
 
 gradle.projectsEvaluated {
-    // P8 正名后版本项目无前缀模式可匹配（:1.21.11 等），改为「根直接子项目除去 :common」的通用枚举
-    def includedVersionProjects = gradle.rootProject.allprojects.findAll { it.parent == gradle.rootProject && it.name != 'common' }
+    // P9 起 :common 子项目已删除，根直接子项目恰为版本注册表项目（与 settings.gradle include 一致）
+    def includedVersionProjects = gradle.rootProject.allprojects.findAll { it.parent == gradle.rootProject }
     assert platformProjects.toSorted() == includedVersionProjects*.path.toSorted():
             "versionProjects（${platformProjects.toSorted()}）必须与 settings.gradle include 的版本子项目（${includedVersionProjects*.path.toSorted()}）保持一致"
 
