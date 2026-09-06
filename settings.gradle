@@ -34,10 +34,54 @@ assert versionRegistry.sort(false) == diskVersions:
         "settings.json versions 与 versions/platform-* 目录不一致：registry=${versionRegistry.sort(false)} disk=${diskVersions}"
 
 include 'common'
+
+// Phase 7（P7-B）：共享 family 构建入口选择。per-version gradle.properties 仍是平台构建数据唯一来源
+// （不新建第二套 family 注册表）；Settings 阶段读不到子项目目录的 gradle.properties 普通属性，
+// 必须显式解析该文件取 loom_plugin，并按完整 id:version 精确匹配选择入口
+// （缺文件 / 缺键 / 重复键 / 解析异常 / 未知值一律 fail closed）：
+//   fabric-loom:1.13.6              -> build-remap.gradle（remap 形态 1.21.x，remapJar/remapSourcesJar）
+//   net.fabricmc.fabric-loom:1.15.1 -> build-plain.gradle（plain 形态 26.x，jar/sourcesJar）
+def familyBuildEntry = [
+        'fabric-loom:1.13.6'             : 'build-remap.gradle',
+        'net.fabricmc.fabric-loom:1.15.1': 'build-plain.gradle',
+]
+
+def readPlatformLoomPlugin = { File propsFile ->
+    assert propsFile.isFile(): "缺少平台构建数据文件: ${propsFile}"
+    def seenKeys = [] as Set
+    String loomPlugin = null
+    propsFile.withReader('ISO-8859-1') { reader ->
+        reader.eachLine { rawLine, lineNo ->
+            def line = rawLine.trim()
+            if (line.isEmpty() || line.startsWith('#') || line.startsWith('!')) {
+                return
+            }
+            def sep = line.indexOf('=')
+            assert sep > 0: "${propsFile.name} 第 ${lineNo} 行缺少 '=' 键值分隔: ${rawLine}"
+            def key = line.substring(0, sep).trim()
+            assert key && !seenKeys.contains(key): "${propsFile.name} 第 ${lineNo} 行键为空或重复: ${key}"
+            seenKeys << key
+            if (key == 'loom_plugin') {
+                loomPlugin = line.substring(sep + 1).trim()
+            }
+        }
+    }
+    assert loomPlugin: "${propsFile} 缺少必需键 loom_plugin"
+    return loomPlugin
+}
+
 // Phase 5（P5-1）：平台为根直接子项目 :platform-mcXXXX（磁盘目录仍在 versions/platform-*/，
 // build 目录跟随 projectDir 不变）；preprocess 插件经 project.parent 取根项目的版本图扩展，
 // 嵌套路径 :versions:platform-* 的 parent 是 :versions，不兼容根 src 模型。
 versionRegistry.each { version ->
     include ":platform-${version}"
-    project(":platform-${version}").projectDir = file("versions/platform-${version}")
+    def platformDir = file("versions/platform-${version}")
+    project(":platform-${version}").projectDir = platformDir
+
+    def loomPlugin = readPlatformLoomPlugin(new File(platformDir, 'gradle.properties'))
+    def buildEntry = familyBuildEntry[loomPlugin]
+    assert buildEntry != null: "versions/platform-${version}/gradle.properties loom_plugin=${loomPlugin} 不在允许的 family 清单 ${familyBuildEntry.keySet().sort()} 内"
+    assert file(buildEntry).isFile(): "共享 family 构建入口不存在: ${file(buildEntry)}"
+    // buildFileName 按 ProjectDescriptor 语义相对 projectDir 解析（versions/platform-*/ -> 仓库根）
+    project(":platform-${version}").buildFileName = "../../${buildEntry}"
 }

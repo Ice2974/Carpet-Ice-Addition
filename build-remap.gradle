@@ -1,0 +1,11 @@
+// build-remap.gradle —— remap 形态平台（1.21.1–1.21.11）的共享构建入口（Phase 7 收敛：
+// 由 settings.gradle 按 per-version gradle.properties 的 loom_plugin 完整值 fabric-loom:1.13.6
+// 经 ProjectDescriptor.buildFileName 选中，替代逐平台薄包装 build.gradle）。
+// 平台差异仍全部由 versions/platform-*/gradle.properties 数据驱动，共通构建逻辑见根 common.gradle。
+plugins {
+    id 'fabric-loom' version '1.13.6'
+}
+
+apply from: rootProject.file('common.gradle')
+
+assert project.jar_task == 'remap': "remap family 入口被 jar_task=${project.jar_task} 的平台选中（loom_plugin 映射与 jar_task 数据不一致）"

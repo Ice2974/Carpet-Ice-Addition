@@ -1,5 +1,6 @@
 // common.gradle —— 全部平台共用的构建逻辑（Phase 1 迁移，Fallen-Breath 风格）
-// 由各平台薄包装 build.gradle 在 plugins 块之后 apply from 引入。
+// 由各平台共享 family 构建入口（仓库根 build-remap.gradle / build-plain.gradle）在 plugins 块之后
+// apply from 引入；settings.gradle 按 per-version gradle.properties 的 loom_plugin 完整值经 buildFileName 选中入口。
 // 平台差异全部由 versions/platform-*/gradle.properties 数据驱动：
 //   必需键：minecraft_version / release_minecraft_range / minecraft_dependency / loader_version /
 //           fabric_version / fabric_dependency / carpet_version / carpet_dependency / carpet_repo /
@@ -23,11 +24,12 @@ assert project.jar_task in ['remap', 'plain']: "jar_task 必须为 remap 或 pla
 assert project.carpet_repo in ['masa', 'modrinth']: "carpet_repo 必须为 masa 或 modrinth，当前为 ${project.carpet_repo}"
 def remapFamily = project.jar_task == 'remap'
 
-// 防漂移：数据键声明的 loom 插件 id 必须与薄包装 plugins 块实际应用的插件一致
+// 防漂移：数据键声明的 loom 插件 id 必须与 family 构建入口 plugins 块实际应用的插件一致
+// （完整 id:version 的精确匹配在 settings.gradle 选择 family 入口时已 fail closed，此处保留 id 级运行期断言）
 def declaredLoomId = project.loom_plugin.substring(0, project.loom_plugin.indexOf(':'))
 assert project.plugins.findPlugin(declaredLoomId) != null:
         "loom_plugin=${project.loom_plugin} 与实际应用的 loom 插件不一致（未找到插件 ${declaredLoomId}）"
-// maven-publish 由共通脚本统一应用（Phase 2 收敛：薄包装不再逐份声明）
+// maven-publish 由共通脚本统一应用（Phase 2 收敛：各平台不再逐份声明）
 project.pluginManager.apply('maven-publish')
 
 base {
