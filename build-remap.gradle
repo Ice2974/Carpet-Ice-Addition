@@ -6,6 +6,7 @@ plugins {
     id 'fabric-loom' version '1.13.6'
 }
 
-apply from: rootProject.file('common.gradle')
-
+// family jar_task 一致性断言前移（P7-R1）：在错误 family 数据进入 common build logic 之前 fail-fast
 assert project.jar_task == 'remap': "remap family 入口被 jar_task=${project.jar_task} 的平台选中（loom_plugin 映射与 jar_task 数据不一致）"
+
+apply from: rootProject.file('common.gradle')

@@ -82,7 +82,8 @@ sourceSets {
 }
 
 // Phase 5 preprocess 接入（P5-2 起全部平台无条件启用；Phase 7 移除应急回滚开关——
-// P5-7 删除旧共享 Java 组织后，false 分支只能产出缺源码/缺资源的废 jar，从未构成可用回滚路径）：
+// P5-7 删除旧共享 Java 组织后，false 分支 core 平台缺失 Java 主源码、non-core 平台仅剩 override 子集
+// （资源不经插件重写、保持完整），无法形成可用平台产物，从未构成可用回滚路径）：
 //   1) 应用 com.replaymod.preprocess 插件（版本图在根 build.gradle，节点按 project.name 匹配本平台）；
 //      core（platform-mc12111）java sourceSet 被插件改写为仅 [根 src/main/java]，本地 src/main/java
 //      不参与编译；非 core 平台为 [本地 src/main/java（overwrite 层）, 生成的 preprocess 输出]，

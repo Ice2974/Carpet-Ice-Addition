@@ -85,3 +85,28 @@ versionRegistry.each { version ->
     // buildFileName 按 ProjectDescriptor 语义相对 projectDir 解析（versions/platform-*/ -> 仓库根）
     project(":platform-${version}").buildFileName = "../../${buildEntry}"
 }
+
+// Phase 7（P7-R1）：Loom 完整坐标防漂移——每份 family 入口 plugins 块实际声明的 id:version
+// 必须与 familyBuildEntry 映射键逐字一致，与上方「per-version loom_plugin 精确匹配选入口」
+// 共同构成 per-version loom_plugin ↔ settings.gradle 映射 ↔ 入口实际声明 的闭环（fail closed）。
+// 静态解析自有入口文件的固定格式 plugins 块（解析失败即断言失败），不依赖运行期 PluginDescriptor。
+def readFamilyEntryLoomCoordinate = { File entryFile ->
+    assert entryFile.isFile(): "共享 family 构建入口不存在: ${entryFile}"
+    def text = entryFile.getText('UTF-8')
+    def pluginsBlock = text =~ /(?s)\bplugins\s*\{(.*?)\}/
+    assert pluginsBlock.find(): "${entryFile.name} 缺少 plugins 块"
+    def declarations = []
+    def declaration = pluginsBlock.group(1) =~ /(?m)\bid\s+'([^']+)'\s+version\s+'([^']+)'/
+    while (declaration.find()) {
+        declarations << "${declaration.group(1)}:${declaration.group(2)}"
+    }
+    assert declarations.size() == 1:
+            "${entryFile.name} plugins 块必须恰好声明一个 loom 插件坐标，实际: ${declarations}"
+    return declarations[0]
+}
+
+familyBuildEntry.each { coordinate, entryName ->
+    def declared = readFamilyEntryLoomCoordinate(file(entryName))
+    assert declared == coordinate:
+            "family 入口 ${entryName} 实际声明 loom 坐标 ${declared}，与映射键 ${coordinate} 不一致（Loom 完整坐标防漂移 fail closed）"
+}
