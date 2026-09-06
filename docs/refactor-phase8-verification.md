@@ -72,13 +72,13 @@
 - **游戏内人工测试通过（2026-09-06 人工确认）**：带点项目名 / 实名目录产物在游戏内加载运行正常，Phase 8 人工验证闭环完成（执行范围以人工执行记录为准）。
 - Level 3 全平台人工游戏内回归不重跑：P8 发布产物经 `verifyJarEquivalence` 与 P6-baseline-final 逐条目内容级证明运行时等价（§3 口径；Level 3 所验证的行为载体未变），Level 3 结论继续由 Phase 6 验收（2026-09-06）承载；本轮游戏内人工测试（上条）在此基础上完成 Phase 8 的游戏内验证闭环。
 - ~~可选轻量冒烟（非验收必需）：1.21.1（remap 最老）、1.21.11（core）、26.2（plain 最新）各启动一次 dedicated server……~~ 已由 2026-09-06 人工游戏内测试覆盖并通过。
-- IDE 导入（VSCode Buildship / IntelliJ）未验证：带点项目名属 Gradle 标准命名，但 IDE 对 `:1.21.11` 等项目路径的呈现未测试。
+- IDE 导入：VSCode 工作区导入报错已解决（2026-09-06 人工确认报错消失）——P8-R1 移除 FilenameFilter 闭包 SAM 依赖后重新导入正常；IntelliJ 对带点项目名（`:1.21.11` 等）的呈现仍未测试。
 - GitHub Actions **Build #56 已通过**（workflow `Build`，job `Build and verify all platforms`，HEAD `6938e2e`，result success，2026-09-06 人工确认，见 §3）——实名架构在 GitHub-hosted Ubuntu runner 上完整构建与全部 verify 任务成功；P8-R2 起的 commit 随 push 常规观察 CI，如失败按 §0 约束上报人工决策，不通过放宽断言"适配"。
 - 真实 workflow_dispatch 补发布演练（tag 3.0.0）未执行：公开 CI 运行 + 潜在 Modrinth 侧动作需人工决策；静态 harness 已覆盖解析层 / 展开层生产代码路径（见 §2.3）。
 
 ## 5. 待人工确认项
 
 - ~~推送 P8-1 / P8-2 并观察 GitHub Actions Build（当前最后已知绿：Build #54 @ 1a6787b）~~ **已关闭**：Build #56 @ `6938e2e` 通过（2026-09-06 人工确认，见 §3 / §4）；P8-R2 起的 commit 随 push 常规观察 CI。
-- IDE 导入冒烟（可选）：带点项目名在 VSCode Buildship / IntelliJ 中的呈现与 source root 关联；P8-R1 已消除 settings.gradle 的 FilenameFilter 闭包 SAM 依赖（VSCode 导入报错的最可疑来源），需在修复后的 commit 上重新执行一次 IDE 导入确认诊断消除。
+- ~~IDE 导入冒烟：带点项目名在 VSCode Buildship / IntelliJ 中的呈现与 source root 关联；P8-R1 已消除 settings.gradle 的 FilenameFilter 闭包 SAM 依赖（VSCode 导入报错的最可疑来源），需在修复后的 commit 上重新执行一次 IDE 导入确认诊断消除。~~ **VSCode 侧已关闭**（2026-09-06 人工确认重新导入后报错消失）；IntelliJ 呈现仍未测试，如使用 IntelliJ 导入时发现问题再上报。
 - 真实 dispatch 演练（可选）：对 tag 3.0.0 执行一次 workflow_dispatch（预期 Modrinth 幂等预检 should_upload=false、gh release upload 步骤为 release 事件专属不会执行）作为 legacy 兼容的端到端确认。
 - 下一次正式 Release（release 事件）时 publish.yml 布局解析层将首次在 CI 上以 actual 形态执行；dispatch legacy 路径（checkout pre-P8 tag）预计仅历史补发布场景触发。
