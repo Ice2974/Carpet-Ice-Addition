@@ -4,7 +4,7 @@
 //   必需键：minecraft_version / release_minecraft_range / minecraft_dependency / loader_version /
 //           fabric_version / fabric_dependency / carpet_version / carpet_dependency / carpet_repo /
 //           loom_plugin / jar_task / java_release / pack_format / mixin_config
-//   可选键：java_toolchain（仅 26.x）/ extra_resource_dirs / preprocess_enabled（Phase 5，默认应置 true）
+//   可选键：java_toolchain（仅 26.x）/ extra_resource_dirs
 // jar_task=remap：officialMojangMappings 形态（Phase 4 统一），依赖走 modImplementation，产物经 remapJar/remapSourcesJar 命名
 // jar_task=plain：免混淆形态（26.x），依赖走 implementation，产物经 jar/sourcesJar 命名
 
@@ -79,8 +79,8 @@ sourceSets {
     }
 }
 
-// Phase 5 preprocess 接入（P5-2 起全部平台启用；preprocess_enabled 保留为应急回滚开关，置 false
-// 需同时恢复版本对位的源码组织，仅建议在根 src 体系回退场景使用）：
+// Phase 5 preprocess 接入（P5-2 起全部平台无条件启用；Phase 7 移除 preprocess_enabled 开关——
+// P5-7 删除旧共享 Java 组织后，false 分支只能产出缺源码/缺资源的废 jar，从未构成可用回滚路径）：
 //   1) 应用 com.replaymod.preprocess 插件（版本图在根 build.gradle，节点按 project.name 匹配本平台）；
 //      core（platform-mc12111）java sourceSet 被插件改写为仅 [根 src/main/java]，本地 src/main/java
 //      不参与编译；非 core 平台为 [本地 src/main/java（overwrite 层）, 生成的 preprocess 输出]，
@@ -89,19 +89,16 @@ sourceSets {
 //      [本平台 src/main/resources, common src/main/resources, extra_resource_dirs 各档]；
 //      根 src 只允许 java（下方断言），生成层资源恒为空，恢复不丢失任何输入。
 // 时序（restore 晚于插件改写）已经 P5-1b 行为学实验与全仓冷重建实证。
-def preprocessEnabled = project.hasProperty('preprocess_enabled') && project.preprocess_enabled == 'true'
-if (preprocessEnabled) {
-    project.pluginManager.apply('com.replaymod.preprocess')
-    afterEvaluate {
-        def expectedResourceDirs = ([new File(project.projectDir, 'src/main/resources'),
-                                     project(':common').file('src/main/resources')] +
-                                    extraResourceTiers.collect { tier ->
-                                        rootProject.file("versions/shared/${tier}/src/main/resources")
-                                    })
-        sourceSets.main.resources.setSrcDirs(expectedResourceDirs)
-        assert !rootProject.file('src/main/resources').isDirectory():
-                '根项目不得创建 src/main/resources（Phase 5 资源语义不变式：根 src 仅 java）'
-    }
+project.pluginManager.apply('com.replaymod.preprocess')
+afterEvaluate {
+    def expectedResourceDirs = ([new File(project.projectDir, 'src/main/resources'),
+                                 project(':common').file('src/main/resources')] +
+                                extraResourceTiers.collect { tier ->
+                                    rootProject.file("versions/shared/${tier}/src/main/resources")
+                                })
+    sourceSets.main.resources.setSrcDirs(expectedResourceDirs)
+    assert !rootProject.file('src/main/resources').isDirectory():
+            '根项目不得创建 src/main/resources（Phase 5 资源语义不变式：根 src 仅 java）'
 }
 
 processResources {
