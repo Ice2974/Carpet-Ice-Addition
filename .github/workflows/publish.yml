@@ -13,7 +13,7 @@ on:
         required: true
         type: string
       platforms:
-        description: '可选：仅发布这些平台，逗号分隔（如 mc1213,mc1214）；留空表示全部平台'
+        description: '可选：仅发布这些平台，逗号分隔（按目标 tag 树 settings.json 的条目写法：P8+ tag 为实际版本号如 1.21.3,1.21.4；历史 tag 为 mc1213,mc1214）；留空表示全部平台'
         required: false
         default: ''
         type: string
@@ -120,32 +120,85 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          # 平台清单以 settings.json（版本注册表）为唯一来源，mod_version、mod_name 以根 gradle.properties 为来源。
-          # 先在 JSON 层完成结构与类型校验（.versions 为非空数组、元素原始类型均为 string、
-          # 每项形如 mc[0-9]+、无重复），校验通过后才用 jq -r 提取为 Bash 数组；
-          # 保留注册表声明顺序，不做 sort / dedup，任何校验失败立即终止
-          if ! jq -e '
-               (.versions | type) == "array"
-               and (.versions | length) > 0
-               and all(.versions[]; (type == "string") and test("^mc[0-9]+$"))
-               and (.versions | length) == (.versions | unique | length)
-             ' settings.json > /dev/null; then
-            echo "::error::settings.json versions 校验失败：须为非空数组、元素均为 string、每项形如 mc[0-9]+、且无重复。"
-            jq empty settings.json 2>/dev/null || echo "::error::settings.json 不是合法 JSON 或不存在。"
-            exit 1
-          fi
-          mapfile -t PLATFORMS < <(jq -r '.versions[]' settings.json)
-          if [ "${#PLATFORMS[@]}" -eq 0 ]; then
-            echo "::error::未能从 settings.json 提取平台清单。"
-            exit 1
-          fi
+          # 平台清单与目录布局以 settings.json（版本注册表）为唯一来源，mod_version、mod_name 以根 gradle.properties 为来源。
+          # 布局解析层（下方 marker 包裹的 resolve_platform_layout）是唯一生产实现，fail closed：
+          #   - JSON 层：.versions 为非空 string 数组、每项形如 mc[0-9]+（legacy）或实际版本号如 1.21.1 / 26.2（actual）、无重复；
+          #   - 目录层：每条目解析出仓库相对目录（platform_dir 值含 versions/ 前缀，全部消费点禁止再拼接 versions/）且 gradle.properties 存在；
+          #   - 兼容双树形态：legacy mcXXXX 仅为历史 tag 补发布兼容（checkout 旧 tag 树时产生），不得作为当前 main 的标识形态；
+          #   - 同树混合 legacy/actual、未知形态、mixin_config 缺失或平台码冲突一律失败。
+          # === P8-LAYOUT-RESOLVER-BEGIN（唯一生产实现；验证 harness 仅允许按 marker 机械提取本函数执行，禁止维护复制版逻辑） ===
+          resolve_platform_layout() {
+            local root="$1"
+            local legacy_re='^mc[0-9]+$'
+            local actual_re='^[0-9]+\.[0-9]+(\.[0-9]+)*$'
+            if ! jq -e '
+                 (.versions | type) == "array"
+                 and (.versions | length) > 0
+                 and all(.versions[]; (type == "string") and (test("^mc[0-9]+$") or test("^[0-9]+\\.[0-9]+(\\.[0-9]+)*$")))
+                 and (.versions | length) == (.versions | unique | length)
+               ' "$root/settings.json" > /dev/null; then
+              echo "::error::settings.json versions 校验失败：须为非空数组、元素均为 string、每项形如 mc[0-9]+ 或实际版本号（如 1.21.1 / 26.2）、且无重复。"
+              jq empty "$root/settings.json" 2>/dev/null || echo "::error::settings.json 不是合法 JSON 或不存在。"
+              return 1
+            fi
+            mapfile -t PLATFORMS < <(jq -r '.versions[]' "$root/settings.json")
+            if [ "${#PLATFORMS[@]}" -eq 0 ]; then
+              echo "::error::未能从 settings.json 提取平台清单。"
+              return 1
+            fi
+            declare -gA platform_dir=()
+            declare -gA platform_entry=()
+            local legacy_count=0 actual_count=0 entry dir mixin_config asset_code
+            for entry in "${PLATFORMS[@]}"; do
+              if [[ "$entry" =~ $legacy_re ]]; then
+                dir="versions/platform-${entry}"
+                legacy_count=$((legacy_count + 1))
+              elif [[ "$entry" =~ $actual_re ]]; then
+                dir="versions/${entry}"
+                actual_count=$((actual_count + 1))
+              else
+                echo "::error::settings.json 条目 ${entry} 不是可识别的平台标识（legacy mcXXXX 或实际版本号）。"
+                return 1
+              fi
+              if [ ! -f "$root/$dir/gradle.properties" ]; then
+                echo "::error::平台数据文件不存在：$dir/gradle.properties（条目 ${entry}）。"
+                return 1
+              fi
+              platform_dir["$entry"]="$dir"
+              mixin_config=$(grep -E '^mixin_config[[:space:]]*=' "$root/$dir/gradle.properties" | head -1 | cut -d= -f2- | tr -d '\r[:space:]')
+              asset_code=""
+              if [ -n "$mixin_config" ]; then
+                asset_code=$(printf '%s' "$mixin_config" | sed -n 's/^carpet-ice-addition-\(mc[0-9][0-9]*\)\.mixins\.json$/\1/p')
+              fi
+              if [ -z "$asset_code" ]; then
+                echo "::error::无法从 $dir/gradle.properties 的 mixin_config（${mixin_config:-缺失}）解析 jar 侧平台码（应为 carpet-ice-addition-mcXXXX.mixins.json）。"
+                return 1
+              fi
+              if [ -n "${platform_entry[$asset_code]:-}" ] && [ "${platform_entry[$asset_code]}" != "$entry" ]; then
+                echo "::error::jar 侧平台码 ${asset_code} 被多个注册表条目解析（${platform_entry[$asset_code]} 与 ${entry}），平台码必须一一对应。"
+                return 1
+              fi
+              platform_entry["$asset_code"]="$entry"
+            done
+            if [ "$legacy_count" -gt 0 ] && [ "$actual_count" -gt 0 ]; then
+              echo "::error::settings.json 混合 legacy（mcXXXX）与 actual（实际版本号）形态（legacy ${legacy_count} / actual ${actual_count}），同一树必须为单一形态。"
+              return 1
+            fi
+            if [ "$legacy_count" -gt 0 ]; then
+              echo "布局形态：legacy mcXXXX（${legacy_count} 个平台）——历史 tag 补发布兼容路径，仅由 checkout 的旧 tag 树产生。"
+            else
+              echo "布局形态：actual 实际版本目录（${actual_count} 个平台）。"
+            fi
+          }
+          # === P8-LAYOUT-RESOLVER-END ===
+          resolve_platform_layout "$GITHUB_WORKSPACE"
           MOD_VERSION=$(sed -n 's/^mod_version=//p' gradle.properties | tr -d '\r')
           MOD_NAME=$(sed -n 's/^mod_name=//p' gradle.properties | tr -d '\r')
           user_agent="Ice2974/Carpet-Ice-Addition/${MOD_VERSION}"
 
           # dispatch 模式：解析 platforms CSV 输入（trim、去空、去重、未知平台校验；空 = 全部），
-          # 再从 GitHub Release 资产取正式 JAR，放回与 release 模式相同的
-          # versions/platform-<platform>/build/libs/ 相对路径，使 manifest 主循环两种模式完全共用；
+          # 再从 GitHub Release 资产取正式 JAR，经布局解析层放回与 release 模式相同的
+          # <平台目录>/build/libs/ 相对路径（platform_dir 值为完整仓库相对路径），使 manifest 主循环两种模式完全共用；
           # scope 外平台的资产缺失不影响本次发布
           if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
             declare -A known_platforms=()
@@ -207,16 +260,19 @@ jobs:
                 exit 1
               fi
               asset_platform="${candidate_arr[0]}"
-              if [ -z "${known_platforms[$asset_platform]:-}" ]; then
-                echo "::error::资产 ${file_name} 解析出的平台 ${asset_platform} 不在 settings.json 平台清单内。"
+              # jar 侧平台码（mcXXXX，mixin 配置命名固定标识）经布局解析层映射回注册表条目与其目录
+              if [ -z "${platform_entry[$asset_platform]:-}" ]; then
+                echo "::error::资产 ${file_name} 解析出的平台码 ${asset_platform} 不在任何注册表条目的 mixin_config 登记内。"
                 exit 1
               fi
+              asset_entry="${platform_entry[$asset_platform]}"
               if [[ "$file_name" != "Carpet-Ice-Addition-v${MOD_VERSION}-mc"*.jar ]]; then
                 echo "::error::JAR 文件名 ${file_name} 未包含 -v${MOD_VERSION}-，与 mod_version 不一致。"
                 exit 1
               fi
-              mkdir -p "versions/platform-${asset_platform}/build/libs"
-              cp "$asset" "versions/platform-${asset_platform}/build/libs/${file_name}"
+              target_dir="${platform_dir[$asset_entry]}"
+              mkdir -p "${target_dir}/build/libs"
+              cp "$asset" "${target_dir}/build/libs/${file_name}"
               downloaded=$((downloaded + 1))
             done
             shopt -u nullglob
@@ -237,7 +293,8 @@ jobs:
             exit 1
           fi
 
-          # 展开脚本：读取 versions/platform-<平台>/gradle.properties 的 per-version 数据键，
+          # 展开脚本：读取布局解析层传入的 <平台目录>/gradle.properties 的 per-version 数据键
+          # （argv[1] 为完整仓库相对目录，含 versions/ 前缀，消费点不重复拼接 versions/），
           # 断言 minecraft_dependency 与 release_minecraft_range 起止一致，再对 release 标签展开闭区间
           expand_script=$(mktemp)
           cat > "$expand_script" <<'PY'
@@ -246,8 +303,8 @@ jobs:
           import re
           import sys
 
-          platform = sys.argv[1]
-          props_path = os.path.join("versions", f"platform-{platform}", "gradle.properties")
+          platform_dir_arg = sys.argv[1]
+          props_path = os.path.join(platform_dir_arg, "gradle.properties")
           props = {}
           try:
               with open(props_path, encoding="utf-8") as fh:
@@ -294,7 +351,7 @@ jobs:
           range_bounds = sorted(range_parts, key=version_key)
           padded_range_bounds = range_bounds * 2 if len(range_bounds) == 1 else range_bounds
           if dep_bounds != padded_range_bounds:
-              fail(f"{platform}：{dependency_key}={props[dependency_key]} 与 {range_key}={props[range_key]} 起止范围不一致。")
+              fail(f"{platform_dir_arg}：{dependency_key}={props[dependency_key]} 与 {range_key}={props[range_key]} 起止范围不一致。")
 
           with open(os.environ["MODRINTH_GAME_VERSION_TAGS_FILE"], encoding="utf-8") as fh:
               tags = json.load(fh)
@@ -314,7 +371,7 @@ jobs:
           entries_file=$(mktemp)
 
           for platform in "${PLATFORMS[@]}"; do
-            lib_dir="versions/platform-${platform}/build/libs"
+            lib_dir="${platform_dir[$platform]}/build/libs"
             mapfile -t jars < <(find "$lib_dir" -maxdepth 1 -name 'Carpet-Ice-Addition-v*.jar' ! -name '*-sources.jar' | sort)
             if [ "${#jars[@]}" -ne 1 ]; then
               echo "::error::平台 ${platform} 应恰好产出 1 个正式 JAR，实际 ${#jars[@]} 个。"
@@ -332,7 +389,7 @@ jobs:
             label="${stem%.jar}"
             label="${label#*-mc}"
             version_name="${MOD_NAME} v${MOD_VERSION} for mc${label}"
-            game_versions_json=$(MODRINTH_GAME_VERSION_TAGS_FILE="$tags_file" python3 "$expand_script" "$platform")
+            game_versions_json=$(MODRINTH_GAME_VERSION_TAGS_FILE="$tags_file" python3 "$expand_script" "${platform_dir[$platform]}")
             jq -n --arg platform "$platform" --arg jar "$jar" --arg file_name "$file_name" --arg version_name "$version_name" \
               --argjson game_versions "$game_versions_json" \
               --arg carpet_project_id "$carpet_project_id" --arg fabric_api_project_id "$fabric_api_project_id" \

@@ -1,4 +1,3 @@
-//#if MC<260000
 package com.ice2974.carpeticeaddition.mixins;
 
 import com.ice2974.carpeticeaddition.rules.IronGolemVillagerOptimizer;
@@ -22,7 +21,7 @@ import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.ai.village.poi.PoiType;
 
 /**
- * ironGolemSpawningOptimization 规则（MC 1.21.5-1.21.11）：FindPointOfInterestTask 工厂标记（找工作点 / 找聚会点变体）。
+ * ironGolemSpawningOptimization 规则（MC 1.21.4）：FindPointOfInterestTask 工厂标记（找工作点 / 找聚会点变体）。
  * FindPointOfInterestTask 是纯工厂 holder；1.21.4 起 create 扩展为 4 参 / 5 参（验床 BiPredicate）/
  * 6 参三个重载，其中 4 参与 5 参（HOME / MEETING_POINT 调用）都会委托进入 6 参方法体，
  * 因此不能只按重载定向，必须注入“最宽重载”（6 参）RETURN 并以 MemoryModuleType
@@ -34,8 +33,8 @@ import net.minecraft.world.entity.ai.village.poi.PoiType;
  * 48 格 POI 扫描与寻路；无钟铁塔中 MEETING_POINT 永远缺失，该变体原本每 20-40t
  * 触发一次全量 POI 查询。HOME / MEETING 不被 jobSite 判定标记的行为由
  * IronGolemVillagerOptimizerTest 单测在代码级验证。6 参重载的 descriptor 在
- * 1.21.4-1.21.11 间完全一致；本共享档覆盖 1.21.5-1.21.11，1.21.4 平台不引入
- * 本档（独立副本见 1.21.4 平台档）。
+ * 1.21.4-1.21.11 间完全一致（1.21.5-1.21.11 副本见 1.21.5-1.21.11 平台档；
+ * 1.21.4 平台不引入该共享档，故此处独立存放一份）。
  */
 @Mixin(AcquirePoi.class)
 public abstract class AcquirePoiIronGolemOptimizationMixin {
@@ -59,4 +58,3 @@ public abstract class AcquirePoiIronGolemOptimizationMixin {
         IronGolemVillagerOptimizationHooks.markTaskInstance(cir.getReturnValue(), "FindPointOfInterestTask.create(jobSite|meetingPoint)");
     }
 }
-//#endif

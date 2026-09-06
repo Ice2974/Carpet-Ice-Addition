@@ -1,7 +1,7 @@
 // common.gradle —— 全部平台共用的构建逻辑（Phase 1 迁移，Fallen-Breath 风格）
 // 由各平台共享 family 构建入口（仓库根 build-remap.gradle / build-plain.gradle）在 plugins 块之后
 // apply from 引入；settings.gradle 按 per-version gradle.properties 的 loom_plugin 完整值经 buildFileName 选中入口。
-// 平台差异全部由 versions/platform-*/gradle.properties 数据驱动：
+// 平台差异全部由 versions/<版本>/gradle.properties 数据驱动（P8 正名后目录名 = 实际 MC 版本号）：
 //   必需键：minecraft_version / release_minecraft_range / minecraft_dependency / loader_version /
 //           fabric_version / fabric_dependency / carpet_version / carpet_dependency / carpet_repo /
 //           loom_plugin / jar_task / java_release / pack_format / mixin_config
@@ -9,15 +9,25 @@
 // jar_task=remap：officialMojangMappings 形态（Phase 4 统一），依赖走 modImplementation，产物经 remapJar/remapSourcesJar 命名
 // jar_task=plain：免混淆形态（26.x），依赖走 implementation，产物经 jar/sourcesJar 命名
 
-assert project.name.startsWith('platform-'): "common.gradle 只应用于 platform-* 平台项目，当前为 ${project.name}"
-def platformCode = project.name.substring('platform-'.length())
+// platform-only 不变量（Phase 8 正名后三重断言，fail closed；替代旧「名称以 platform- 开头」单一断言）：
+//   1) 是根项目直接子项目（preprocess 版本图挂根，嵌套路径不兼容根 src 模型）；
+//   2) 是 settings.json 注册表登记的版本项目（rootProject.ext.versionProjectNames 由根 build.gradle 注入）；
+//   3) projectDir 与 versions/<项目名> 一一对应。
+assert project.parent == rootProject:
+        "common.gradle 只应用于根项目的直接子项目，当前为 ${project.path}"
+def registeredVersionProjects = rootProject.ext.has('versionProjectNames') ? rootProject.ext.versionProjectNames : null
+assert registeredVersionProjects != null && registeredVersionProjects.contains(project.name):
+        "common.gradle 只应用于版本注册表（settings.json）登记的版本项目；rootProject 未注入 versionProjectNames（根 build.gradle 须先于平台项目完成配置），当前为 ${project.name}"
+assert project.projectDir == rootProject.file("versions/${project.name}"):
+        "版本项目 ${project.name} 的 projectDir 必须为 versions/${project.name}，当前为 ${project.projectDir}"
+def platformName = project.name
 
 [
         'minecraft_version', 'release_minecraft_range', 'minecraft_dependency', 'loader_version',
         'fabric_version', 'fabric_dependency', 'carpet_version', 'carpet_dependency', 'carpet_repo',
         'loom_plugin', 'jar_task', 'java_release', 'pack_format', 'mixin_config'
 ].each { key ->
-    assert project.hasProperty(key): "平台 ${project.path} 缺少必需属性 ${key}（应在 versions/platform-${platformCode}/gradle.properties 中定义）"
+    assert project.hasProperty(key): "平台 ${project.path} 缺少必需属性 ${key}（应在 versions/${platformName}/gradle.properties 中定义）"
 }
 
 assert project.jar_task in ['remap', 'plain']: "jar_task 必须为 remap 或 plain，当前为 ${project.jar_task}"
@@ -33,7 +43,9 @@ assert project.plugins.findPlugin(declaredLoomId) != null:
 project.pluginManager.apply('maven-publish')
 
 base {
-    archivesName = "${project.archives_base_name}-${platformCode}"
+    // 平台唯一性：archivesName 附带平台名（正名后为实际版本号，如 carpet-ice-addition-1.21.1），
+    // 保证多平台并行构建时中间产物 / 本地 maven publication 互不覆盖
+    archivesName = "${project.archives_base_name}-${platformName}"
 }
 
 dependencies {
@@ -85,7 +97,7 @@ sourceSets {
 // P5-7 删除旧共享 Java 组织后，false 分支 core 平台缺失 Java 主源码、non-core 平台仅剩 override 子集
 // （资源不经插件重写、保持完整），无法形成可用平台产物，从未构成可用回滚路径）：
 //   1) 应用 com.replaymod.preprocess 插件（版本图在根 build.gradle，节点按 project.name 匹配本平台）；
-//      core（platform-mc12111）java sourceSet 被插件改写为仅 [根 src/main/java]，本地 src/main/java
+//      core（1.21.11）java sourceSet 被插件改写为仅 [根 src/main/java]，本地 src/main/java
 //      不参与编译；非 core 平台为 [本地 src/main/java（overwrite 层）, 生成的 preprocess 输出]，
 //      本地文件按同路径替换、异路径附加，且不经宏处理/不经重映射、直接编译。
 //   2) 插件会 setSrcDirs 重写 resources——在 afterEvaluate 显式恢复现行资源语义
@@ -145,7 +157,9 @@ java {
 }
 
 tasks.named('jar') {
-    from(project(':common').sourceSets.main.output.classesDirs)
+    // 惰性解析：P8 正名后项目配置顺序由 preprocess 图驱动（core 平台先于 :common），
+    // config action 在执行期才取 :common 产物，不依赖配置顺序
+    from { project(':common').sourceSets.main.output.classesDirs }
 }
 
 // 发布 jar 命名：由 release_minecraft_range 推导 label（原各平台 build.gradle 逐字搬移，仅写一份）

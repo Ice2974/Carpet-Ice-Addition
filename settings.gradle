@@ -19,19 +19,23 @@ pluginManagement {
 
 rootProject.name = 'carpet-ice-addition'
 
-// 版本注册表：支持的平台清单的唯一来源（条目为 versions/platform-* 目录名去掉 platform- 前缀）
+// 版本注册表：支持的平台清单的唯一来源。条目 = 平台目录名 = 真实 Minecraft 版本号
+// （Phase 8 正名；Gradle 9.2.1 允许中间点项目名，NameValidator 仅禁首尾点与 / \ : < > " ? * |）
 def versionRegistryFile = file('settings.json')
 def versionRegistry = new JsonSlurper().parse(versionRegistryFile).versions as List<String>
 
-// 注册表与磁盘目录一致性断言，防止新增/删除平台目录后忘记更新注册表（或反之）
-// 注意按字典序比较（mc12110 < mc1219），不要求注册表按字典序书写；include 顺序跟随注册表声明顺序
-def diskVersions = file('versions')
-        .listFiles({ File dir, String name -> dir.isDirectory() && name.startsWith('platform-') } as FilenameFilter)
-        .collect { it.name.substring('platform-'.length()) }
-        .sort()
+// 注册表与磁盘目录一致性断言（双向 fail closed），防止新增/删除平台目录后忘记更新注册表（或反之）：
+//   - versions/ 下的目录集合必须恰为「注册表条目目录 ∪ {shared 资源档}」——多余目录与缺失目录都会失败；
+//   - 注册表条目（实际版本号，如 1.21.1 / 26.2）必须各对应 versions/<条目> 目录。
+// 注意：注册表声明顺序为版本升序语义序，不是字符串字典序（'1.21.10' < '1.21.9'）；
+// 断言对两侧各自排序后比较；include 顺序跟随注册表声明顺序
 assert !versionRegistry.isEmpty(): 'settings.json versions 不能为空'
-assert versionRegistry.sort(false) == diskVersions:
-        "settings.json versions 与 versions/platform-* 目录不一致：registry=${versionRegistry.sort(false)} disk=${diskVersions}"
+def expectedDirNames = (versionRegistry.collect { it.toString() } + ['shared']) as Set
+def diskDirNames = file('versions')
+        .listFiles({ File parent, String name -> new File(parent, name).isDirectory() } as FilenameFilter)
+        .collect { it.name } as Set
+assert diskDirNames == expectedDirNames:
+        "versions/ 目录集合与注册表不一致：disk=${(diskDirNames as List).sort()} expected=${(expectedDirNames as List).sort()}"
 
 include 'common'
 
@@ -70,20 +74,20 @@ def readPlatformLoomPlugin = { File propsFile ->
     return loomPlugin
 }
 
-// Phase 5（P5-1）：平台为根直接子项目 :platform-mcXXXX（磁盘目录仍在 versions/platform-*/，
+// Phase 5（P5-1）：平台为根直接子项目 :<版本>（磁盘目录 versions/<版本>/，
 // build 目录跟随 projectDir 不变）；preprocess 插件经 project.parent 取根项目的版本图扩展，
-// 嵌套路径 :versions:platform-* 的 parent 是 :versions，不兼容根 src 模型。
+// 嵌套路径 :versions:<版本> 的 parent 是 :versions，不兼容根 src 模型。
 versionRegistry.each { version ->
-    include ":platform-${version}"
-    def platformDir = file("versions/platform-${version}")
-    project(":platform-${version}").projectDir = platformDir
+    include ":${version}"
+    def platformDir = file("versions/${version}")
+    project(":${version}").projectDir = platformDir
 
     def loomPlugin = readPlatformLoomPlugin(new File(platformDir, 'gradle.properties'))
     def buildEntry = familyBuildEntry[loomPlugin]
-    assert buildEntry != null: "versions/platform-${version}/gradle.properties loom_plugin=${loomPlugin} 不在允许的 family 清单 ${familyBuildEntry.keySet().sort()} 内"
+    assert buildEntry != null: "versions/${version}/gradle.properties loom_plugin=${loomPlugin} 不在允许的 family 清单 ${familyBuildEntry.keySet().sort()} 内"
     assert file(buildEntry).isFile(): "共享 family 构建入口不存在: ${file(buildEntry)}"
-    // buildFileName 按 ProjectDescriptor 语义相对 projectDir 解析（versions/platform-*/ -> 仓库根）
-    project(":platform-${version}").buildFileName = "../../${buildEntry}"
+    // buildFileName 按 ProjectDescriptor 语义相对 projectDir 解析（versions/<版本>/ -> 仓库根）
+    project(":${version}").buildFileName = "../../${buildEntry}"
 }
 
 // Phase 7（P7-R1）：Loom 完整坐标防漂移——每份 family 入口 plugins 块实际声明的 id:version

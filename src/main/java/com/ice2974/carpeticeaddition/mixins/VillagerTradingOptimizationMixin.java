@@ -67,7 +67,7 @@ public abstract class VillagerTradingOptimizationMixin implements VillagerTradin
     public void carpetIceAddition$refreshTradingOptimizationBrain() {
         Villager self = (Villager) (Object) this;
         // 世界访问器在 1.21.6~1.21.8 为 getWorld()、1.21.9+ 为 getEntityWorld()，
-        // 复用按版本分档的 VillagerDeathSide121 副本（mc1211-1218 / mc1219-12111）。
+        // 复用按版本分档的 VillagerDeathSide121 副本（1.21.1-1.21.8 / 1.21.9-1.21.11）。
         ServerLevel serverWorld = VillagerDeathSide121.serverWorld(self);
         if (serverWorld != null) {
             self.refreshBrain(serverWorld);
