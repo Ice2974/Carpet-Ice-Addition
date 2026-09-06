@@ -707,6 +707,80 @@ def channelBEquivalence = { byte[] oldClassBytes, byte[] newClassBytes, Map<Stri
     }
 }
 
+// ==================== Phase 9（P9-C1）：ownership transfer 两层模型 ====================
+// 背景：:common Java 子项目退出后，原 common 27 个 source owner 迁入根 src/main/java，
+// 各平台 sources jar 将「新增」这些 source，runtime classfile major 将从旧 :common 统一的
+// 65（--release 21）变为各平台 java_release+44（1.21.x=65 不变，26.x=65→69）。
+// 两层模型（均自动推导、fail closed，不做全局 classfile version 豁免）：
+//   Layer 1 ownershipTransferredSourceOwners：顶层 source / FQCN 单位，须同时满足
+//     a) current sources 新增；b) baseline sources 无对应 source（a 已隐含）；
+//     c) 根 src/main/java 存在对应 source 文件；d) baseline/current runtime jar 有 mapping-aware class 对位；
+//     且 11 平台集合一致，规模必须为空（未迁移树 no-op）或恰为 27（Phase 9 迁移清单）；
+//   Layer 2 ownershipTransferredClassEntries：每个 owner 纳入 X.class 与 X$*.class
+//     （nested record / enum / inner / synthetic 命名），每个 entry 独立通过 step 1 的
+//     mapping-aware bijective 对位，且独立通过下方 proveTransferredEntry 证明。
+// proveTransferredEntry：major invariant（baseline==65；current==java_release+44；minor==0 非 preview）
+//   + 字节一致 → scoped channel B（仅预期 major 字节差异被规范化，其余全部严格比较）。
+// 非 transferred class 的证明路径与 classfile version 严格性完全不变。
+def readClassfileVersion = { byte[] bytes ->
+    [minor: ((bytes[4] & 0xFF) << 8) | (bytes[5] & 0xFF),
+     major: ((bytes[6] & 0xFF) << 8) | (bytes[7] & 0xFF)]
+}
+
+def withClassfileMajor = { byte[] bytes, int major ->
+    def copy = bytes.clone()
+    copy[6] = (byte) ((major >> 8) & 0xFF)
+    copy[7] = (byte) (major & 0xFF)
+    copy
+}
+
+// Layer 2：单 source owner 的 runtime class-entry 集合（X.class + X$*.class）
+def ownershipTransferredEntriesForOwner = { String ownerFqcn, Collection<String> classEntries ->
+    def ownerPath = ownerFqcn.replace('.', '/')
+    classEntries.findAll { it == "${ownerPath}.class".toString() || it.startsWith("${ownerPath}\$") } as Set
+}
+
+// ownership-transferred class entry 的等价证明。
+// 返回 [ok:true, mode:'byte-identical'] / [ok:true, mode:'channelB'] / [ok:false, reason:String]。
+def proveTransferredEntry = { byte[] baselineBytes, byte[] currentBytes, int expectedCurrentMajor, Map<String, String> mapping ->
+    def baselineVersion = readClassfileVersion(baselineBytes)
+    def currentVersion = readClassfileVersion(currentBytes)
+    if (baselineVersion.major != 65) {
+        return [ok: false, reason: "transferred baseline major 必须为 65（旧 :common --release 21），实际 ${baselineVersion.major}"]
+    }
+    if (currentVersion.major != expectedCurrentMajor) {
+        return [ok: false, reason: "transferred current major ${currentVersion.major} != 期望 java_release+44=${expectedCurrentMajor}"]
+    }
+    if (baselineVersion.minor != 0 || currentVersion.minor != 0) {
+        return [ok: false, reason: "transferred classfile minor 必须为 0（非 preview），baseline=${baselineVersion.minor} current=${currentVersion.minor}"]
+    }
+    if (java.util.Arrays.equals(baselineBytes, currentBytes)) {
+        return [ok: true, mode: 'byte-identical']
+    }
+    def asm = probeAsmSupport()
+    if (asm == null) {
+        return [ok: false, reason: 'channel B 不可用（构建环境无既有 asm/asm-commons，按规约不新增依赖）']
+    }
+    try {
+        def canonicalizer = loadAsmCanonicalizer(asm.pkg, asm.loader)
+        def renameEntries = buildInternalRenameEntries(mapping)
+        def canonicalOld = canonicalizer.canonicalize(baselineBytes, renameEntries)
+        def canonicalNew = canonicalizer.canonicalize(currentBytes, [])
+        // scoped 规范化：仅预期 major 字节（offset 6-7）允许不同（65 → java_release+44），
+        // minor 与其余全部结构 / 指令 / 字面量字节严格比较
+        [canonicalOld, canonicalNew].each { bytes ->
+            bytes[6] = 0 as byte
+            bytes[7] = 0 as byte
+        }
+        if (java.util.Arrays.equals(canonicalOld, canonicalNew)) {
+            return [ok: true, mode: 'channelB']
+        }
+        return [ok: false, reason: 'transferred channel B 规范形态不等价（预期 major 之外存在结构 / 指令 / 字面量差异，fail closed）']
+    } catch (Throwable t) {
+        return [ok: false, reason: "transferred channel B 执行失败（fail closed）: ${t}"]
+    }
+}
+
 // Phase 6 jar 内容级等价对照：与基线快照逐平台比对（mapping 感知版）。
 // 用法：.\gradlew.bat verifyJarEquivalence -PbaselineDir=<快照根目录>（建议绝对路径）
 // 比对项：zip 条目清单（com/ice2974/ class 条目按显式 mapping 做 bijective 对齐，其余条目严格同名）、
@@ -715,6 +789,8 @@ def channelBEquivalence = { byte[] oldClassBytes, byte[] newClassBytes, Map<Stri
 // fabric.mod.json 解析后逐键语义、*.mixins.json（字节一致，或 mapping 感知解析等价）、
 // 普通非 class 资源字节级一致（含珊瑚资源包 pack.mcmeta；pack_format 另有专项 invariant）、
 // 全部 class 的 intermediary 引用集合（P4-1 防线）；sources jar 存在性 + mapping 感知条目覆盖。
+// Phase 9 起：sources 新增条目可通过 ownership transfer 两层模型（P9-C1）解释为
+// 「:common → 根 src/main/java」迁移，条件与 fail-closed 语义见上方 Phase 9 说明块。
 def verifyJarEquivalence = tasks.register('verifyJarEquivalence') {
     doLast {
         def baselineDirName = project.findProperty('baselineDir')
@@ -726,6 +802,9 @@ def verifyJarEquivalence = tasks.register('verifyJarEquivalence') {
         if (!mapping.isEmpty()) {
             println "class rename mapping: ${mapping.size()} 条（verifyJarEquivalence 按 mapping 做 bijective 对齐与 renamed-pair 等价验证）"
         }
+
+        // P9-C1：跨平台 ownership transfer 一致性收集（platform name -> [owners, entriesByOwner]）
+        def ownershipPerPlatform = [:]
 
         platformProjects.each { projectPath ->
             def platform = project(projectPath)
@@ -784,6 +863,7 @@ def verifyJarEquivalence = tasks.register('verifyJarEquivalence') {
                     "Zip class entry mismatch for ${currentJar.name} vs ${baselineJar.name} (mapping-aware):\n" +
                     "  missing in current: ${(partners.expected - currentClassEntriesSet).sort()}\n" +
                     "  extra in current: ${(currentClassEntriesSet - partners.expected).sort()}"
+            def destToOldEntry = partners.mappedBaseline.collectEntries { oldEntry, destEntry -> [destEntry, oldEntry] }
             def currentOtherEntries = currentEntries.findAll { !isOurClassEntry(it) } as Set
             def baselineOtherEntries = baselineEntries.findAll { !isOurClassEntry(it) } as Set
             assert currentOtherEntries == baselineOtherEntries:
@@ -805,8 +885,52 @@ def verifyJarEquivalence = tasks.register('verifyJarEquivalence') {
             }
             def unexplainedSources = currentSourcesEntries.findAll(isOurSourceEntry)
                     .findAll { !expectedSourcesDestinations.contains(it) }
-            assert unexplainedSources.isEmpty():
-                    "当前 sources jar 存在 baseline 中无来源的条目（${projectPath}）: ${unexplainedSources.sort()}"
+
+            // ---- 2b) P9-C1 Layer 1：ownershipTransferredSourceOwners 推导（fail closed）----
+            // unexplainedSources 中仅「:common → 根 src/main/java 所有权迁移」可被解释（条件 a-d 见 Phase 9 说明块），
+            // 其余未知来源仍 fail closed。
+            def deriveOwnerFqcn = { String sourceEntry ->
+                sourceEntry.substring(0, sourceEntry.length() - '.java'.length()).replace('/', '.')
+            }
+            def transferredSourceOwners = [] as Set
+            unexplainedSources.sort().each { String sourceEntry ->
+                def ownerFqcn = deriveOwnerFqcn(sourceEntry)
+                def ownerPath = ownerFqcn.replace('.', '/')
+                def rootSourceFile = new File(rootDir, "src/main/java/${sourceEntry}".toString())
+                def baselineOwnerEntry = "${ownerPath}.class".toString()
+                def expectedCurrentOwnerEntry = mapClassEntryPath(baselineOwnerEntry, mapping)
+                boolean rootSourceExists = rootSourceFile.isFile()
+                boolean runtimePaired = baselineClassEntries.contains(baselineOwnerEntry) &&
+                        currentClassEntriesSet.contains(expectedCurrentOwnerEntry)
+                if (rootSourceExists && runtimePaired) {
+                    transferredSourceOwners << ownerFqcn
+                }
+            }
+            def nonTransferredUnexplained = unexplainedSources.findAll { sourceEntry ->
+                !transferredSourceOwners.contains(deriveOwnerFqcn(sourceEntry))
+            }
+            assert nonTransferredUnexplained.isEmpty():
+                    "当前 sources jar 存在无法解释的来源条目（${projectPath}；P9 ownership transfer 条件不满足即 fail closed）: " +
+                    nonTransferredUnexplained.sort()
+
+            // ---- 2c) P9-C1 Layer 2：ownershipTransferredClassEntries 推导（X.class + X$*.class）----
+            // 每个 source owner 纳入其全部 runtime class entries；27 个 source owner 不是 27 个 class entry。
+            // 每个 entry 仍独立确认通过 step 1 的 mapping-aware bijective 对位（防御性 fail closed）。
+            def transferredClassEntries = [] as Set
+            def transferredEntriesByOwner = [:].withDefault { [] as Set }
+            transferredSourceOwners.sort().each { String ownerFqcn ->
+                def ownerEntries = ownershipTransferredEntriesForOwner(ownerFqcn, currentClassEntriesSet)
+                assert !ownerEntries.isEmpty():
+                        "transferred source owner ${ownerFqcn} 在 current jar 无 runtime class entry（${projectPath}）"
+                ownerEntries.each { String entry ->
+                    def baselinePartner = destToOldEntry.containsKey(entry) ? destToOldEntry[entry] : entry
+                    assert baselineEntries.contains(baselinePartner):
+                            "transferred class entry ${entry} 无 baseline mapping-aware 对位（${projectPath}）"
+                    transferredClassEntries << entry
+                    transferredEntriesByOwner[ownerFqcn] << entry
+                }
+            }
+            ownershipPerPlatform[platform.name] = [owners: transferredSourceOwners, entriesByOwner: transferredEntriesByOwner]
 
             // ---- 3) 全部项目 class partner 内容级等价证明 ----
             // 未改名 class：同名 ↔ 同名；已改名 class：按显式 mapping 对位（第 1 步已断言 bijective）。
@@ -828,13 +952,31 @@ def verifyJarEquivalence = tasks.register('verifyJarEquivalence') {
             }
             def contentProofFailures = []
             def channelBProven = []
+            def transferredProofModes = [:]
+            def transferredChannelB = []
             int byteIdenticalCount = 0
             int channelARenamedCount = 0
             int channelAUnchangedCount = 0
+            def expectedCurrentMajor = platform.java_release.toInteger() + 44
             baselineClassEntries.sort(false).each { baselineEntry ->
                 def currentEntry = mapClassEntryPath(baselineEntry, mapping)
                 def oldClassBytes = readEntryBytes(baselineJar, baselineEntry)
                 def newClassBytes = readEntryBytes(currentJar, currentEntry)
+                boolean transferred = transferredClassEntries.contains(currentEntry)
+                if (transferred) {
+                    // P9-C1：ownership-transferred entry 走专用证明（major invariant + scoped channel B）；
+                    // baseline sources 无对应 source（Layer 1 条件 b），channel A 天然不可用
+                    def proof = proveTransferredEntry(oldClassBytes, newClassBytes, expectedCurrentMajor, mapping)
+                    if (!proof.ok) {
+                        contentProofFailures << "${currentEntry} (ownership-transferred): ${proof.reason}"
+                        return
+                    }
+                    transferredProofModes[currentEntry] = proof.mode
+                    if (proof.mode == 'channelB') {
+                        transferredChannelB << currentEntry
+                    }
+                    return
+                }
                 if (java.util.Arrays.equals(oldClassBytes, newClassBytes)) {
                     byteIdenticalCount++
                     return
@@ -878,6 +1020,26 @@ def verifyJarEquivalence = tasks.register('verifyJarEquivalence') {
                     "byteIdentical=${byteIdenticalCount}, " +
                     "channelA=${channelARenamedCount + channelAUnchangedCount} (renamed ${channelARenamedCount}, unchanged-FQCN ${channelAUnchangedCount}), " +
                     "channelB=${channelBProven.size()}${channelBProven.isEmpty() ? '' : ': ' + channelBProven.sort().join(', ')}"
+            if (!transferredClassEntries.isEmpty()) {
+                int transferredByteIdentical = transferredProofModes.values().count { it == 'byte-identical' }
+                println "ownership-transferred proof OK (${projectPath}): entries=${transferredClassEntries.size()} " +
+                        "(owners=${transferredSourceOwners.size()}), byteIdentical=${transferredByteIdentical}, " +
+                        "channelB=${transferredChannelB.size()}${transferredChannelB.isEmpty() ? '' : ': ' + transferredChannelB.sort().join(', ')}"
+                if (!transferredChannelB.isEmpty()) {
+                    println "提示：ownership-transferred 存在非 byte-identical 条目（scoped channel B 已证等价，除预期 major 外无差异；列此处供人工复核）" +
+                            "（${projectPath}）: ${transferredChannelB.sort()}"
+                }
+            }
+
+            // ---- 3b) P9-C1 sources 新增条目的 ownership transfer 解释收口 ----
+            // sources 新增仅在 owner 属于 Layer 1 且其全部 Layer 2 runtime entries 已通过
+            // byte-identical / scoped channel-B 等价证明后才被接受，否则 fail closed。
+            transferredSourceOwners.sort().each { String ownerFqcn ->
+                def unproven = transferredEntriesByOwner[ownerFqcn].findAll { !transferredProofModes.containsKey(it) }
+                assert unproven.isEmpty():
+                        "sources 新增 owner ${ownerFqcn} 的 ownership transfer 解释不被接受（${projectPath}）：" +
+                        "以下 runtime entries 未完成 byte-identical / scoped channel-B 等价证明: ${unproven.sort()}"
+            }
 
             // fabric.mod.json：模板展开值应完全相同，解析后逐键语义一致
             def slurper = new groovy.json.JsonSlurper()
@@ -944,7 +1106,6 @@ def verifyJarEquivalence = tasks.register('verifyJarEquivalence') {
                 }
                 result
             }
-            def destToOldEntry = partners.mappedBaseline.collectEntries { oldEntry, destEntry -> [destEntry, oldEntry] }
             def currentRefs = readIntermediaryRefs(currentJar, currentClassEntriesSet.sort())
             def baselineRefs = readIntermediaryRefs(baselineJar, baselineClassEntries.sort())
             currentClassEntriesSet.sort().each { entryName ->
@@ -957,6 +1118,39 @@ def verifyJarEquivalence = tasks.register('verifyJarEquivalence') {
             println "intermediary refs OK: ${currentClassEntriesSet.size()} classes (${currentJar.name})"
 
             println "Phase 6 equivalence OK: ${currentJar.name}"
+        }
+
+        // ---- P9-C1：ownership transfer 跨平台一致性（两层模型全局 fail closed）----
+        def expectedPlatformNames = platformProjects.collect { project(it).name } as Set
+        assert ownershipPerPlatform.keySet() == expectedPlatformNames:
+                "ownership transfer 推导未覆盖全部平台：recorded=${ownershipPerPlatform.keySet().sort()} expected=${expectedPlatformNames.sort()}"
+        def ownerSetsByPlatform = ownershipPerPlatform.collectEntries { name, data -> [name, data.owners] }
+        def distinctOwnerSets = ownerSetsByPlatform.values().toSet()
+        assert distinctOwnerSets.size() == 1:
+                "ownershipTransferredSourceOwners 集合跨平台不一致（fail closed）：\n" +
+                ownerSetsByPlatform.collect { name, owners -> "  ${name}: ${owners.sort()}" }.join('\n')
+        def globalOwners = (distinctOwnerSets.first() as Set).sort()
+        assert globalOwners.isEmpty() || globalOwners.size() == 27:
+                "ownershipTransferredSourceOwners 推导结果必须为空（未迁移树 no-op）或恰为 27（Phase 9 迁移 source owner 清单），实际 ${globalOwners.size()}:\n" +
+                globalOwners.collect { '  - ' + it }.join('\n')
+        if (globalOwners.isEmpty()) {
+            println 'P9 ownership transfer: 空（未迁移树 no-op，verifier 对 Phase 8 产物行为不变）'
+        } else {
+            println "P9 ownershipTransferredSourceOwners（Layer 1）: ${globalOwners.size()} 个 source owner:"
+            globalOwners.each { println "  - ${it}" }
+            // Layer 2：同 owner 的 runtime class-entry 集合必须逐平台一致（编译器生成集合差异即 fail closed）
+            def referenceEntriesByOwner = null
+            ownershipPerPlatform.each { name, data ->
+                if (referenceEntriesByOwner == null) {
+                    referenceEntriesByOwner = data.entriesByOwner
+                } else {
+                    assert data.entriesByOwner == referenceEntriesByOwner:
+                            "Layer 2 runtime class-entry 集合跨平台不一致（${name}）: " +
+                            "本平台 owners=${data.entriesByOwner.keySet().sort()}，参照 owners=${referenceEntriesByOwner.keySet().sort()}"
+                }
+            }
+            int transferredEntryTotal = referenceEntriesByOwner.values().collect { it.size() }.sum()
+            println "P9 ownershipTransferredClassEntries（Layer 2）: 每平台共 ${transferredEntryTotal} 个 runtime class entry，跨平台集合一致"
         }
     }
 }
@@ -1308,6 +1502,52 @@ def selfTestRenameEquivalence = tasks.register('selfTestRenameEquivalence') {
                     canonicalizer.canonicalize(innerOld, renameEntries),
                     canonicalizer.canonicalize(innerNew, [])):
                     'selfTest: channel B $ 内部类前缀传播应通过'
+
+            // ---- P9-C1 ownership-transfer 证明语义自测（两层模型 fail-closed 回归，5 例）----
+            // 用例 1 前置：Layer 2 成员推导必须纳入 X.class 与 X$*.class（nested/synthetic）且不纳入无关条目
+            def ownerEntriesLayer2 = ownershipTransferredEntriesForOwner('com.ice2974.carpeticeaddition.rules.MockOwner', [
+                    'com/ice2974/carpeticeaddition/rules/MockOwner.class',
+                    'com/ice2974/carpeticeaddition/rules/MockOwner$MachineRecord.class',
+                    'com/ice2974/carpeticeaddition/rules/MockOwner$1.class',
+                    'com/ice2974/carpeticeaddition/rules/Unrelated.class'] as Set)
+            assert ownerEntriesLayer2 == ([
+                    'com/ice2974/carpeticeaddition/rules/MockOwner.class',
+                    'com/ice2974/carpeticeaddition/rules/MockOwner$MachineRecord.class',
+                    'com/ice2974/carpeticeaddition/rules/MockOwner$1.class'] as Set):
+                    'selfTest: Layer 2 必须纳入 X.class 与 X$*.class（nested/synthetic）且不纳入无关条目'
+            // 用例 1：ownership transfer + nested $ + 仅合法 version 差异 → PASS（byte-identical 与 scoped channel B 双路径）
+            def mockOwnerInternal = 'com/ice2974/carpeticeaddition/rules/MockOwner$MachineRecord'
+            def transferredOld65 = withClassfileMajor(
+                    canonicalizer.buildSample(mockOwnerInternal, 'MockOwner.java', 'rec', 42), 65)
+            def transferredNew69 = withClassfileMajor(
+                    canonicalizer.buildSample(mockOwnerInternal, 'MockOwner.java', 'rec', 7), 69)
+            def proof1a = proveTransferredEntry(transferredOld65, transferredOld65, 65, [:])
+            assert proof1a.ok && proof1a.mode == 'byte-identical':
+                    'selfTest: transferred byte-identical 应通过'
+            def proof1b = proveTransferredEntry(transferredOld65, transferredNew69, 69, [:])
+            assert proof1b.ok && proof1b.mode == 'channelB':
+                    "selfTest: transferred 65→69 仅合法 major 差异应通过 scoped channel B（${proof1b.reason}）"
+            // 用例 2：非 ownership class 仅 version 不同 → 严格 channel B 必须 FAIL
+            def plainOld65 = withClassfileMajor(canonicalizer.buildSample('p/Plain', 'Plain.java', 'same', 42), 65)
+            def plainNew69 = withClassfileMajor(canonicalizer.buildSample('p/Plain', 'Plain.java', 'same', 42), 69)
+            assert channelBEquivalence(plainOld65, plainNew69, [:]) != null:
+                    'selfTest: 非 ownership class 仅 version 差异必须失败（fail closed）'
+            // 用例 3：transferred current major 与 java_release 不符 → FAIL
+            def proof3 = proveTransferredEntry(transferredOld65, withClassfileMajor(
+                    canonicalizer.buildSample(mockOwnerInternal, 'MockOwner.java', 'rec', 7), 65), 69, [:])
+            assert !proof3.ok && proof3.reason.contains('major'):
+                    "selfTest: transferred current major 与 java_release 不符必须失败（${proof3.reason}）"
+            // 用例 4：transferred literal/指令差异 → FAIL
+            def proof4 = proveTransferredEntry(transferredOld65, withClassfileMajor(
+                    canonicalizer.buildSample(mockOwnerInternal, 'MockOwner.java', 'mutated', 7), 69), 69, [:])
+            assert !proof4.ok:
+                    "selfTest: transferred literal/指令差异必须失败（fail closed，${proof4.reason}）"
+            // 用例 5：非 ownership nested $ class version 不同 → 严格 channel B 必须 FAIL
+            def plainInnerOld65 = withClassfileMajor(canonicalizer.buildSample('p/Plain$1', 'Plain.java', 'same', 42), 65)
+            def plainInnerNew69 = withClassfileMajor(canonicalizer.buildSample('p/Plain$1', 'Plain.java', 'same', 42), 69)
+            assert channelBEquivalence(plainInnerOld65, plainInnerNew69, [:]) != null:
+                    'selfTest: 非 ownership nested $ class 仅 version 差异必须失败（fail closed）'
+            println 'selfTest: P9 ownership-transfer 证明语义 5 例自测通过'
             println "selfTest: channel B classfile 自测通过（asm=${asm.pkg}）"
         }
         println 'selfTestRenameEquivalence OK'
