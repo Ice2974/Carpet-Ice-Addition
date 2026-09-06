@@ -30,6 +30,11 @@ def versionRegistry = new JsonSlurper().parse(versionRegistryFile).versions as L
 // 注意：注册表声明顺序为版本升序语义序，不是字符串字典序（'1.21.10' < '1.21.9'）；
 // 断言对两侧各自排序后比较；include 顺序跟随注册表声明顺序
 assert !versionRegistry.isEmpty(): 'settings.json versions 不能为空'
+// P8-R2：注册表重复项在 Settings 阶段显式 fail fast——下方目录一致性比较经 Set 化会静默去重，
+// 重复条目不能依赖后续阶段兜底；错误信息直接列出重复的具体条目
+def duplicateVersions = versionRegistry.groupBy { it }.findAll { it.value.size() > 1 }.keySet()
+assert duplicateVersions.isEmpty():
+        "settings.json 版本注册表存在重复项：${duplicateVersions.sort()}"
 def expectedDirNames = (versionRegistry.collect { it.toString() } + ['shared']) as Set
 def versionsDir = file('versions')
 assert versionsDir.isDirectory(): "缺少 versions 目录: ${versionsDir}"

@@ -266,9 +266,9 @@ carpet-ice-addition/
 
 - 范围：仅标识命名层，版本语义、图拓扑、源码行为、依赖、发布命名全部冻结。① `settings.json` 注册表 11 条目由 `mcXXXX` 改为实际 MC 版本号（`1.21.1` … `26.2`）；`versions/platform-mcXXXX` → `versions/<版本>`、`:platform-mcXXXX` → `:<版本>`、preprocess 节点名同步（P8-0 本地探针实证 Gradle 9.2.1 NameValidator 接受中间点项目名；`versions/mainProject` → `1.21.11`）；10 个 `versions/mapping-mcXXXX-mcYYYY.txt` → `mapping-<高版本>-<低版本>.txt`。② `settings.gradle` 磁盘断言升级为「`versions/` 目录集合恰为注册表条目目录 ∪ {shared}」双向 fail closed。③ `common.gradle` platform-only 不变量升级为三重断言（根直接子项目 + 注册表成员 + `projectDir == versions/<项目名>`）；`archivesName` 保持平台唯一（`archives_base_name-<项目名>`，如 `carpet-ice-addition-1.21.1`）。④ `verifyJarEquivalence` 经 `legacyBaselineDirNames`（键集与注册表防漂移断言）继续定位 P6-baseline-final 的 legacy 目录名快照。⑤ `publish.yml` 新增 fail-closed 布局解析层（marker 包裹的唯一生产实现）：actual（P8+ 树）与 legacy（`mcXXXX`，仅历史 tag 补发布兼容）双形态，`platform_dir` 统一保存完整仓库相对路径，Bash / Python 消费点不再拼接 `versions/`。
 - 配置顺序适配（P8 实证发现）：项目名带点后 Gradle 子项目配置顺序由 preprocess 图驱动（core `:1.21.11` 先行，`:common` 落于平台之后），`common.gradle` 中 `jar` 任务对 `:common` 产物的 `from` 引用改为惰性闭包，不再依赖配置顺序。
-- 外部行为不变式（实证）：运行时 jar 与 P6-baseline-final **11/11 字节等价**（全部项目 class byteIdentical，注释实名 13 文件为 comment-only 不影响 classfile）；sources jar 差异为预期 comment-only（55 对，全部位于注释段，不声称与 baseline 字节等价）；发布 jar 命名、产物路径、Modrinth / GitHub Release 语义、`org.gradle.parallel=false`、loom 家族闭环（P7-R1 坐标防漂移断言）全部不变。
-- 历史tag兼容：pre-P8 tag（如 `3.0.0`）经「default 分支 workflow + checkout 旧 tag」补发布的能力由布局解析层保留；双树静态 harness（机械提取 marker 内生产实现，对 tag `3.0.0` worktree 与 P8 工作区各 11/11 验证通过，含 5 组 fail-closed 负例）。
-- 验收：游戏内人工测试通过（2026-09-06 人工确认）；Level 3 结论继续由 Phase 6 验收承载（运行时 jar 与 P6-baseline-final 字节等价）。
+- 外部行为不变式（实证）：runtime JAR 与 P6-baseline-final **11/11 内容级等价**（本 Phase 涉及的项目 class 均 byte-identical、普通资源 byte-identical、其余特殊资源按现有专项语义 invariant 验证，不声称 raw bytes / SHA-256 一致；注释实名 13 文件为 comment-only 不影响 classfile）；sources jar 差异为预期 comment-only（55 对，全部位于注释段，不声称与 baseline 字节等价）；发布 jar 命名、产物路径、Modrinth / GitHub Release 语义、`org.gradle.parallel=false`、loom 家族闭环（P7-R1 坐标防漂移断言）全部不变。
+- 历史补发布兼容：保持对包含 legacy `mcXXXX` settings.json 注册表的旧树的补发布兼容；legacy / actual 两种布局已通过从生产 resolver 机械提取的静态 harness（对 tag `3.0.0` worktree 与 P8 工作区各 11/11，含 5 组 fail-closed 负例）；真实 workflow_dispatch 端到端演练仍未执行。
+- 验收：游戏内人工测试通过（2026-09-06 人工确认）；Level 3 结论继续由 Phase 6 验收承载（runtime JAR 内容级等价）。
 - 完整记录见 [refactor-phase8-verification.md](refactor-phase8-verification.md)。
 
 ## 7. 风险登记册
