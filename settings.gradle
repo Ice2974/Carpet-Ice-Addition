@@ -31,9 +31,10 @@ def versionRegistry = new JsonSlurper().parse(versionRegistryFile).versions as L
 // 断言对两侧各自排序后比较；include 顺序跟随注册表声明顺序
 assert !versionRegistry.isEmpty(): 'settings.json versions 不能为空'
 def expectedDirNames = (versionRegistry.collect { it.toString() } + ['shared']) as Set
-def diskDirNames = file('versions')
-        .listFiles({ File parent, String name -> new File(parent, name).isDirectory() } as FilenameFilter)
-        .collect { it.name } as Set
+def versionsDir = file('versions')
+assert versionsDir.isDirectory(): "缺少 versions 目录: ${versionsDir}"
+// 不用 FilenameFilter 闭包 SAM 转换（IDE 导入的 Gradle/Groovy 环境求值差异来源），无歧义地在 Groovy 侧过滤目录
+def diskDirNames = versionsDir.listFiles().findAll { it.isDirectory() }*.name as Set
 assert diskDirNames == expectedDirNames:
         "versions/ 目录集合与注册表不一致：disk=${(diskDirNames as List).sort()} expected=${(expectedDirNames as List).sort()}"
 

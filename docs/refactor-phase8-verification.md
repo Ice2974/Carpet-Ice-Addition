@@ -18,6 +18,7 @@
 | P8-0 | （无 commit） | 本地 scratch Gradle 探针（`.tmp/p8-name-probe`，验证后删除）：以仓库 Gradle Wrapper（9.2.1）include `:1.21.11` / `:1.21.10` / `:26.2` / `:26.1.2` 并重映射 projectDir，`gradlew projects` 确认带点项目名通过 NameValidator、`project(':<版本>')` 查找与 projectDir 解析正常——不凭理论下结论的环境级实证。 |
 | P8-1 | 8e86219 | 原子正名提交（256 文件，全部 rename 追踪）：11 个平台目录 `git mv`（`versions/platform-mcXXXX` → `versions/<版本>`）；10 个 `versions/mapping-mcXXXX-mcYYYY.txt` → `mapping-<高版本>-<低版本>.txt`；`versions/mainProject` → `1.21.11`。settings.json 注册表 11 条目实名；settings.gradle include / projectDir / buildFileName 实名 + 磁盘断言升级为「`versions/` 目录集合恰为注册表条目目录 ∪ {shared}」双向 fail closed（断言过滤候选条目为目录本身）；build.gradle `createNode` / `link` 全实名（Groovy 变量 `mc12101…mc260200` → `v1_21_1…v26_2`，版本码整数不变）、`platformProjects` 路径实名、`ext.versionProjectNames` 注入、`projectsEvaluated` 断言改为「根直接子项目除去 `:common`」集合比较（正名后无前缀模式可匹配）、`verifyClassRenameMapping` 平台目录改由注册表派生（另加注册表目录存在性断言）、`verifyJarEquivalence` 经 `legacyBaselineDirNames`（键集与注册表防漂移断言）定位 P6 baseline 的 legacy 目录名并现势化过期 P5-baseline-final 文本；common.gradle platform-only 三重断言（根直接子项目 + 注册表成员 + `projectDir == versions/<项目名>`）+ `archivesName = archives_base_name-<项目名>`（平台唯一性保持）+ jar `from :common` 改惰性闭包（见 §2）；common/build.gradle 路径 → `versions/1.21.1/gradle.properties`、变量 `mc1211CarpetVersion` → `baselineCarpetVersion`；build-remap / build-plain 注释现势化；根 gradle.properties 注释现势化；11 份平台 gradle.properties 首行实名（迁移历史注释保留）；publish.yml 布局解析层（见 §2）；Java 注释实名 13 文件 13 行（comment-only）。 |
 | P8-2 | （本 commit） | AGENTS.md 现势化（目录边界 / 固定标识 Archives Base Name 后缀表述 / 源码架构 / override 语义 / 版本注册表与构建配置）；docs/refactor-target-architecture.md §5.1 注册表条目注记关闭 + §6 新增 Phase 8 执行结果 + §8 深度表补 Phase 8 行；docs/refactor-acceptance-checklist.md 平台简写全量实名（`shared/mc1213-12111` 档位名保留）；新建本文档。 |
+| P8-R1 | （本 commit） | IDE 导入加固：settings.gradle `versions/` 目录枚举由 `listFiles({…} as FilenameFilter)` 闭包 SAM 转换改为 `listFiles().findAll { it.isDirectory() }`（Groovy 侧无歧义过滤，消除 IDE Gradle/Groovy 环境求值差异来源）。背景：VSCode（Java 扩展 / Buildship）导入时报「disk 集含 mapping-\*.txt / mainProject 等文件」——与实施中间坏态逐字一致（提交态 `new File(parent, name).isDirectory()` 修复版在 CLI 全绿），不排除 IDE 自带 Gradle 对 FilenameFilter 闭包求值差异，故彻底移除该模式；正反向验证：CLI `projects`/`build`/verify 全绿，负向测试（临时杂散目录 `versions/stray-drift-probe`）触发同一断言失败后恢复通过。 |
 
 ## 2. 关键实证与适配（P8 新增发现）
 
@@ -71,6 +72,6 @@
 ## 5. 待人工确认项
 
 - 推送 P8-1 / P8-2 并观察 GitHub Actions Build（当前最后已知绿：Build #54 @ 1a6787b）；若 CI 在新项目名上暴露 runner 层差异，按 §0 冻结项上报。
-- IDE 导入冒烟（可选）：带点项目名在 VSCode Buildship / IntelliJ 中的呈现与 source root 关联。
+- IDE 导入冒烟（可选）：带点项目名在 VSCode Buildship / IntelliJ 中的呈现与 source root 关联；P8-R1 已消除 settings.gradle 的 FilenameFilter 闭包 SAM 依赖（VSCode 导入报错的最可疑来源），需在修复后的 commit 上重新执行一次 IDE 导入确认诊断消除。
 - 真实 dispatch 演练（可选）：对 tag 3.0.0 执行一次 workflow_dispatch（预期 Modrinth 幂等预检 should_upload=false、gh release upload 步骤为 release 事件专属不会执行）作为 legacy 兼容的端到端确认。
 - 下一次正式 Release（release 事件）时 publish.yml 布局解析层将首次在 CI 上以 actual 形态执行；dispatch legacy 路径（checkout pre-P8 tag）预计仅历史补发布场景触发。
