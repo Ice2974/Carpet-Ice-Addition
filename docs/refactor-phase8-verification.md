@@ -2,7 +2,7 @@
 
 > Phase 8 于 main 分支执行（基点 1a6787b，Phase 7 终态）。目标：将内部标识 `versions/platform-mcXXXX` / `:platform-mcXXXX` / preprocess 节点 `mcXXXX` 正名为实际 Minecraft 版本号（mc1211→1.21.1 … mc261→26.1.2、mc262→26.2），覆盖磁盘目录、Gradle 项目、preprocess 节点、mainProject、mapping 文件名、构建/验证路径、CI 路径与发布路径。**版本语义、图拓扑（11 节点 + 10 条边）、源码行为、依赖、发布 jar 命名与 Modrinth / GitHub Release 语义全部不变**。
 >
-> **验收状态：完成**（2026-09-06；P8-0 本地探针 + 结构验证 + CI 等价命令集全量 + verifyJarEquivalence 11/11 + 双树 resolver harness 全绿，见 §3；CI Build 观察与 Level 3 边界见 §4 / §5）。
+> **验收状态：完成**（2026-09-06；P8-0 本地探针 + 结构验证 + CI 等价命令集全量 + verifyJarEquivalence 11/11 + 双树 resolver harness 全绿，见 §3；游戏内人工测试通过（2026-09-06 人工确认，见 §4）；CI Build 观察边界见 §4 / §5）。
 
 ## 0. 已确认约束（人工锁定，全程有效）
 
@@ -61,10 +61,11 @@
 
 ## 4. 人工验证判断与边界
 
-- Level 3 全平台人工游戏内回归不重跑：P8 发布产物经 `verifyJarEquivalence` 与 P6-baseline-final 逐条目 / 逐字节证明运行时等价（Level 3 所验证的行为载体未变），Level 3 结论继续由 Phase 6 验收（2026-09-06）承载。
-- 可选轻量冒烟（非验收必需）：1.21.1（remap 最老）、1.21.11（core）、26.2（plain 最新）各启动一次 dedicated server，确认 Mixin bootstrap 无错、`/carpet list` 规则数量一致——与 P7 的可选冒烟口径相同，如执行则同时覆盖「带点 Gradle 项目名下 IDE / dev 任务路径」的人工观察点。
+- **游戏内人工测试通过（2026-09-06 人工确认）**：带点项目名 / 实名目录产物在游戏内加载运行正常，Phase 8 人工验证闭环完成（执行范围以人工执行记录为准）。
+- Level 3 全平台人工游戏内回归不重跑：P8 发布产物经 `verifyJarEquivalence` 与 P6-baseline-final 逐条目 / 逐字节证明运行时等价（Level 3 所验证的行为载体未变），Level 3 结论继续由 Phase 6 验收（2026-09-06）承载；本轮游戏内人工测试（上条）在此基础上完成 Phase 8 的游戏内验证闭环。
+- ~~可选轻量冒烟（非验收必需）：1.21.1（remap 最老）、1.21.11（core）、26.2（plain 最新）各启动一次 dedicated server……~~ 已由 2026-09-06 人工游戏内测试覆盖并通过。
 - IDE 导入（VSCode Buildship / IntelliJ）未验证：带点项目名属 Gradle 标准命名，但 IDE 对 `:1.21.11` 等项目路径的呈现未测试。
-- GitHub Actions CI 对 P8-1 / P8-2 commit 的实际运行未观察（本验证于本地完成、commit 未推送；CI 在 push 后自动触发，如失败按 §0 约束上报人工决策，不通过放宽断言"适配"）。
+- GitHub Actions CI 对 P8-1 / P8-2 commit 的实际运行未观察（验证于本地完成、commit 未推送；CI 在 push 后自动触发，如失败按 §0 约束上报人工决策，不通过放宽断言"适配"）。
 - 真实 workflow_dispatch 补发布演练（tag 3.0.0）未执行：公开 CI 运行 + 潜在 Modrinth 侧动作需人工决策；静态 harness 已覆盖解析层 / 展开层生产代码路径（见 §2.3）。
 
 ## 5. 待人工确认项

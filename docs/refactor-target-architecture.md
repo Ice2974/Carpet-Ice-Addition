@@ -268,6 +268,7 @@ carpet-ice-addition/
 - 配置顺序适配（P8 实证发现）：项目名带点后 Gradle 子项目配置顺序由 preprocess 图驱动（core `:1.21.11` 先行，`:common` 落于平台之后），`common.gradle` 中 `jar` 任务对 `:common` 产物的 `from` 引用改为惰性闭包，不再依赖配置顺序。
 - 外部行为不变式（实证）：运行时 jar 与 P6-baseline-final **11/11 字节等价**（全部项目 class byteIdentical，注释实名 13 文件为 comment-only 不影响 classfile）；sources jar 差异为预期 comment-only（55 对，全部位于注释段，不声称与 baseline 字节等价）；发布 jar 命名、产物路径、Modrinth / GitHub Release 语义、`org.gradle.parallel=false`、loom 家族闭环（P7-R1 坐标防漂移断言）全部不变。
 - 历史tag兼容：pre-P8 tag（如 `3.0.0`）经「default 分支 workflow + checkout 旧 tag」补发布的能力由布局解析层保留；双树静态 harness（机械提取 marker 内生产实现，对 tag `3.0.0` worktree 与 P8 工作区各 11/11 验证通过，含 5 组 fail-closed 负例）。
+- 验收：游戏内人工测试通过（2026-09-06 人工确认）；Level 3 结论继续由 Phase 6 验收承载（运行时 jar 与 P6-baseline-final 字节等价）。
 - 完整记录见 [refactor-phase8-verification.md](refactor-phase8-verification.md)。
 
 ## 7. 风险登记册
