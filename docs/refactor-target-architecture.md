@@ -271,6 +271,13 @@ carpet-ice-addition/
 - 验收：游戏内人工测试通过（2026-09-06 人工确认）；Level 3 结论继续由 Phase 6 验收承载（runtime JAR 内容级等价）。
 - 完整记录见 [refactor-phase8-verification.md](refactor-phase8-verification.md)。
 
+### Phase 9：退出 `common` Java 子项目 + 单元测试归属重构——**已完成（2026-09-06）**
+
+- 范围：① 27 个 source owner 从 `common/src/main/java` 逐字节迁入根 `src/main/java`（main 态、零预处理指令，经 preprocess 版本图对 11 平台分别编译——各平台 carpet/MC 组合首轮即全绿）；② 3 个 JUnit 测试类迁入 `versions/1.21.11/src/test/java`，测试 owner 由 `:common:test` 切换为 `:1.21.11:test`（`common.gradle` 按 `rootProject.ext.mainProjectName`（`versions/mainProject` + 注册表双重 fail-closed）为 core 平台接线 JUnit 5.10.2 / gson 2.11.0 / launcher 1.10.2，版本不变；非 core 平台 test 保持 NO-SOURCE——实测 preprocess 插件会把 core 测试源经版本图传播进各平台并改写其 test srcDirs，afterEvaluate 统一恢复为本平台本地目录）；③ 删除 `implementation project(':common')`、平台 jar 对 `:common` classesDirs 的 merge、`include 'common'`、`common/build.gradle` 与 common Java/test 源码；④ `common/src/main/resources` 保留原位，`common.gradle` 改按 `rootProject.file` 物理路径引用（Phase 10 处理迁移）；⑤ `verifyJarEquivalence` 演进为两层 ownership 模型（Layer 1 = 27 source owners 自动推导 fail-closed / Layer 2 = 42 runtime class entries 跨平台一致；major invariant baseline=65 / current=java_release+44 / minor=0；scoped channel-B 经 2026-09-06 人工授权额外规范化 javac lambda 合成方法名序号——javac 21 类全局计数 → 25 按方法计数的编译器行为差异，仅限 transferred entries，严格路径不变）。
+- 外部行为不变式（实证）：runtime JAR 与 P6-baseline-final **11/11 内容级等价**（9×1.21.x transferred entries 42/42 byte-identical；26.1.2/26.2 42/42 scoped channel-B）；双 owner 试运行期 `:common:test` 与 `:1.21.11:test` 各 3 类 46 测试全 PASS 且 test classpath 无 common 产物；项目终态 12 projects（root + 11 版本项目）；`common/` 仅存纯资源目录；根 `gradle.properties` 的 obsolete `loader_version` 删除；build.yml 显式加入 `:1.21.11:test`。
+- 验收：Level 3 游戏内人工测试通过（2026-09-06 人工确认）。
+- 完整记录见 [refactor-phase9-verification.md](refactor-phase9-verification.md)。
+
 ## 7. 风险登记册
 
 | # | 风险 | 等级 | 缓解 |
@@ -294,6 +301,7 @@ carpet-ice-addition/
 | + Phase 4 | mappings 统一 → 消除 Yarn↔Mojmap 双胞胎 | ~~仅当双胞胎维护成本失控~~ **已完成**（2026-09-05，最终目标锁定后启动，见 §6 Phase 4） |
 | + Phase 5 | preprocess 版本图 + 根 src + per-version override 收敛 | ~~最终目标收敛相；受供应链门禁约束，门禁不通过则完整迁移状态 **blocked** 等待人工决策~~ **已完成**（2026-09-05，分支 `phase5-preprocess`，见 §6 Phase 5 执行结果） |
 | + Phase 8 | 版本目录 / Gradle 项目 / preprocess 节点正名（mcXXXX → 实际 MC 版本） | **已完成**（2026-09-06，见 §6 Phase 8） |
+| + Phase 9 | 退出 `common` Java 子项目 + 单元测试归属 `:1.21.11:test` | **已完成**（2026-09-06，见 §6 Phase 9） |
 
 ## 9. 待人工确认项汇总
 

@@ -19,8 +19,8 @@
 
 ## 目录边界
 
-- `common/`：规则定义、翻译、公共配置管理，以及不依赖具体 Minecraft 版本签名差异的工具逻辑。
-- `src/main/java`（仓库根）：主源码树——面向 mainProject（1.21.11）的「main 态」源码 + `//#if MC` 预处理宏，经 preprocess 版本图变换为各平台编译输入；只允许 java，不放 resources。
+- `common/`：纯资源目录（`src/main/resources`，Phase 9 起 Java 源码已全部迁出，资源迁移归 Phase 10），不是独立 Gradle 子项目。
+- `src/main/java`（仓库根）：主源码树——面向 mainProject（1.21.11）的「main 态」源码 + `//#if MC` 预处理宏，经 preprocess 版本图变换为各平台编译输入（Phase 9 起为唯一 Java main 源码所有者，含原 `common` 的规则定义、翻译、公共配置管理与工具逻辑）；只允许 java，不放 resources。
 - `versions/shared/`：纯资源档目录（珊瑚配方资源包），不是独立 Gradle 子项目，不直接产出 jar；只能由平台模块通过 `extra_resource_dirs` 数据键引入，不再承载 Java 源码。
 - `versions/<MC 版本>`（如 `versions/1.21.1`、`versions/26.2`，Phase 8 正名前为 `versions/platform-*`）：per-version override 源码（同路径整文件替换根 src 变换输出 / 异路径附加）、平台资源（mixin json、fabric.mod.json、资源包副本）与 per-version `gradle.properties`。
 - `docs/`：规则、命令、记录器、开发说明、发布说明等项目资料。
@@ -55,6 +55,7 @@
 ## 根源码树与跨版本规则
 
 - 源码架构（Phase 5 起，Phase 8 起平台目录实名）：根 `src/main/java` 主源码树（mainProject = 1.21.11）+ 根 `build.gradle` preprocess 版本图（插件 `com.replaymod.preprocess` 经 JitPack 全 SHA 锁定解析到 Fallen-Breath/preprocessor）+ `versions/<MC 版本>/src/main/java` per-version override；`versions/shared/` 只承载纯资源档。
+- 单元测试（Phase 9 起）归属 core 平台：测试源码位于 `versions/<mainProject 版本>/src/test/java`，测试入口为 `:<mainProject 版本>:test`（CI 显式执行）；非 core 平台 test 任务保持 NO-SOURCE，不得为其接线测试依赖。
 - 根 src 必须保持「main 态」：纯文本可直接按 1.21.11 编译；所有非 1.21.11 内容必须以 `//$$ ` 前缀的注释态出现在条件分支内；预处理指令行（`//#if` / `//#elseif` / `//#else` / `//#endif` / `//#disable-remap` 等）不加 `$$` 前缀。
 - 宏只用于单处 ≤10 行、不改 Mixin 注入 descriptor 的小差异；结构性分叉（注入目标结构 / 方法签名 / AI 拓扑 / `@At` 字符串差异）必须用平台 override 文件表达，不强行塞进宏。
 - override 语义：非 core 平台的本地 `src/main/java` 按同路径整文件替换根 src 变换输出、异路径附加；override 文件直接编译，不参与宏求值与边重映射，内部不使用预处理指令；core（1.21.11）没有 override 层，本地 src 不参与编译。
@@ -98,7 +99,7 @@
 本项目按纯服务端模组使用场景处理玩家可见文本；玩家客户端可能未安装本模组，因此不能依赖客户端加载本模组语言文件。
 
 - 面向玩家的命令反馈、错误提示、规则触发提示、回档警告、记录器输出等，如果使用本模组自定义翻译键，不要直接向玩家发送 `Text.translatable(...)` 或 `Component.translatable(...)`。
-- 服务端应先通过项目既有服务端翻译工具解析翻译键，再发送 literal / plain 文本给客户端；优先复用 `common/src/main/java/com/ice2974/carpeticeaddition/translation/TranslationFormatUtil.java` 或同目录既有工具。
+- 服务端应先通过项目既有服务端翻译工具解析翻译键，再发送 literal / plain 文本给客户端；优先复用 `src/main/java/com/ice2974/carpeticeaddition/translation/TranslationFormatUtil.java` 或同目录既有工具。
 - 中英文语言文件仍是玩家可见文本来源，不要把长文本硬编码到命令类、Mixin 或平台专属实现中。
 - 需要颜色、点击事件、hover 文本等样式时，先在服务端完成翻译和参数格式化，再在对应版本文本组件上应用样式。
 - 只有 vanilla / Minecraft 客户端必然存在的翻译键，才可以考虑继续使用客户端侧 translatable；本模组自定义键默认走服务端翻译。

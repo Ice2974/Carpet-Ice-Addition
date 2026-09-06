@@ -88,7 +88,7 @@
 
 - [ ] 内置资源包：逐平台 pack_format 与基线 §1.2 一致；10 个 `coral_block_from_*` 配方可用；冲突锁定三键翻译（`carpet.rule.craftableCoralBlocks.conflict.*`）正常。
 - [ ] 翻译完整性：zh_cn.json / en_us.json 与硬编码 Map `CarpetIceAdditionTranslations` 的键集合核对；logger 10 键当前仅存在于硬编码 Map——回归时按"现状基线"核对（即 JSON 缺失是已知现状，不是回归项），并保留待修复记录。
-- [ ] `.\gradlew.bat :common:test`（FluidTickDelayUtil / IronGolemVillagerOptimizer / VanillaLanguageService 三组单测）通过。
+- [ ] `.\gradlew.bat :1.21.11:test`（FluidTickDelayUtil / IronGolemVillagerOptimizer / VanillaLanguageService 三组单测；Phase 9 起测试 owner 为 `:1.21.11:test`，其余平台 test 保持 NO-SOURCE）通过。
 
 ### 3.5 mixin 完整性
 
