@@ -20,9 +20,9 @@
 ## 目录边界
 
 - `common/`：规则定义、翻译、公共配置管理，以及不依赖具体 Minecraft 版本签名差异的工具逻辑。
-- `src/main/java`（仓库根）：主源码树——面向 mainProject（platform-mc12111）的「main 态」源码 + `//#if MC` 预处理宏，经 preprocess 版本图变换为各平台编译输入；只允许 java，不放 resources。
+- `src/main/java`（仓库根）：主源码树——面向 mainProject（1.21.11）的「main 态」源码 + `//#if MC` 预处理宏，经 preprocess 版本图变换为各平台编译输入；只允许 java，不放 resources。
 - `versions/shared/`：纯资源档目录（珊瑚配方资源包），不是独立 Gradle 子项目，不直接产出 jar；只能由平台模块通过 `extra_resource_dirs` 数据键引入，不再承载 Java 源码。
-- `versions/platform-*`：per-version override 源码（同路径整文件替换根 src 变换输出 / 异路径附加）、平台资源（mixin json、fabric.mod.json、资源包副本）与 per-version `gradle.properties`。
+- `versions/<MC 版本>`（如 `versions/1.21.1`、`versions/26.2`，Phase 8 正名前为 `versions/platform-*`）：per-version override 源码（同路径整文件替换根 src 变换输出 / 异路径附加）、平台资源（mixin json、fabric.mod.json、资源包副本）与 per-version `gradle.properties`。
 - `docs/`：规则、命令、记录器、开发说明、发布说明等项目资料。
 - `THIRD_PARTY_NOTICES.md`：第三方来源、许可证、致谢、移植 / 参考 / 重写说明的维护文件；不替代 `LICENSE`，也不作为项目功能状态来源。
 - `references/`：本地参考资料目录，不作为项目事实来源，不修改其中内容。
@@ -37,7 +37,7 @@
 | Mod ID | `carpet-ice-addition` |
 | Java Package | `com.ice2974.carpeticeaddition` |
 | Maven Group | `com.ice2974` |
-| Archives Base Name | `carpet-ice-addition`（平台 jar 附加 `-mcXXXX` 后缀） |
+| Archives Base Name | `carpet-ice-addition`（平台中间产物附加 `-<MC 版本>` 后缀，如 `carpet-ice-addition-1.21.1`） |
 | 主入口类（各平台共用） | `com.ice2974.carpeticeaddition.CarpetIceAdditionMod` |
 | 规则分类内部名 | `CarpetIceAddition`（对应翻译键 `carpet.category.CarpetIceAddition`，显示值 `Ice`） |
 | 资源 namespace | `carpet-ice-addition`（assets 路径 `assets/carpet-ice-addition/`） |
@@ -54,10 +54,10 @@
 
 ## 根源码树与跨版本规则
 
-- 源码架构（Phase 5 起）：根 `src/main/java` 主源码树（mainProject = platform-mc12111）+ 根 `build.gradle` preprocess 版本图（插件 `com.replaymod.preprocess` 经 JitPack 全 SHA 锁定解析到 Fallen-Breath/preprocessor）+ `versions/platform-*/src/main/java` per-version override；`versions/shared/` 只承载纯资源档。
+- 源码架构（Phase 5 起，Phase 8 起平台目录实名）：根 `src/main/java` 主源码树（mainProject = 1.21.11）+ 根 `build.gradle` preprocess 版本图（插件 `com.replaymod.preprocess` 经 JitPack 全 SHA 锁定解析到 Fallen-Breath/preprocessor）+ `versions/<MC 版本>/src/main/java` per-version override；`versions/shared/` 只承载纯资源档。
 - 根 src 必须保持「main 态」：纯文本可直接按 1.21.11 编译；所有非 1.21.11 内容必须以 `//$$ ` 前缀的注释态出现在条件分支内；预处理指令行（`//#if` / `//#elseif` / `//#else` / `//#endif` / `//#disable-remap` 等）不加 `$$` 前缀。
 - 宏只用于单处 ≤10 行、不改 Mixin 注入 descriptor 的小差异；结构性分叉（注入目标结构 / 方法签名 / AI 拓扑 / `@At` 字符串差异）必须用平台 override 文件表达，不强行塞进宏。
-- override 语义：非 core 平台的本地 `src/main/java` 按同路径整文件替换根 src 变换输出、异路径附加；override 文件直接编译，不参与宏求值与边重映射，内部不使用预处理指令；core（platform-mc12111）没有 override 层，本地 src 不参与编译。
+- override 语义：非 core 平台的本地 `src/main/java` 按同路径整文件替换根 src 变换输出、异路径附加；override 文件直接编译，不参与宏求值与边重映射，内部不使用预处理指令；core（1.21.11）没有 override 层，本地 src 不参与编译。
 - 版本图边 mapping 文件（`versions/mapping-<a>-<b>.txt`）只在 automatic mapping 无法表达时添加条目（外部库 rename、成员移动、remap↔plain 边）；1.21.x remap 边通常保持 0 字节。修改 mapping 后必须全量编译验证受影响平台。
 - 严禁把根 src 或 `versions/shared/` 注册为独立 Gradle 子项目；Java source root 必须停在标准的 src/main/java，禁止把 com/... package 目录直接注册为 source root。
 - 跨小版本差异优先通过宏、平台 override 或版本图 mapping 表达，不优先使用运行期字符串版本号判断来偷渡兼容。
@@ -67,9 +67,9 @@
 
 ## 版本注册表与构建配置
 
-- `settings.json` 是支持版本清单的唯一来源；`settings.gradle` 据此动态生成平台子项目（根直接子项目 `:platform-mcXXXX`，磁盘目录仍为 `versions/platform-*`），并断言注册表与 `versions/platform-*` 目录一致。
-- 新增 Minecraft 平台 = 在 `settings.json` 按版本升序登记 + 新建 `versions/platform-*/`（per-version `gradle.properties`、src）+ 根 `build.gradle` 版本图 `createNode` 登记节点并与相邻版本 `link`（含新建对应 `versions/mapping-*.txt`），不要手写 include 清单；平台不写独立 `build.gradle`，`settings.gradle` 按 per-version `gradle.properties` 的 `loom_plugin` 完整 `id:version` 自动选择共享 family 构建入口（`build-remap.gradle` / `build-plain.gradle`，未知值 fail closed）。
-- 平台版本数据（minecraft、loader、fabric-api、carpet、pack_format 等）放在 `versions/platform-*/gradle.properties`，不要向根 `gradle.properties` 回填平台前缀键。
+- `settings.json` 是支持版本清单的唯一来源；`settings.gradle` 据此动态生成平台子项目（根直接子项目 `:<MC 版本>`，如 `:1.21.11`，磁盘目录 `versions/<MC 版本>`），并断言 `versions/` 目录集合恰为注册表条目目录 ∪ {shared}（双向 fail closed）。
+- 新增 Minecraft 平台 = 在 `settings.json` 按版本升序登记 + 新建 `versions/<MC 版本>/`（per-version `gradle.properties`、src）+ 根 `build.gradle` 版本图 `createNode` 登记节点并与相邻版本 `link`（含新建对应 `versions/mapping-*.txt`），不要手写 include 清单；平台不写独立 `build.gradle`，`settings.gradle` 按 per-version `gradle.properties` 的 `loom_plugin` 完整 `id:version` 自动选择共享 family 构建入口（`build-remap.gradle` / `build-plain.gradle`，未知值 fail closed）。
+- 平台版本数据（minecraft、loader、fabric-api、carpet、pack_format 等）放在 `versions/<MC 版本>/gradle.properties`，不要向根 `gradle.properties` 回填平台前缀键。
 - 平台共通构建逻辑在根 `common.gradle`（由共享 family 构建入口在 plugins 块之后 apply from 引入），差异由 per-version 数据键驱动；修改共通逻辑时必须同时验证两种 loom 形态（Mojmap layered remap 与免混淆 plain）。
 
 ## 规则 / 命令 / 记录器修改

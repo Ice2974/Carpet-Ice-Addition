@@ -150,7 +150,7 @@ carpet-ice-addition/
 ```
 
 - 升序排列（与参考实现一致，末位即最新）。
-- 过渡期条目为平台目录名（`platform-` 前缀省略）；Phase 3 若目录改名为纯版本号，注册表同步改名即可。
+- ~~过渡期条目为平台目录名（`platform-` 前缀省略）；Phase 3 若目录改名为纯版本号，注册表同步改名即可。~~ **Phase 8 已执行**：条目即实际 MC 版本号（`1.21.1` … `26.2`），与平台目录名、Gradle 项目名、preprocess 节点名三同一（见 §6 Phase 8）。
 - 文件名沿用 TIS 的 `settings.json` 还是参考实现的 `minecraftVersions.json`，待人工确认（见 §9）。
 
 ### 5.2 versions/platform-mc<XXXX>/gradle.properties 字段
@@ -262,6 +262,14 @@ carpet-ice-addition/
 - 外部行为不变式（结构 preflight 实证）：项目路径 `:platform-mcXXXX`、`projectDir`、`buildDir`、任务形态（remap 家族 remapJar/remapSourcesJar，plain 家族 jar/sourcesJar）、发布 jar 命名与产物路径、preprocess 节点图（rootNode = platform-mc12111）、CI 构建命令与 publish.yml 产物路径、verifyJarEquivalence 基线布局全部不变；唯 `buildFile` 指向从 `versions/platform-*/build.gradle` 变为仓库根共享入口（属 Phase 7 目标本身）。
 - 完整记录见 [refactor-phase7-verification.md](refactor-phase7-verification.md)。
 
+### Phase 8：版本目录 / Gradle 项目 / preprocess 节点正名——**已完成（2026-09-06）**
+
+- 范围：仅标识命名层，版本语义、图拓扑、源码行为、依赖、发布命名全部冻结。① `settings.json` 注册表 11 条目由 `mcXXXX` 改为实际 MC 版本号（`1.21.1` … `26.2`）；`versions/platform-mcXXXX` → `versions/<版本>`、`:platform-mcXXXX` → `:<版本>`、preprocess 节点名同步（P8-0 本地探针实证 Gradle 9.2.1 NameValidator 接受中间点项目名；`versions/mainProject` → `1.21.11`）；10 个 `versions/mapping-mcXXXX-mcYYYY.txt` → `mapping-<高版本>-<低版本>.txt`。② `settings.gradle` 磁盘断言升级为「`versions/` 目录集合恰为注册表条目目录 ∪ {shared}」双向 fail closed。③ `common.gradle` platform-only 不变量升级为三重断言（根直接子项目 + 注册表成员 + `projectDir == versions/<项目名>`）；`archivesName` 保持平台唯一（`archives_base_name-<项目名>`，如 `carpet-ice-addition-1.21.1`）。④ `verifyJarEquivalence` 经 `legacyBaselineDirNames`（键集与注册表防漂移断言）继续定位 P6-baseline-final 的 legacy 目录名快照。⑤ `publish.yml` 新增 fail-closed 布局解析层（marker 包裹的唯一生产实现）：actual（P8+ 树）与 legacy（`mcXXXX`，仅历史 tag 补发布兼容）双形态，`platform_dir` 统一保存完整仓库相对路径，Bash / Python 消费点不再拼接 `versions/`。
+- 配置顺序适配（P8 实证发现）：项目名带点后 Gradle 子项目配置顺序由 preprocess 图驱动（core `:1.21.11` 先行，`:common` 落于平台之后），`common.gradle` 中 `jar` 任务对 `:common` 产物的 `from` 引用改为惰性闭包，不再依赖配置顺序。
+- 外部行为不变式（实证）：运行时 jar 与 P6-baseline-final **11/11 字节等价**（全部项目 class byteIdentical，注释实名 13 文件为 comment-only 不影响 classfile）；sources jar 差异为预期 comment-only（55 对，全部位于注释段，不声称与 baseline 字节等价）；发布 jar 命名、产物路径、Modrinth / GitHub Release 语义、`org.gradle.parallel=false`、loom 家族闭环（P7-R1 坐标防漂移断言）全部不变。
+- 历史tag兼容：pre-P8 tag（如 `3.0.0`）经「default 分支 workflow + checkout 旧 tag」补发布的能力由布局解析层保留；双树静态 harness（机械提取 marker 内生产实现，对 tag `3.0.0` worktree 与 P8 工作区各 11/11 验证通过，含 5 组 fail-closed 负例）。
+- 完整记录见 [refactor-phase8-verification.md](refactor-phase8-verification.md)。
+
 ## 7. 风险登记册
 
 | # | 风险 | 等级 | 缓解 |
@@ -284,6 +292,7 @@ carpet-ice-addition/
 | + Phase 3 | preprocess / 档位收敛 / Mixin 合并等源码体系优化 | **已完成**（2026-09-05，按项独立决策执行，见 §6 执行结果） |
 | + Phase 4 | mappings 统一 → 消除 Yarn↔Mojmap 双胞胎 | ~~仅当双胞胎维护成本失控~~ **已完成**（2026-09-05，最终目标锁定后启动，见 §6 Phase 4） |
 | + Phase 5 | preprocess 版本图 + 根 src + per-version override 收敛 | ~~最终目标收敛相；受供应链门禁约束，门禁不通过则完整迁移状态 **blocked** 等待人工决策~~ **已完成**（2026-09-05，分支 `phase5-preprocess`，见 §6 Phase 5 执行结果） |
+| + Phase 8 | 版本目录 / Gradle 项目 / preprocess 节点正名（mcXXXX → 实际 MC 版本） | **已完成**（2026-09-06，见 §6 Phase 8） |
 
 ## 9. 待人工确认项汇总
 
