@@ -72,16 +72,6 @@ assert mainProjectNameRaw in versionRegistry.collect { it.toString() }:
         "versions/mainProject=${mainProjectNameRaw} 必须是 settings.json 版本注册表登记的版本项目"
 ext.mainProjectName = mainProjectNameRaw
 
-// P10-A：资源碰撞不变式预期数据（common.gradle 各平台 afterEvaluate 配置期消费，fail closed）。
-// key = 平台项目名，keySet 必须与版本注册表完全一致（common.gradle 有全等断言：
-// 未来新增平台缺键不会被默认当作空集放行）；
-// value = 该平台允许的「生效资源 srcDirs 相对路径碰撞集合」（相对路径统一以 / 规范化）。
-// P10-A（common 纯资源档退出）：根 src/main/resources 仅承载 icon/lang，与任何平台本地资源无交集，
-// 全平台预期为空集；P10-B 起 1.21.1 的预期集合由 craftableCoralRecipePaths 派生（见其定义处）。
-ext.expectedRootResourceCollisions = versionRegistry.collectEntries { version ->
-    [(version.toString()): new LinkedHashSet<String>()]
-}
-
 // P6 baseline 快照目录使用正名前（legacy）的平台目录名（platform-mcXXXX，快照永久只读不重建）；
 // 键集必须与注册表完全一致（防漂移断言），新增平台时同步维护
 def legacyBaselineDirNames = [
@@ -100,6 +90,10 @@ def legacyBaselineDirNames = [
 assert legacyBaselineDirNames.keySet() == versionRegistry.collect { it.toString() } as Set:
         "legacyBaselineDirNames 键集与 settings.json 注册表不一致：map=${legacyBaselineDirNames.keySet().sort()} registry=${versionRegistry.sort(false)}"
 
+// P10-B：珊瑚内置资源包在 jar 内的根路径（verifyCraftableCoralBlocksJars 与碰撞不变式共享，
+// 单一来源，不维护第二份字面量）
+def craftableCoralPackRoot = 'resourcepacks/craftable_coral_blocks/'
+
 def craftableCoralRecipePaths = [
         'coral_block_from_tube_coral_fan',
         'coral_block_from_brain_coral_fan',
@@ -113,6 +107,22 @@ def craftableCoralRecipePaths = [
         'coral_block_from_dead_horn_coral_fan'
 ]
 
+// P10-B：资源碰撞不变式预期数据（common.gradle 各平台 afterEvaluate 配置期消费，fail closed）。
+// key = 平台项目名，keySet 必须与版本注册表完全一致（common.gradle 有全等断言：
+// 未来新增平台缺键不会被默认当作空集放行）；
+// value = 该平台允许的「生效资源 srcDirs 相对路径碰撞集合」（相对路径统一以 / 规范化）。
+// P10-B（versions/shared / extra_resource_dirs 退出）：10 个 modern 珊瑚配方迁入根 src/main/resources，
+// 1.21.1 保留本地 old-schema 同路径覆盖（平台本地层经 EXCLUDE first-wins 胜出），其预期碰撞集合
+// 恰为 craftableCoralRecipePaths 派生的 10 条内置资源包 recipe 相对路径（单一来源派生，不维护第二份
+// 配方名单）；其余平台无碰撞，预期空集。
+ext.expectedRootResourceCollisions =
+        versionRegistry.collect { it.toString() }.findAll { it != '1.21.1' }.collectEntries { version ->
+            [(version): new LinkedHashSet<String>()]
+        } + [('1.21.1'): new LinkedHashSet<String>(
+                craftableCoralRecipePaths.collect { recipe ->
+                    "${craftableCoralPackRoot}data/carpet-ice-addition/recipe/${recipe}.json".toString()
+                })]
+
 def verifyCraftableCoralBlocksJars = tasks.register('verifyCraftableCoralBlocksJars') {
     doLast {
         platformProjects.each { projectPath ->
@@ -124,7 +134,7 @@ def verifyCraftableCoralBlocksJars = tasks.register('verifyCraftableCoralBlocksJ
             def entries = new java.util.zip.ZipFile(jarFile).withCloseable { zip ->
                 zip.entries().collect { entry -> entry.name }
             }
-            def packRoot = 'resourcepacks/craftable_coral_blocks/'
+            def packRoot = craftableCoralPackRoot
             def packMeta = "${packRoot}pack.mcmeta"
             def recipeRoot = "${packRoot}data/carpet-ice-addition/recipe/"
             def expectedRecipes = craftableCoralRecipePaths.collect { path -> "${recipeRoot}${path}.json".toString() }
@@ -1342,7 +1352,7 @@ def verifyClassRenameMapping = tasks.register('verifyClassRenameMapping') {
             }
         }
 
-        // 功能性非 Java 文本（gradle / CI / 平台资源 / shared 资源）：old 简名或 FQCN 必须不存在。
+        // 功能性非 Java 文本（gradle / CI / 平台资源）：old 简名或 FQCN 必须不存在。
         // 排除：mapping 文件自身、构建输出 / .gradle / .git / gradle wrapper（含二进制）、
         // docs / references / README* / AGENTS.md / LICENSE / THIRD_PARTY_NOTICES.md（历史文档允许保留旧名）。
         def textScanNameExclusions = ['AGENTS.md', 'README.md', 'README_en.md', 'LICENSE',
@@ -1358,11 +1368,8 @@ def verifyClassRenameMapping = tasks.register('verifyClassRenameMapping') {
         if (githubDir.isDirectory()) {
             githubDir.eachFileRecurse(groovy.io.FileType.FILES) { textTargets << it }
         }
-        def sharedDir = new File(rootDir, 'versions/shared')
-        if (sharedDir.isDirectory()) {
-            sharedDir.eachFileRecurse(groovy.io.FileType.FILES) { textTargets << it }
-        }
-        // P10-A：common/ 纯资源档已退出，其文件迁入根 src/main/resources（仍由 rootDir 递归扫描覆盖）
+        // P10-A：common/ 纯资源档已退出，其文件迁入根 src/main/resources（仍由 rootDir 递归扫描覆盖）；
+        // P10-B：versions/shared 已整体退出，其功能性文本扫描不再需要
         ([rootDir] + platformDirs).each { dir ->
             if (!dir.isDirectory()) {
                 return

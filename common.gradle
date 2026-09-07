@@ -5,7 +5,7 @@
 //   必需键：minecraft_version / release_minecraft_range / minecraft_dependency / loader_version /
 //           fabric_version / fabric_dependency / carpet_version / carpet_dependency / carpet_repo /
 //           loom_plugin / jar_task / java_release / pack_format / mixin_config
-//   可选键：java_toolchain（仅 26.x）/ extra_resource_dirs
+//   可选键：java_toolchain（仅 26.x）
 // jar_task=remap：officialMojangMappings 形态（Phase 4 统一），依赖走 modImplementation，产物经 remapJar/remapSourcesJar 命名
 // jar_task=plain：免混淆形态（26.x），依赖走 implementation，产物经 jar/sourcesJar 命名
 
@@ -77,20 +77,15 @@ dependencies {
     }
 }
 
-// Phase 5（P5-7）：Java 档位叠加机制（shared_tiers）已随 preprocess 体系收敛移除——
-// 全部平台经根 src + 版本图变换 + 平台 override 编译；versions/shared 仅保留纯资源档（extra_resource_dirs）。
-def extraResourceTiers = project.hasProperty('extra_resource_dirs')
-        ? project.extra_resource_dirs.split(',') as List<String>
-        : []
+// P10-B：versions/shared 纯资源档与 extra_resource_dirs 数据键已整体退出——珊瑚内置资源包 modern 档
+// 迁入根 src/main/resources，1.21.1 保留本地 old-schema 同路径覆盖（平台本地层优先）。
 
 sourceSets {
     main {
         resources {
-            // P10-A：common/src/main/resources 纯资源档退出，icon/lang 迁入根 src/main/resources
+            // P10-B：资源 srcDirs 收敛为 [平台本地, 根]——根承载跨平台共享资源（icon/lang、modern 珊瑚配方），
+            // 平台本地承载 per-version 差异（fabric.mod.json、mixin 配置、pack.mcmeta、1.21.1 old-schema 配方）
             srcDir rootProject.file('src/main/resources')
-            extraResourceTiers.each { tier ->
-                srcDir rootProject.file("versions/shared/${tier}/src/main/resources")
-            }
         }
     }
 }
@@ -109,11 +104,8 @@ sourceSets {
 project.pluginManager.apply('com.replaymod.preprocess')
 afterEvaluate {
     // P10-A：根 src/main/resources 以平台本地之后的次序接入（同相对路径时平台本地层优先）
-    def expectedResourceDirs = ([new File(project.projectDir, 'src/main/resources'),
-                                 rootProject.file('src/main/resources')] +
-                                extraResourceTiers.collect { tier ->
-                                    rootProject.file("versions/shared/${tier}/src/main/resources")
-                                })
+    def expectedResourceDirs = [new File(project.projectDir, 'src/main/resources'),
+                                rootProject.file('src/main/resources')]
     sourceSets.main.resources.setSrcDirs(expectedResourceDirs)
     // P9：preprocess 插件会重写全部平台 sourceSet 的 java srcDirs：core 平台的 test 源会被插件
     // 经版本图变换传播进各平台 build/preprocessed/test 并改写其 test srcDirs（实测

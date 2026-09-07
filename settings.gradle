@@ -25,7 +25,7 @@ def versionRegistryFile = file('settings.json')
 def versionRegistry = new JsonSlurper().parse(versionRegistryFile).versions as List<String>
 
 // 注册表与磁盘目录一致性断言（双向 fail closed），防止新增/删除平台目录后忘记更新注册表（或反之）：
-//   - versions/ 下的目录集合必须恰为「注册表条目目录 ∪ {shared 资源档}」——多余目录与缺失目录都会失败；
+//   - versions/ 下的目录集合必须恰为注册表条目目录（P10-B 起无 shared 等附加目录）——多余目录与缺失目录都会失败；
 //   - 注册表条目（实际版本号，如 1.21.1 / 26.2）必须各对应 versions/<条目> 目录。
 // 注意：注册表声明顺序为版本升序语义序，不是字符串字典序（'1.21.10' < '1.21.9'）；
 // 断言对两侧各自排序后比较；include 顺序跟随注册表声明顺序
@@ -35,7 +35,8 @@ assert !versionRegistry.isEmpty(): 'settings.json versions 不能为空'
 def duplicateVersions = versionRegistry.groupBy { it }.findAll { it.value.size() > 1 }.keySet()
 assert duplicateVersions.isEmpty():
         "settings.json 版本注册表存在重复项：${duplicateVersions.sort()}"
-def expectedDirNames = (versionRegistry.collect { it.toString() } + ['shared']) as Set
+// P10-B：shared 资源档退出后，versions/ 目录集合恰为注册表条目（双向 fail closed 不变）
+def expectedDirNames = versionRegistry.collect { it.toString() } as Set
 def versionsDir = file('versions')
 assert versionsDir.isDirectory(): "缺少 versions 目录: ${versionsDir}"
 // 不用 FilenameFilter 闭包 SAM 转换（IDE 导入的 Gradle/Groovy 环境求值差异来源），无歧义地在 Groovy 侧过滤目录
