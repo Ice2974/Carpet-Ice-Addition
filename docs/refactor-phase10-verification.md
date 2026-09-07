@@ -9,7 +9,7 @@
 - 冻结项不变：依赖、preprocessor JitPack 全 SHA、版本图拓扑（11 节点 / 10 边）、`mainProject=1.21.11`、loom 家族闭环、P6-baseline-final（永久只读，不重建）、`org.gradle.parallel=false`、47 条 class rename mapping、Java verifier 豁免范围（不新增任何 classfile 规范化）。
 - 迁移方式：资源文件**逐字节** git mv 迁入（git 历史以 100% 相似度 rename 记录）；1.21.1 的 10 个 old-schema 配方保留平台本地原位（终态唯一依赖平台本地同路径覆盖的平台，schema 分叉完整保留）。
 - 等价口径：runtime JAR 与 P6-baseline-final 11/11 内容级等价（既有专项语义 invariant 口径不变）；本 Phase 额外执行 L2 资源专项检查（含 sources artifact，见 §5）。
-- **26.x 构建输出树约束**：26.1.2 / 26.2 运行时 jar 中的 `data/`、`data/carpet-ice-addition/` 两个空目录条目源自构建输出树（`build/resources/main`）中旧时代残留的空目录，被 plain 家族 `jar` 任务持续打包；P6 baseline jar 同样含这 2 个条目。对这些平台执行 `clean` 后再构建会使条目消失并导致 `verifyJarEquivalence` 非 class 条目集合比较失败——不得 clean 后等价验证（1.21.x remap 家族的 remapJar 不写纯目录条目，不受影响；P5→P9 多轮增量重建已实证该残留跨 processResources 重跑存活）。
+- **26.x 空目录条目 = 本地未跟踪空源目录（P10-R1 修正）**：26.1.2 / 26.2 运行时 jar 中的 `data/`、`data/carpet-ice-addition/` 两个空目录条目源自平台源码树中 Git 未跟踪的空目录（`versions/<26.x>/src/main/resources/data/carpet-ice-addition/`，0 文件、无任何提交历史），被 plain 家族 `jar` 任务随资源 srcDirs 打包；P6 baseline jar 同样含这 2 个条目。`clean` 不删除源码树未跟踪目录，主工作区 clean 后条目依旧；仅含 Git 跟踪内容的 sterile 检出不产出该条目，原版 `verifyJarEquivalence` 因此失败（P10-R1 双层门禁实证，见 §9）。1.21.1 存在同源未跟踪空目录，但 remap 家族产物实测不含顶层 `data/` 条目（与基线一致），不受影响。P10-R1 起验证器条目清单只含实际文件条目，directory entry 不参与等价（见 §9）。
 
 ## 1. 提交记录
 
@@ -77,7 +77,7 @@
 | L2 资源专项（11 jar） | icon.png / lang(en,zh) 各恰 1 条目；全 jar **0 重复条目名**；icon 字节 SHA 与根源文件一致（`9d8751f7…`） |
 | L2 sources artifact 专项（P10-B 新增） | 1.21.1 sources jar：10 配方各恰 1 条目、字节 = 本地 old-schema（10/10）；26.2 sources jar：10 配方各恰 1 条目、字节 = 根 modern（10/10） |
 | L2 schema 分叉锁定 | 运行时 jar brain 配方（schema 分叉代表）SHA：1.21.1 = `b39d6292…`（old-schema，= 本地原文件）；26.2 = `3c1d867f…`（modern，= 根/shared 原字节） |
-| 26.x 空目录条目 | `data/` + `data/carpet-ice-addition/` 保持 2 条目，与 P6 baseline 一致（全程未 clean，见 §0） |
+| 26.x 空目录条目 | `data/` + `data/carpet-ice-addition/` 保持 2 条目，与 P6 baseline 一致（P10-R1 实证：条目源自本地未跟踪空源目录而非构建输出树残留，见 §0 / §9） |
 
 ## 6. 人工验证
 
@@ -86,7 +86,7 @@
 
 ## 7. 实施发现（新增记录）
 
-- **26.x 运行时 jar 的空目录条目是构建输出树残留的持续复现**（§0）：所有平台的 `build/resources/main` 都残留旧时代 `data/carpet-ice-addition/` 空目录（历史 datapack 配方移除后的孤儿目录），plain 家族 `jar` 直接打包输出树 → 空目录条目进 jar；remap 家族 remapJar 重打包丢弃纯目录条目。P6 baseline 同分布（26.x 有、1.21.x 无），等价成立的前提是该残留不被 clean。
+- **26.x 运行时 jar 的空目录条目源自本地未跟踪空源目录（P10-R1 修正机制）**（§0 / §9）：`versions/26.1.2`、`versions/26.2` 的 `src/main/resources/data/carpet-ice-addition/` 为 Git 未跟踪的本地空目录（历史 datapack 配方移除后遗留），plain 家族 `jar` 随资源 srcDirs 打包 → 空目录条目进 jar；remap 家族产物实测不含空目录条目。P6 baseline 同分布（26.x 有、1.21.x 无）。此前记录误判为「构建输出树残留、clean 后消失」——clean 不删除源码树未跟踪目录，等价成立与否实际取决于本地未跟踪状态；P10-R1 起验证器过滤 directory entry，该依赖解除。
 - **srcDirs 顺序变化不构成 Gradle up-to-date 输入变化**：fixture 中仅调换 srcDirs 顺序时 `processResources` 保持 up-to-date、输出为旧顺序产物（首轮实证的"root_first 仍 platform 胜出"反常即此假象）；行为实验必须 `clean` 隔离。真仓 probe 依赖 probe 文件为新增输入天然失效该假象。
 - **`tasks.named('sourcesJar')` 在 `java { withSourcesJar() }` 之前不可用**（配置期任务未注册）：显式 EXCLUDE 接线用惰性 `tasks.configureEach` 名称匹配表达。
 - **preprocess 插件对 core 平台的资源改写被 afterEvaluate restore 覆盖后，根资源目录对 core / non-core 行为一致**（probe 的 1.21.11 观测；根资源以 [平台本地， 根] 次序接入全部平台）。
@@ -95,4 +95,16 @@
 
 - **Level 3 游戏内人工测试**（§6）尚未执行：重点为 1.21.1 old-schema 与 26.x modern 内置资源包配方、mod 图标与双语规则文本显示。
 - **push 后观察 GitHub Actions Build 结果**：本地验证矩阵全绿，但 CI 在 push 前无法观测；如失败按既有约束上报，不以放宽断言适配。
-- **26.x 输出树残留约束**（§0）如未来需要 clean 后等价验证，需先人工决策处理方式（例如为 baseline 重建开专项授权），本 Phase 未做任何处理。
+
+## 9. P10-R1 修补轮（2026-09-07）：26.x 空目录条目实证 + verifyJarEquivalence 只比实际文件条目
+
+> 基点 `6547686`（P10 终态），双层门禁：G1 主工作区（诊断，无裁决权）+ G2 sterile detached worktree（最终裁决）。G2 FAIL 且穷尽确认唯一差异全部为 `ZipEntry.isDirectory()==true` 目录条目 → P10-R1b 按预授权升级为必要修复（commit `8704141`），G2' 于新 HEAD sterile 复验关闭。
+
+- **G1（诊断，主工作区 @6547686）**：clean build 全套件 SUCCESSFUL（`:1.21.11:test` 3 类 46 测试 PASS）；原版 `verifyJarEquivalence` 11/11 PASS；ZIP census（runtime + sources × 11 平台）：全部 runtime jar 与基线条目集合全等、common 非 class 文件字节 0 差异、0 重复条目——本地未跟踪空目录恰好补齐 26.x 基线 `data/` 两条目，等价结论此时隐性依赖本地未跟踪状态。
+- **G2（裁决，sterile detached worktree @6547686）**：检出 porcelain 干净、HEAD 核对一致，`versions/1.21.1`、`versions/26.1.2`、`versions/26.2` 的本地未跟踪 `data/` 空源目录确认不存在；clean build 全套件 SUCCESSFUL。census：26.1.2 / 26.2 runtime jar 恰缺 `data/`、`data/carpet-ice-addition/`（allEntries 189→187；fileEntries 双向 0 差异；common 非 class 文件字节 0 差异；0 重复条目），1.21.x runtime 与基线全等；sources jar 相对基线的差异仅为源码演进（P6 后新增 27 个 .java 与新增 `translation/`、`util/` 包目录）及 26.x 缺失的上述 2 个目录条目。原版 `verifyJarEquivalence` **FAIL** 于 26.1.2：`missing in current: [data/, data/carpet-ice-addition/]`、`extra in current: []`（class mapping-aware 集合断言先于非 class 断言执行，已通过；26.2 census 签名相同）。
+- **最终裁决：分支 B**——不存在任何真实文件 / 资源字节 / pack.mcmeta / class / sources Java / mapping 差异；P10-R1b 升级为必要修复，同轮实施。
+- **P10-R1b（commit `8704141`）**：`verifyJarEquivalence` 条目清单自 P10-R1 起只含实际文件条目——`readEntries` 提升为脚本级 helper 并过滤 `ZipEntry.isDirectory()`，runtime / sources 四个调用点统一使用；不设具体路径白名单、不新增任何 blanket exemption、P6 baseline 与 runtime jar 未动。sources 等价仅消费 `com/ice2974/**/*.java`，判定不变。
+- **self-test**：`selfTestRenameEquivalence` 新增最小 ZIP fixture 5 断言：① directory entry 被过滤、实际文件条目保留（fixture 先自证真实含目录条目，防空转）；② baseline 有 / current 无目录 → 等价；③ 反向 → 等价；④ 实际文件缺失保持可区分；⑤ 实际文件新增保持可区分。既有普通资源 / pack.mcmeta / class mapping / channel B / ownership self-test 全绿，fail-closed 语义未动。
+- **G2'（新 HEAD `8704141` 全新 sterile detached worktree）**：clean build 全套件 SUCCESSFUL；census 签名与 G2 一致（26.x runtime 仍恰缺 2 目录条目、fileEntries 0 差异）；`verifyJarEquivalence` **11/11 PASS**。主工作区同步复验：clean 全套件 + verifier 全绿。
+- **P10-R1a（注释 / 文档现势化，随 commit `8704141` 与本文档 commit）**：`common.gradle` Phase 5 资源 restore 注释移除 P10-B 已退役的 `extra_resource_dirs` 档；本文档 §0 / §5 / §7 与 target-architecture §6 的 26.x 空目录来源 / clean 行为描述按门禁实测现势化。
+- **原待人工确认项「26.x 输出树残留约束」就此关闭**：等价验证不再依赖本地未跟踪状态——sterile（仅 Git 跟踪内容）检出亦 11/11 PASS，无需为 baseline 重建开专项授权。
