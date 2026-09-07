@@ -48,7 +48,8 @@ def validateAndExpand = { File manifestFile, List<String> registeredVersions, Ma
         def entry = rawEntry as Map
         assertExactKeys(entry, ['name', 'side', 'onlyMc', 'minMc', 'maxMc'] as Set, "entries[${index}]")
         assert entry.name instanceof String && !entry.name.isEmpty(): "entries[${index}].name must be non-empty"
-        assert entry.name ==~ /[A-Za-z_$][A-Za-z0-9_$.]*/: "invalid Mixin entry name ${entry.name}"
+        assert entry.name ==~ /[A-Za-z_$][A-Za-z0-9_$]*/:
+                "invalid flat-package Mixin entry name ${entry.name}; subpackages are not supported"
         assert entry.side in ['common', 'client']: "entry ${entry.name} has invalid side ${entry.side}"
         assert !entryByName.containsKey(entry.name): "duplicate canonical Mixin entry ${entry.name}"
 
@@ -148,6 +149,10 @@ def validateAndExpand = { File manifestFile, List<String> registeredVersions, Ma
                     (!entry.containsKey('maxMc') || code <= mcVersions[entry.maxMc])
         }
         def activeNames = activeEntries*.name as Set
+        overrideByVersionAndPair.values().findAll { it.version == version }.each { override ->
+            assert activeNames.contains(override.before) && activeNames.contains(override.after):
+                    "orderOverride for ${version} has inactive endpoint(s): ${override.before} -> ${override.after}"
+        }
         def effectiveEdges = new LinkedHashMap<String, Map>()
         baseByPair.each { key, base ->
             if (activeNames.contains(base.before) && activeNames.contains(base.after)) {

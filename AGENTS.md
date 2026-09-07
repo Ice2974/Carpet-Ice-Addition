@@ -20,8 +20,9 @@
 ## 目录边界
 
 - `src/main/java`（仓库根）：主源码树——面向 mainProject（1.21.11）的「main 态」源码 + `//#if MC` 预处理宏，经 preprocess 版本图变换为各平台编译输入（Phase 9 起为唯一 Java main 源码所有者，含原 `common` 的规则定义、翻译、公共配置管理与工具逻辑）；只允许 java，不放 resources。
-- `src/main/resources`（仓库根）：跨平台共享资源目录（Phase 10 起：mod 图标、中英语言文件、珊瑚内置资源包 modern 档配方）；经 `common.gradle` 接入所有平台的资源 srcDirs，次序在平台本地之后（同相对路径时平台本地优先）；不得包含 `fabric.mod.json` 与 `resourcepacks/craftable_coral_blocks/pack.mcmeta`（平台/资源包元数据所有权不变式，配置期断言）。
-- `versions/<MC 版本>`（如 `versions/1.21.1`、`versions/26.2`，Phase 8 正名前为 `versions/platform-*`）：per-version override 源码（同路径整文件替换根 src 变换输出 / 异路径附加）、平台资源（mixin json、fabric.mod.json、内置资源包 pack.mcmeta，1.21.1 另有 old-schema 配方同路径覆盖）与 per-version `gradle.properties`。
+- `src/main/resources`（仓库根）：跨平台共享资源目录（Phase 10 起：mod 图标、中英语言文件、珊瑚内置资源包 modern 档配方）；经 `common.gradle` 接入所有平台的资源 srcDirs，次序在平台本地之后（同相对路径时平台本地优先）；不得包含 `fabric.mod.json`、`resourcepacks/craftable_coral_blocks/pack.mcmeta` 或 tracked `*.mixins.json`（资源所有权不变式，配置期断言）。
+- `versions/<MC 版本>`（如 `versions/1.21.1`、`versions/26.2`，Phase 8 正名前为 `versions/platform-*`）：per-version override 源码（同路径整文件替换根 src 变换输出 / 异路径附加）、平台资源（`fabric.mod.json`、内置资源包 `pack.mcmeta`，1.21.1 另有 old-schema 配方同路径覆盖）与 per-version `gradle.properties`；平台 runtime resource source tree 不拥有手写 `*.mixins.json`。
+- `gradle/mixins/registry.json`：唯一人工维护的 Mixin registry，登记 membership、版本 predicate 与 precedence；各平台 build-time generator 在 `versions/<MC 版本>/build/generated/mixinConfig/<mixin_config>` 生成 effective config，并以 task output 接入产物。root / platform runtime resource source tree 禁止重新加入 tracked `*.mixins.json`。
 - `docs/`：规则、命令、记录器、开发说明、发布说明等项目资料。
 - `THIRD_PARTY_NOTICES.md`：第三方来源、许可证、致谢、移植 / 参考 / 重写说明的维护文件；不替代 `LICENSE`，也不作为项目功能状态来源。
 - `references/`：本地参考资料目录，不作为项目事实来源，不修改其中内容。
@@ -71,6 +72,7 @@
 - 平台版本数据（minecraft、loader、fabric-api、carpet、pack_format 等）放在 `versions/<MC 版本>/gradle.properties`，不要向根 `gradle.properties` 回填平台前缀键。
 - 平台共通构建逻辑在根 `common.gradle`（由共享 family 构建入口在 plugins 块之后 apply from 引入），差异由 per-version 数据键驱动；修改共通逻辑时必须同时验证两种 loom 形态（Mojmap layered remap 与免混淆 plain）。
 - 平台资源 srcDirs 固定为 [平台本地 `src/main/resources`，根 `src/main/resources`]（Phase 10 起；无 common/、versions/shared、extra_resource_dirs 档）。同相对路径资源碰撞由平台本地层胜出（`processResources` / `sourcesJar` 显式 `DuplicatesStrategy.EXCLUDE`；first-wins 本身不是 fail-closed），碰撞是否被允许由配置期碰撞不变式 fail-closed 裁决——任何新增碰撞必须同步登记根 `build.gradle` 的 `expectedRootResourceCollisions`（keySet 与版本注册表全等，缺失键不会默认按空集放行）。
+- Mixin effective config 由 `gradle/mixins/registry.json` 经每个平台的 `generateMixinConfig` 生成到独立 `build/generated/mixinConfig/`；只允许通过显式 task-output wiring 接入 `processResources` / `sourcesJar`，不得将 generated 目录注册为 resource srcDir，也不得在 root / platform runtime resource source tree 手写 `*.mixins.json`。运行时仍使用各平台既有 `carpet-ice-addition-mcXXXX.mixins.json` 文件名。
 
 ## 规则 / 命令 / 记录器修改
 
@@ -78,7 +80,7 @@
 
 | 类型 | 至少检查 | 必须同步文档 |
 | - | - | - |
-| 规则 | 规则定义类、翻译提供类、中英文语言文件、相关 Mixin / Helper / 配置类、入口类（根 src 注册宏边界）、mixin json、受影响平台 override | `docs/rules.md`、`docs/rules_en.md` |
+| 规则 | 规则定义类、翻译提供类、中英文语言文件、相关 Mixin / Helper / 配置类、入口类（根 src 注册宏边界）、canonical registry 的 membership / predicate / precedence、受影响平台 override | `docs/rules.md`、`docs/rules_en.md` |
 | 命令 | 命令注册入口、命令实现类、权限判断、命令树刷新逻辑、反馈/错误文本、配置持久化逻辑 | `docs/commands.md`、`docs/commands_en.md` |
 | 记录器 | `registerLoggers()` 接入点、logger 注册/显示/辅助类、事件触发点、Mixin、HUD 更新入口、内部名、默认 option、可选 options、订阅状态快速判断 | `docs/loggers.md`、`docs/loggers_en.md` |
 

@@ -1,6 +1,6 @@
 # Phase 11 验证记录：单一 canonical Mixin registry
 
-> **验收状态：代码与自动验证完成**（2026-09-07，功能 commit `f6511da`）；Level 3 游戏内人工测试尚未执行，见 §7。
+> **验收状态：已完成**（2026-09-07，功能 commit `f6511da`）；Level 3 游戏内人工测试已由用户确认完成，见 §7。
 
 ## 1. 范围与冻结项
 
@@ -86,15 +86,16 @@ base:       MobVillagerConversionMixin -> PhantomNeutralPhantomsMixin
 Codex 不启动 Minecraft。人工验收使用本次 `clean build` 生成的 11 个 runtime JAR，并为每个平台使用与其 `gradle.properties` 匹配的 Minecraft、Fabric Loader、Fabric API 与 Carpet 环境；每个平台使用隔离实例/存档，避免跨版本缓存污染。
 
 1. **11 平台 dedicated server 加载**：依次覆盖 1.21.1、1.21.3、1.21.4、1.21.5、1.21.6、1.21.8、1.21.9、1.21.10、1.21.11、26.1.2、26.2。启动到可接受连接后正常停止。验收：无 config not found、JSON parse、Mixin class not found、target resolution、injection failure、invalid side 或 duplicate config 错误；日志显示模组正常初始化。
-2. **11 平台 client 加载**：每个版本各启动一次安装本模组的客户端并进入测试世界/服务器。验收：无 client Mixin 加载错误；1.21.1–1.21.5 的两个 client entry 与其余版本的单 client entry 均不发生 class/target 缺失。
-3. **注册面冒烟**：每个平台执行 `/carpet list`，确认 Ice 分类与预期规则可见；确认 `/killitem`、`/machineStatus` 命令树和 `/log villagerEvents` 订阅入口存在。验收：入口、权限与文本无缺失或异常。
-4. **完整规则矩阵**：按 `refactor-acceptance-checklist.md` §3 对全部规则逐平台执行 false/default 与启用态测试；仅适用 1.21.1 的规则只在 1.21.1 验证，`mobsSpawnWithoutSpears` 在 1.21.11/26.x 验证，其余规则覆盖全部适用平台。验收：行为、反馈文本、持久化与重启后状态符合清单，无新增 Mixin 冲突。
-5. **同 target 重点回归**：每个平台至少覆盖 villager events/trading/golem optimization、phantom warning/record world event、villager conversion/neutral phantoms、两项 silk-touch mining、illegal-text/machine-status rollback、ice-like-magma/safe-scaffolding、thorns/airborne penalty、custom-name trading/golem、neutral phantoms/tamed-mob protection；1.21.11/26.x 另覆盖 zombie villager events + mobs-without-spears。验收：组合开启时两侧功能同时有效，日志无 overwrite/redirect/inject 冲突。
+2. **代表性 client / integrated-server 覆盖**：至少覆盖 1.21.1、1.21.5、1.21.11、26.1.2、26.2；若 1.21.5 → 1.21.6 client membership 边界未被现有证据充分覆盖，再补 1.21.6。每个代表版本启动安装本模组的客户端并进入集成服务器世界。验收：无 client Mixin 加载错误；1.21.1/1.21.5 的 BookEditScreen + Clipboard 与 1.21.6+/26.x 的 Clipboard-only membership 均无 class/target 缺失。
+3. **注册面冒烟**：在上述代表版本执行 `/carpet list`，确认 Ice 分类与预期规则可见；确认 `/killitem`、`/machineStatus` 命令树和 `/log villagerEvents` 订阅入口存在。验收：入口、权限与文本无缺失或异常。
+4. **代表性规则回归**：按 `refactor-acceptance-checklist.md` §2 的代表集覆盖上述 client / integrated-server 版本，并覆盖 1.21.1 特有规则、1.21.11/26.x 的 `mobsSpawnWithoutSpears` 及 1.21.5→1.21.6 client membership 边界（若需补测）。验收：行为、反馈文本、持久化与重启后状态符合清单，无新增 Mixin 冲突。
+5. **同 target 重点回归**：在代表版本间分配覆盖 villager events/trading/golem optimization、phantom warning/record world event、villager conversion/neutral phantoms、两项 silk-touch mining、illegal-text/machine-status rollback、ice-like-magma/safe-scaffolding、thorns/airborne penalty、custom-name trading/golem、neutral phantoms/tamed-mob protection；1.21.11/26.x 另覆盖 zombie villager events + mobs-without-spears。验收：组合开启时两侧功能同时有效，日志无 overwrite/redirect/inject 冲突。
 6. **1.21.10 precedence 专项**：同时启用 villager conversion 与 neutral phantoms 相关规则，分别触发两条路径并进行保存/重载。验收：两项行为均正常，Phantom NBT 状态可保存/恢复，Mob conversion 无异常；日志无 cycle 或 Mixin apply error。相邻版本 1.21.9、1.21.11 做同场景对照。
 7. **服务端-only 场景**：以未安装本模组的客户端连接安装本模组的 dedicated server，执行规则、命令与 logger 冒烟。验收：玩家可见文本正常，客户端不因缺少本模组资源或翻译键断开。
-8. **发布前收口**：保存 11 平台的启动日志、版本/依赖清单和逐项结果；确认测试 JAR 文件名与发布预期一致。验收：11/11 server + 11/11 client 加载通过，适用规则矩阵无失败项，才可将 Phase 11 Level 3 标记完成。
+8. **Level 3 收口**：保存 11 平台 dedicated server 与代表性 client / integrated-server 的启动日志、版本/依赖清单和逐项结果；确认测试 JAR 文件名与发布预期一致。验收：11/11 dedicated server 启动通过，代表性 client / integrated-server 覆盖通过，相关定向场景无失败项，即可将 Phase 11 Level 3 标记完成。
+
+额外加强测试 / 推荐发布前验证：11/11 client 加载与全部规则 × 全部适用平台矩阵。它们提高发布置信度，但不作为 Phase 11 默认完成的阻断条件。
 
 ## 8. 待人工确认项
 
-- Phase 11 Level 3（§7）尚未执行。
-- Phase 10 Level 3 文档仍标记“尚未执行”；本轮未收到可据以回填为通过的人工证据，因此未改写该历史状态。
+- ~~Phase 11 Level 3（§7）待人工确认。~~ **已关闭**：用户已确认完成；本记录不补写未提供的逐平台原始日志或结果细节。

@@ -2,7 +2,7 @@
 
 > Phase 10 于 main 分支执行（基点 `7eaf266`，Phase 9 终态 + AGENTS.md docs-only 修补）。目标：`common/src/main/resources`（icon + 中英 lang）与 `versions/shared/mc1213-12111`（10 个 modern 珊瑚配方）全部迁入根 `src/main/resources`，`common/` 与 `versions/shared/` 目录及 `extra_resource_dirs` 数据键整体退出，平台资源 srcDirs 终态收敛为 [平台本地， 根]，runtime JAR / 元数据 / 资源包行为与 P6-baseline-final 保持 **11/11 内容级等价**。
 >
-> **验收状态：代码与自动验证完成**（2026-09-07；P10-0a 独立 fixture + P10-0b 真仓瞬时 probe 行为前提实证 + P10-A / P10-B 原子切换 + 全部验证器 + verifyJarEquivalence 11/11，见 §2 / §5；Level 3 游戏内人工测试尚未执行，见 §6 / §8）。
+> **验收状态：已完成**（2026-09-07；P10-0a 独立 fixture + P10-0b 真仓瞬时 probe 行为前提实证 + P10-A / P10-B 原子切换 + 全部验证器 + verifyJarEquivalence 11/11，见 §2 / §5；Level 3 已由用户确认完成，见 §6）。
 
 ## 0. 约束与口径
 
@@ -81,7 +81,7 @@
 
 ## 6. 人工验证
 
-- **Level 3 游戏内人工测试：尚未执行**（待人工确认项）。本 Phase 无 Java 行为改动，Level 3 重点应为资源承载面：内置资源包 `craftable_coral_blocks` 在 1.21.1（old-schema）与 26.x（modern）的配方可用性、mod 图标 / 双语规则文本显示（`/carpet` 分类 Ice 的规则名与介绍）。
+- **Level 3 游戏内人工测试：用户已确认完成**。本 Phase 无 Java 行为改动，人工验收针对资源承载面；本记录不补写不存在的逐平台原始日志或结果细节。
 - 行为载体证明链：runtime JAR 与 P6-baseline-final 11/11 内容级等价（§5）+ L2 资源专项逐字节锁定；迁移仅改变资源的源码树归属，不改变 jar 内字节。
 
 ## 7. 实施发现（新增记录）
@@ -93,7 +93,7 @@
 
 ## 8. 待人工确认项
 
-- **Level 3 游戏内人工测试**（§6）尚未执行：重点为 1.21.1 old-schema 与 26.x modern 内置资源包配方、mod 图标与双语规则文本显示。
+- ~~**Level 3 游戏内人工测试**（§6）待确认。~~ **已关闭**：用户已确认完成；未提供逐平台原始日志，本记录不推断或补写测试细节。
 - **push 后观察 GitHub Actions Build 结果**：本地验证矩阵全绿，但 CI 在 push 前无法观测；如失败按既有约束上报，不以放宽断言适配。
 
 ## 9. P10-R1 修补轮（2026-09-07）：26.x 空目录条目实证 + verifyJarEquivalence 只比实际文件条目

@@ -29,12 +29,12 @@
 - [ ] **L1-1 全平台构建**：`.\gradlew.bat build verifyCraftableCoralBlocksJars verifyFabricModJson verifyMixinConfigs --stacktrace` 全绿（Windows 下用 `.\gradlew.bat`；`verifyMixinConfigs` 为 P3-3 新增防线，随 CI 接入同步加入本命令）。
 - [ ] **L1-2 jar 生成与命名**：11 个平台 jar 齐全，文件名与基线 §3 表一致（mod_version 变更时仅版本段变化；label 部分逐字符一致）。
 - [ ] **L1-3 fabric.mod.json 语义**：逐平台与基线 §1.2 / §5 比对——`depends`（minecraft / fabric-api / carpet / fabricloader）、`version`、`id`、`name`、`license`、`environment`、entrypoints、`mixins` 引用全部一致；无未展开 `${`、无 BOM、JSON 合法（`verifyFabricModJson` 覆盖后半部分，前半部分需人工或脚本比对）。
-- [ ] **L1-4 mixin 配置行为**：每平台 mixin json 的文件名、package、compatibilityLevel、`mixins` / `client` 条目数与基线 §1.2 一致；`defaultRequire=1` 下游戏加载成功即隐式证明所有条目类存在（配合 L1-5）。
+- [ ] **L1-4 mixin 配置闭环**：逐平台验证 canonical registry → generated effective config → runtime JAR 内 Mixin class → `fabric.mod.json` 引用的 fail-closed 闭环；运行时配置文件名、package、compatibilityLevel、side membership 与 fixed fields 符合该平台 canonical 展开结果，且 config entry 与 runtime Mixin class 双向全等。
 - [ ] **L1-5 【人工】mod 加载冒烟**：dev 实例（`runServer` 或 `.minecraft/deploy.cmd` 部署）启动无 mixin / 注册错误；`/carpet` 打开规则列表；`/killitem`、`/machineStatus` 命令树存在且权限符合默认 `ops`。建议至少覆盖 4 类形态各 1 版本：1.21.1（remap + LowVersion + override 最多）、1.21.5 或 1.21.10（1.21.x 中位）、1.21.11（HighVersion + core 原位编译根 src）、26.2（免混淆 + Java 25）。
 - [ ] **L1-6 jar 内容级等价对照（Phase 1 专项，自动化）**：与动工前构建快照逐平台比对——
   - zip 条目清单一致（class 文件路径与数量、resourcepacks/、assets/）；
   - fabric.mod.json 解析后逐键语义一致（允许因构建时间产生的字段差异为零——模板展开值应完全相同）；
-  - mixin json 内容逐字节一致（其内容不参与模板展开）；
+  - Mixin config 按 Phase 11 顺序敏感语义等价：fixed fields 相同，`mixins` / `client` membership 与 side 相同，同 target + 同 priority pair 的相对顺序保持；不要求 JSON byte-identical；
   - pack.mcmeta 的 pack_format 逐平台一致（基线 §1.2）；
   - class 文件不做字节级比对（编译时间戳噪声），以清单 + 后续 Level 2/3 行为验证兜底。
 - [ ] **L1-7 【人工】mod 加载注册行为**（Phase 1 完成标准的一部分）：规则 / 命令 / logger 注册行为不变——各平台 `/carpet list` 条目数符合注册数量矩阵（§3 开头），`/log villagerEvents` 可订阅。
@@ -80,7 +80,7 @@
 - [ ] /killitem：Phase 5 起为两个实现分支——根 src 单一实现（1.21.1–1.21.11，helper 间接宏覆盖跨版本差异）与 `26.1.2` / `26.2` 各自 override（26.x 形态）——两个分支都要冒烟。
 - [ ] /machineStatus：同 /killitem 的两分支形态（根 src 实现承担 1.21.x 跨版本差异宏；26.1.2 / 26.2 override 承担 26.x 形态）——两个分支都要冒烟。
 - [ ] itemFrameInvisible / itemFrameFixed：根 src `ItemFrameMixin`（1.21.6–1.21.11 生效形态）+ `1.21.1` / `1.21.3` / `1.21.4` / `1.21.5` override 变体；26.x 为各平台 src 的同名 `ItemFrameMixin`（1.21.x↔26.x 项目类名已由 Phase 6 统一）——对应版本全部冒烟（展示框隐形 / 固定交互）。
-- [ ] BookEditScreen client mixin 仅存在于 1.21.1–1.21.5 平台的 mixin json `client` 数组；1.21.6+ 与 26.x 只有 Clipboard mixin。
+- [ ] BookEditScreen client mixin 仅存在于 1.21.1–1.21.5 平台 generated effective config 的 `client` 数组；1.21.6+ 与 26.x 只有 Clipboard mixin。
 - [ ] 26.x 命令实现（平台 override）与 1.21.x 根 src 实现同为 CommandSourceStack（Mojmap 命名空间，Phase 4 统一），注册与执行正常。
 - [ ] 1.21.1 平台 jar 内包含其自有的 10 个珊瑚配方 old-schema 副本（平台本地同路径覆盖）；1.21.3–1.21.11、26.1.2 / 26.2 由根 `src/main/resources` 的 modern 档提供（Phase 10 起 shared 档退出；`verifyCraftableCoralBlocksJars` 已覆盖计数，此处为行为冒烟）。
 
@@ -92,7 +92,7 @@
 
 ### 3.5 mixin 完整性
 
-- [ ] 每平台 mixin json 无悬空条目（所有条目类在该平台编译产物中存在）且与该平台源码根的实际 mixin 类集合一致（重构若引起条目漂移在此暴露）。
+- [ ] 每平台 generated effective config 无悬空条目（所有条目类在该平台编译产物中存在）且与 runtime JAR 的实际 Mixin class 集合一致（重构若引起条目漂移在此暴露）。
 
 ## 4. 发布验收
 
