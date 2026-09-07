@@ -17,7 +17,7 @@
 |---|---|
 | `2ce9a69` | P10-A：common/ 纯资源档退出（icon/lang 迁入根 src/main/resources）+ 资源 srcDirs 接线切换 + Phase 5「根 src 仅 java」断言退役 + processResources / sourcesJar 显式 EXCLUDE + 配置期资源碰撞不变式（全平台预期空集）+ 根资源所有权不变式 + verifyClassRenameMapping 移除 common 扫描项。 |
 | `f7636e8` | P10-B：versions/shared 与 extra_resource_dirs 完全退出（10 个 modern 配方迁入根 + 26.x 本地副本删除 + settings.gradle 目录断言收紧 + 8 份平台 gradle.properties 数据键移除 + 碰撞预期演进为 1.21.1 = 10 条 recipe 路径 + shared 功能性文本扫描块删除）。 |
-| `82369e9` | P10-C：本文档 + target-architecture §5/§6/§8 + AGENTS.md 现势化（目录边界 / 源码架构 / 注册表断言 / 资源 wiring 规则 / 验证范围）。 |
+| `b4e8a5c` | P10-C：本文档 + target-architecture §5/§6/§8 + AGENTS.md 现势化（目录边界 / 源码架构 / 注册表断言 / 资源 wiring 规则 / 验证范围）。 |
 
 ## 2. P10-0 行为前提实证
 
