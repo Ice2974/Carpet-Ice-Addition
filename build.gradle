@@ -543,6 +543,16 @@ def isSpecialResourceEntry = { String name ->
     name == 'fabric.mod.json' || name.endsWith('.mixins.json')
 }
 
+// zip 条目清单统一只收集实际文件条目：ZIP directory entry（isDirectory()，名以 / 结尾，无文件内容，
+// 对 mod 加载无语义）不参与 runtime / sources 等价比较。26.x 历史基线中的 data/、data/carpet-ice-addition/
+// 目录条目源自本地未跟踪的空源目录（Git 不跟踪空目录），sterile（仅 Git 跟踪内容）构建不产出——
+// 目录条目属打包噪声而非内容差异，纳入比较会使等价结论依赖本地未跟踪状态（P10-R1 实证）。
+def readEntries = { File jarFile ->
+    new java.util.zip.ZipFile(jarFile).withCloseable { zip ->
+        zip.entries().toList().findAll { !it.isDirectory() }.collect { it.name } as Set<String>
+    }
+}
+
 // ---- channel B：asm classfile 规范化（探测构建环境既有 asm / Gradle 发行版自带 asm，零新增依赖）----
 def probeAsmClasses = { String pkg, ClassLoader loader ->
     try {
@@ -872,7 +882,8 @@ def proveTransferredEntry = { byte[] baselineBytes, byte[] currentBytes, int exp
 
 // Phase 6 jar 内容级等价对照：与基线快照逐平台比对（mapping 感知版）。
 // 用法：.\gradlew.bat verifyJarEquivalence -PbaselineDir=<快照根目录>（建议绝对路径）
-// 比对项：zip 条目清单（com/ice2974/ class 条目按显式 mapping 做 bijective 对齐，其余条目严格同名）、
+// 比对项：zip 条目清单（只含实际文件条目——ZIP directory entry 不参与，见 readEntries；
+// com/ice2974/ class 条目按显式 mapping 做 bijective 对齐，其余条目严格同名）、
 // 全部项目 class partner（未改名同名对位 / 已改名按 mapping 对位）的内容级等价证明
 // （字节一致 → channel A sources 规范化 → channel B classfile 规范化兜底）、
 // fabric.mod.json 解析后逐键语义、*.mixins.json（字节一致，或 mapping 感知解析等价）、
@@ -920,11 +931,6 @@ def verifyJarEquivalence = tasks.register('verifyJarEquivalence') {
             assert currentSourcesJar.isFile(): "Missing current sources JAR for ${projectPath}"
             assert baselineSourcesJar.isFile(): "Baseline sources JAR not found for ${projectPath}"
 
-            def readEntries = { File jarFile ->
-                new java.util.zip.ZipFile(jarFile).withCloseable { zip ->
-                    zip.entries().collect { entry -> entry.name } as Set<String>
-                }
-            }
             def readEntryBytes = { File jarFile, String entryName ->
                 new java.util.zip.ZipFile(jarFile).withCloseable { zip ->
                     def entry = zip.getEntry(entryName)
@@ -1547,6 +1553,56 @@ def selfTestRenameEquivalence = tasks.register('selfTestRenameEquivalence') {
                 ['resourcepacks/craftable_coral_blocks/pack.mcmeta': packMetaSameFormatChangedDesc.bytes],
                 isSpecialResourceEntry) == ['resourcepacks/craftable_coral_blocks/pack.mcmeta']:
                 'selfTest: pack.mcmeta 非 pack_format 内容变化必须失败（fail closed）'
+
+        // P10-R1b：readEntries 只收集实际文件条目（ZIP directory entry 不参与等价集合）——
+        // 过滤正例（含 fixture 自证）+ 双向仅目录差异等价 + 实际文件缺失 / 新增保持可区分（fail closed）
+        def zipFixtureDir = java.nio.file.Files.createTempDirectory('carpet-ice-addition-selftest').toFile()
+        try {
+            def writeZip = { File file, List entries ->
+                new java.util.zip.ZipOutputStream(new java.io.FileOutputStream(file)).withCloseable { zip ->
+                    entries.each { name, bytes ->
+                        zip.putNextEntry(new java.util.zip.ZipEntry(name))
+                        if (bytes != null) {
+                            zip.write(bytes)
+                        }
+                        zip.closeEntry()
+                    }
+                }
+            }
+            def withDir = new File(zipFixtureDir, 'with-dir.jar')
+            writeZip(withDir, [
+                    ['data/', null],
+                    ['data/carpet-ice-addition/', null],
+                    ['com/ice2974/X.java', 'class X {}'.bytes],
+                    ['fabric.mod.json', '{}'.bytes]])
+            def rawNames = new java.util.zip.ZipFile(withDir).withCloseable { zip ->
+                zip.entries().collect { it.name } as Set
+            }
+            assert rawNames.containsAll(['data/', 'data/carpet-ice-addition/']):
+                    'selfTest: fixture 必须真实包含 directory entry（防 fixture 失效空转）'
+            assert readEntries(withDir) == (['com/ice2974/X.java', 'fabric.mod.json'] as Set):
+                    'selfTest: readEntries 必须过滤 directory entry 且保留实际文件条目'
+
+            def fileOnly = new File(zipFixtureDir, 'file-only.jar')
+            writeZip(fileOnly, [['com/ice2974/X.java', 'class X {}'.bytes]])
+            def baselineHasDir = new File(zipFixtureDir, 'baseline-has-dir.jar')
+            writeZip(baselineHasDir, [['data/', null], ['com/ice2974/X.java', 'class X {}'.bytes]])
+            def currentHasDir = new File(zipFixtureDir, 'current-has-dir.jar')
+            writeZip(currentHasDir, [['com/ice2974/X.java', 'class X {}'.bytes], ['data/', null]])
+            assert readEntries(baselineHasDir) == readEntries(fileOnly):
+                    'selfTest: 仅 directory entry 差异（baseline 有 / current 无）必须等价'
+            assert readEntries(currentHasDir) == readEntries(fileOnly):
+                    'selfTest: 仅 directory entry 差异（baseline 无 / current 有）必须等价'
+
+            def withExtraFile = new File(zipFixtureDir, 'with-extra-file.jar')
+            writeZip(withExtraFile, [['com/ice2974/X.java', 'class X {}'.bytes], ['g.txt', 'g'.bytes]])
+            assert readEntries(withExtraFile) != readEntries(fileOnly):
+                    'selfTest: 实际文件新增必须与基线可区分（fail closed）'
+            assert readEntries(fileOnly) != readEntries(withExtraFile):
+                    'selfTest: 实际文件缺失必须与基线可区分（fail closed）'
+        } finally {
+            zipFixtureDir.deleteDir()
+        }
 
         def asm = probeAsmSupport()
         if (asm == null) {

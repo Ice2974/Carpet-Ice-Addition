@@ -98,7 +98,7 @@ sourceSets {
 //      不参与编译；非 core 平台为 [本地 src/main/java（overwrite 层）, 生成的 preprocess 输出]，
 //      本地文件按同路径替换、异路径附加，且不经宏处理/不经重映射、直接编译。
 //   2) 插件会 setSrcDirs 重写 resources——在 afterEvaluate 显式恢复现行资源语义
-//      [本平台 src/main/resources, 根 src/main/resources, extra_resource_dirs 各档]；
+//      [本平台 src/main/resources, 根 src/main/resources]；
 //      生成层资源恒为空，恢复不丢失任何输入。
 // 时序（restore 晚于插件改写）已经 P5-1b 行为学实验与全仓冷重建实证。
 project.pluginManager.apply('com.replaymod.preprocess')
