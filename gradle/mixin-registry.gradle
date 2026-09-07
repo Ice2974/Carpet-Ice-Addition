@@ -1,0 +1,213 @@
+import groovy.json.JsonOutput
+import groovy.json.JsonSlurper
+
+// Phase 11: canonical Mixin registry schema, predicate expansion and deterministic ordering.
+// This file is build logic only; the canonical data lives in gradle/mixins/registry.json.
+def assertExactKeys = { Map value, Set<String> allowed, String label ->
+    def unknown = value.keySet().collect { it.toString() } as Set
+    unknown.removeAll(allowed)
+    assert unknown.isEmpty(): "${label} contains unknown keys: ${unknown.sort()}"
+}
+
+def validateAndExpand = { File manifestFile, List<String> registeredVersions, Map<String, ?> rawMcVersions ->
+    assert manifestFile.isFile(): "canonical Mixin registry not found: ${manifestFile}"
+    assert registeredVersions && registeredVersions.size() == registeredVersions.toSet().size():
+            'registered Minecraft versions must be non-empty and unique'
+
+    def mcVersions = new LinkedHashMap<String, Integer>()
+    registeredVersions.each { version ->
+        assert rawMcVersions.containsKey(version): "missing project.extra[mcVersion] for registered version ${version}"
+        def raw = rawMcVersions[version]
+        assert raw instanceof Number: "project.extra[mcVersion] for ${version} must be numeric, got ${raw?.class?.name}"
+        mcVersions[version] = (raw as Number).intValue()
+    }
+    assert rawMcVersions.keySet().collect { it.toString() } as Set == registeredVersions as Set:
+            "mcVersion map keys differ from settings.json: map=${rawMcVersions.keySet().sort()} registry=${registeredVersions.sort(false)}"
+    assert mcVersions.values().size() == mcVersions.values().toSet().size():
+            "registered projects must have unique mcVersion values: ${mcVersions}"
+
+    def parsed = new JsonSlurper().parse(manifestFile)
+    assert parsed instanceof Map: 'canonical Mixin registry root must be a JSON object'
+    assertExactKeys(parsed as Map,
+            ['schemaVersion', 'package', 'required', 'injectors', 'entries', 'basePrecedence', 'orderOverrides'] as Set,
+            'canonical Mixin registry')
+    assert parsed.schemaVersion == 1: "unsupported canonical Mixin registry schemaVersion=${parsed.schemaVersion}"
+    assert parsed.package == 'com.ice2974.carpeticeaddition.mixins':
+            "unexpected canonical Mixin package ${parsed.package}"
+    assert parsed.required == true: 'canonical Mixin registry required must be true'
+    assert parsed.injectors instanceof Map: 'canonical injectors must be an object'
+    assertExactKeys(parsed.injectors as Map, ['defaultRequire'] as Set, 'canonical injectors')
+    assert parsed.injectors.defaultRequire == 1: 'canonical injectors.defaultRequire must be 1'
+    assert parsed.entries instanceof List && !parsed.entries.isEmpty(): 'canonical entries must be a non-empty array'
+    assert parsed.basePrecedence instanceof List: 'canonical basePrecedence must be an array'
+    assert parsed.orderOverrides instanceof List: 'canonical orderOverrides must be an array'
+
+    def entryByName = new LinkedHashMap<String, Map>()
+    parsed.entries.eachWithIndex { rawEntry, index ->
+        assert rawEntry instanceof Map: "entries[${index}] must be an object"
+        def entry = rawEntry as Map
+        assertExactKeys(entry, ['name', 'side', 'onlyMc', 'minMc', 'maxMc'] as Set, "entries[${index}]")
+        assert entry.name instanceof String && !entry.name.isEmpty(): "entries[${index}].name must be non-empty"
+        assert entry.name ==~ /[A-Za-z_$][A-Za-z0-9_$.]*/: "invalid Mixin entry name ${entry.name}"
+        assert entry.side in ['common', 'client']: "entry ${entry.name} has invalid side ${entry.side}"
+        assert !entryByName.containsKey(entry.name): "duplicate canonical Mixin entry ${entry.name}"
+
+        def hasOnly = entry.containsKey('onlyMc')
+        def hasMin = entry.containsKey('minMc')
+        def hasMax = entry.containsKey('maxMc')
+        assert !(hasOnly && (hasMin || hasMax)):
+                "entry ${entry.name}: onlyMc is mutually exclusive with minMc/maxMc"
+        assert hasOnly || hasMin || hasMax || entry.keySet() == ['name', 'side'] as Set:
+                "entry ${entry.name}: empty predicate state is not allowed"
+        ['onlyMc', 'minMc', 'maxMc'].findAll { entry.containsKey(it) }.each { key ->
+            def symbol = entry[key]
+            assert symbol instanceof String && registeredVersions.contains(symbol):
+                    "entry ${entry.name}: ${key}=${symbol} is not a registered version symbol"
+        }
+        if (hasMin && hasMax) {
+            assert mcVersions[entry.minMc] <= mcVersions[entry.maxMc]:
+                    "entry ${entry.name}: minMc ${entry.minMc} is greater than maxMc ${entry.maxMc}"
+        }
+        def matches = registeredVersions.findAll { version ->
+            def code = mcVersions[version]
+            (!hasOnly || code == mcVersions[entry.onlyMc]) &&
+                    (!hasMin || code >= mcVersions[entry.minMc]) &&
+                    (!hasMax || code <= mcVersions[entry.maxMc])
+        }
+        assert !matches.isEmpty(): "entry ${entry.name}: predicate matches no registered platform"
+        entryByName[entry.name.toString()] = entry
+    }
+
+    def pairKey = { String left, String right -> [left, right].sort(false).join('\u0000') }
+    def baseByPair = new LinkedHashMap<String, Map>()
+    parsed.basePrecedence.eachWithIndex { rawEdge, index ->
+        assert rawEdge instanceof Map: "basePrecedence[${index}] must be an object"
+        def edge = rawEdge as Map
+        assertExactKeys(edge, ['before', 'after', 'auditedOverrides'] as Set, "basePrecedence[${index}]")
+        assert edge.before instanceof String && entryByName.containsKey(edge.before):
+                "basePrecedence[${index}].before is not a canonical entry: ${edge.before}"
+        assert edge.after instanceof String && entryByName.containsKey(edge.after):
+                "basePrecedence[${index}].after is not a canonical entry: ${edge.after}"
+        assert edge.before != edge.after: "basePrecedence[${index}] cannot be a self edge"
+        assert entryByName[edge.before].side == entryByName[edge.after].side:
+                "basePrecedence[${index}] endpoints must have the same side"
+        def key = pairKey(edge.before.toString(), edge.after.toString())
+        assert !baseByPair.containsKey(key):
+                "basePrecedence contains more than one direction for pair ${[edge.before, edge.after].sort(false)}"
+        def audited = edge.containsKey('auditedOverrides') ? edge.auditedOverrides : []
+        assert audited instanceof List: "basePrecedence[${index}].auditedOverrides must be an array"
+        assert audited.size() == audited.toSet().size(): "basePrecedence[${index}] has duplicate auditedOverrides"
+        audited.each { version ->
+            assert version instanceof String && registeredVersions.contains(version):
+                    "basePrecedence[${index}] has unregistered audited override version ${version}"
+        }
+        baseByPair[key] = [before: edge.before.toString(), after: edge.after.toString(),
+                           auditedOverrides: audited.collect { it.toString() } as Set]
+    }
+
+    def overrideByVersionAndPair = new LinkedHashMap<String, Map>()
+    parsed.orderOverrides.eachWithIndex { rawOverride, index ->
+        assert rawOverride instanceof Map: "orderOverrides[${index}] must be an object"
+        def override = rawOverride as Map
+        assertExactKeys(override, ['version', 'before', 'after'] as Set, "orderOverrides[${index}]")
+        assert override.version instanceof String && registeredVersions.contains(override.version):
+                "orderOverrides[${index}].version is not registered: ${override.version}"
+        assert override.before instanceof String && entryByName.containsKey(override.before):
+                "orderOverrides[${index}].before is not a canonical entry: ${override.before}"
+        assert override.after instanceof String && entryByName.containsKey(override.after):
+                "orderOverrides[${index}].after is not a canonical entry: ${override.after}"
+        def key = pairKey(override.before.toString(), override.after.toString())
+        def base = baseByPair[key]
+        assert base != null:
+                "orderOverrides[${index}] may only target an audited basePrecedence pair"
+        assert base.auditedOverrides.contains(override.version):
+                "orderOverrides[${index}] pair is not audited for platform ${override.version}"
+        assert override.before == base.after && override.after == base.before:
+                "orderOverrides[${index}] must replace (reverse) the base direction ${base.before} -> ${base.after}"
+        def overrideKey = "${override.version}\u0000${key}".toString()
+        assert !overrideByVersionAndPair.containsKey(overrideKey):
+                "duplicate orderOverride for ${override.version} pair ${[override.before, override.after].sort(false)}"
+        overrideByVersionAndPair[overrideKey] = [version: override.version.toString(),
+                                                  before: override.before.toString(), after: override.after.toString()]
+    }
+    baseByPair.each { key, base ->
+        def actual = overrideByVersionAndPair.values().findAll {
+            pairKey(it.before as String, it.after as String) == key
+        }*.version as Set
+        assert actual == base.auditedOverrides:
+                "audited override registrations do not match orderOverrides for pair ${[base.before, base.after]}: " +
+                "audited=${base.auditedOverrides.sort()} actual=${actual.sort()}"
+    }
+
+    def effectiveByVersion = new LinkedHashMap<String, Map>()
+    registeredVersions.each { version ->
+        def code = mcVersions[version]
+        def activeEntries = entryByName.values().findAll { entry ->
+            (!entry.containsKey('onlyMc') || code == mcVersions[entry.onlyMc]) &&
+                    (!entry.containsKey('minMc') || code >= mcVersions[entry.minMc]) &&
+                    (!entry.containsKey('maxMc') || code <= mcVersions[entry.maxMc])
+        }
+        def activeNames = activeEntries*.name as Set
+        def effectiveEdges = new LinkedHashMap<String, Map>()
+        baseByPair.each { key, base ->
+            if (activeNames.contains(base.before) && activeNames.contains(base.after)) {
+                def replacement = overrideByVersionAndPair["${version}\u0000${key}".toString()]
+                effectiveEdges[key] = replacement ?: [before: base.before, after: base.after]
+            }
+        }
+        assert effectiveEdges.size() == effectiveEdges.keySet().size():
+                "platform ${version} has more than one final direction for a precedence pair"
+
+        def orderedBySide = [:]
+        ['common', 'client'].each { side ->
+            def sideNames = activeEntries.findAll { it.side == side }*.name.collect { it.toString() } as Set
+            def outgoing = sideNames.collectEntries { [(it): new LinkedHashSet<String>()] }
+            def incoming = sideNames.collectEntries { [(it): 0] }
+            effectiveEdges.values().findAll { sideNames.contains(it.before) && sideNames.contains(it.after) }.each { edge ->
+                if (outgoing[edge.before].add(edge.after)) {
+                    incoming[edge.after] = incoming[edge.after] + 1
+                }
+            }
+            def ready = incoming.findAll { it.value == 0 }.keySet().sort(false)
+            def ordered = []
+            while (!ready.isEmpty()) {
+                def next = ready.remove(0)
+                ordered << next
+                outgoing[next].sort(false).each { after ->
+                    incoming[after] = incoming[after] - 1
+                    if (incoming[after] == 0) {
+                        ready << after
+                        ready.sort()
+                    }
+                }
+            }
+            assert ordered.size() == sideNames.size():
+                    "platform ${version} effective ${side} precedence graph contains a cycle; unresolved=${incoming.findAll { it.value > 0 }.keySet().sort()}"
+            orderedBySide[side] = ordered
+        }
+        effectiveByVersion[version] = [mixins: orderedBySide.common, client: orderedBySide.client,
+                                       edges: effectiveEdges.values().collect { [before: it.before, after: it.after] }]
+    }
+
+    [manifest: parsed, entriesByName: entryByName, mcVersions: mcVersions,
+     effectiveByVersion: effectiveByVersion, baseByPair: baseByPair,
+     overrides: overrideByVersionAndPair.values() as List]
+}
+
+def renderEffectiveConfig = { Map registry, String version, int javaRelease ->
+    def compatibilityLevels = [21: 'JAVA_21', 25: 'JAVA_25']
+    assert compatibilityLevels.containsKey(javaRelease):
+            "unsupported java_release=${javaRelease}; no Mixin compatibilityLevel mapping"
+    assert registry.effectiveByVersion.containsKey(version): "version ${version} is not registered"
+    def effective = registry.effectiveByVersion[version]
+    def output = new LinkedHashMap<String, Object>()
+    output.required = registry.manifest.required
+    output.package = registry.manifest.package
+    output.compatibilityLevel = compatibilityLevels[javaRelease]
+    output.mixins = effective.mixins
+    output.client = effective.client
+    output.injectors = new LinkedHashMap<String, Object>(registry.manifest.injectors as Map)
+    JsonOutput.prettyPrint(JsonOutput.toJson(output)).replace('\r\n', '\n').replace('\r', '\n') + '\n'
+}
+
+ext.mixinRegistrySupport = [validateAndExpand: validateAndExpand, renderEffectiveConfig: renderEffectiveConfig]

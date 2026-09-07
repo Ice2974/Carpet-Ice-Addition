@@ -5,6 +5,9 @@ plugins {
     id 'com.replaymod.preprocess' version "${preprocess_version}"
 }
 
+// Phase 11 build-only schema/generator support. Canonical data is deliberately outside every runtime resource tree.
+apply from: rootProject.file('gradle/mixin-registry.gradle')
+
 // preprocess 版本图（Phase 5；Phase 8 节点正名）：节点名 = 真实 Gradle project name = 真实 MC 版本号
 // （扁平化后 :1.21.11 等；P8-0 本地探针已实证 Gradle 9.2.1 接受中间点项目名），
 // 版本码整数与节点一一对应（整数驱动 //#if MC 比较，与节点名正交，保持不变）；
@@ -59,6 +62,8 @@ allprojects {
 // 平台清单来自版本注册表 settings.json（与 settings.gradle 同一数据源，消除双源漂移）
 def versionRegistry = new groovy.json.JsonSlurper().parse(file('settings.json')).versions as List<String>
 def platformProjects = versionRegistry.collect { version -> ":${version}" }
+def mixinRegistryFile = file('gradle/mixins/registry.json')
+ext.mixinRegistryFile = mixinRegistryFile
 
 // P8 正名后的版本项目名登记（common.gradle 的 platform-only 三重断言数据源；根项目先于子项目配置，时序安全）
 ext.versionProjectNames = versionRegistry.collect { it.toString() }
@@ -207,60 +212,106 @@ def verifyFabricModJson = tasks.register('verifyFabricModJson') {
     }
 }
 
-// mixin 配置一致性防线（P3-3）：11 份平台 mixin json 保留现状（不合并、不模板生成、不改内容），
-// 逐平台校验 json 与编译产物 / 合并源码集的双向一致性，防止源码重构引起条目漂移（验收清单 §3.5）：
-//   1) per-version mixin_config 声明的 json 在 src/main/resources 与 jar 内均存在且 JSON 合法；
-//   2) mixins + client 数组每个条目在 jar 内存在对应类条目（防悬空）；
-//   3) 平台合并源码集 mixins 包的全部类恰为条目并集（防漏注；mixins 包语义上只允许注册进 json 的 mixin 类）；
-//   4) package / required / compatibilityLevel（对照 per-version java_release）/ injectors.defaultRequire 项目级不变量。
+// Phase 11 Mixin 配置闭环：canonical registry → per-project generated output → runtime/sources JAR
+// → runtime Mixin classes → fabric.mod.json。entry 数量与 membership signature 均动态推导，不锁死迁移时统计值。
 def verifyMixinConfigs = tasks.register('verifyMixinConfigs') {
     doLast {
+        def registeredMcVersions = versionRegistry.collectEntries { version ->
+            def platform = project(":${version}")
+            assert platform.ext.has('mcVersion'):
+                    "平台 ${platform.path} 缺少 preprocess 注入的 project.extra[mcVersion]"
+            [(version.toString()): platform.ext.get('mcVersion')]
+        }
+        def registry = rootProject.ext.mixinRegistrySupport.validateAndExpand(
+                mixinRegistryFile, versionRegistry.collect { it.toString() }, registeredMcVersions)
+
+        def canonicalPath = mixinRegistryFile.canonicalFile.toPath()
+        def runtimeResourceDirs = [file('src/main/resources')] + versionRegistry.collect {
+            file("versions/${it}/src/main/resources")
+        }
+        runtimeResourceDirs.each { resourceDir ->
+            assert !canonicalPath.startsWith(resourceDir.canonicalFile.toPath()):
+                    "canonical Mixin registry must be outside runtime resources: ${mixinRegistryFile}"
+            def handwritten = resourceDir.isDirectory()
+                    ? fileTree(resourceDir) { include '**/*.mixins.json' }.files
+                    : []
+            assert handwritten.isEmpty():
+                    "tracked/source-tree *.mixins.json is forbidden after Phase 11 (${resourceDir}): ${handwritten.sort()}"
+        }
+
+        def readZipEntryBytes = { File jarFile, String entryName ->
+            new java.util.zip.ZipFile(jarFile).withCloseable { zip ->
+                def entry = zip.getEntry(entryName)
+                if (entry == null) {
+                    throw new GradleException("Entry ${entryName} not found in ${jarFile.name}")
+                }
+                zip.getInputStream(entry).withCloseable { it.readAllBytes() }
+            }
+        }
+        def zipFileEntries = { File jarFile ->
+            new java.util.zip.ZipFile(jarFile).withCloseable { zip ->
+                zip.entries().toList().findAll { !it.isDirectory() }*.name
+            }
+        }
+
         platformProjects.each { projectPath ->
             def platform = project(projectPath)
             def outputTask = platform.tasks.findByName('remapJar') ?: platform.tasks.named('jar').get()
             def jarFile = outputTask.archiveFile.get().asFile
             assert jarFile.isFile(): "Missing release JAR for ${projectPath}: ${jarFile}"
-
             def mixinConfigName = platform.mixin_config
             def configLabel = "${jarFile.name} (${projectPath})"
+            def generatedFile = platform.ext.generatedMixinConfigFile.get().asFile
+            assert generatedFile.isFile(): "generated Mixin config missing for ${projectPath}: ${generatedFile}"
+            assert generatedFile.name == mixinConfigName:
+                    "generated filename ${generatedFile.name} != mixin_config ${mixinConfigName} (${projectPath})"
+            def generatedBytes = generatedFile.bytes
+            assert !(generatedBytes.length >= 3 && (generatedBytes[0] & 0xFF) == 0xEF &&
+                    (generatedBytes[1] & 0xFF) == 0xBB && (generatedBytes[2] & 0xFF) == 0xBF):
+                    "generated Mixin config has UTF-8 BOM: ${generatedFile}"
+            def generatedText = new String(generatedBytes, java.nio.charset.StandardCharsets.UTF_8)
+            assert !generatedText.contains('\r'): "generated Mixin config must use LF newlines: ${generatedFile}"
+            assert !generatedText.contains('${') && !generatedText.contains('{{'):
+                    "generated Mixin config contains an unexpanded token: ${generatedFile}"
+            def expectedText = rootProject.ext.mixinRegistrySupport.renderEffectiveConfig(
+                    registry, platform.name, platform.java_release.toInteger())
+            assert generatedText == expectedText:
+                    "generated Mixin config differs from canonical expansion: ${generatedFile}"
 
-            def sourceConfigFile = new File(platform.projectDir, "src/main/resources/${mixinConfigName}")
-            assert sourceConfigFile.isFile(): "mixin config source not found for ${projectPath}: ${sourceConfigFile}"
+            def runtimeEntries = zipFileEntries(jarFile)
+            def runtimeMixinConfigs = runtimeEntries.findAll { it.endsWith('.mixins.json') }
+            assert runtimeMixinConfigs == [mixinConfigName]:
+                    "runtime JAR must contain exactly its generated Mixin config (${configLabel}): ${runtimeMixinConfigs.sort()}"
+            assert java.util.Arrays.equals(readZipEntryBytes(jarFile, mixinConfigName), generatedBytes):
+                    "runtime JAR Mixin config differs from generator output (${configLabel})"
 
-            def readEntryBytes = { String entryName ->
-                new java.util.zip.ZipFile(jarFile).withCloseable { zip ->
-                    def entry = zip.getEntry(entryName)
-                    if (entry == null) {
-                        throw new GradleException("Entry ${entryName} not found in ${jarFile.name}")
-                    }
-                    zip.getInputStream(entry).readAllBytes()
-                }
-            }
-            assert readEntryBytes(mixinConfigName) != null: "mixin config ${mixinConfigName} not packaged in ${configLabel}"
+            def sourcesTask = platform.tasks.findByName('remapSourcesJar') ?: platform.tasks.named('sourcesJar').get()
+            def sourcesJar = sourcesTask.archiveFile.get().asFile
+            assert sourcesJar.isFile(): "Missing sources JAR for ${projectPath}: ${sourcesJar}"
+            def sourcesMixinConfigs = zipFileEntries(sourcesJar).findAll { it.endsWith('.mixins.json') }
+            assert sourcesMixinConfigs == [mixinConfigName]:
+                    "sources JAR must contain exactly its generated Mixin config (${projectPath}): ${sourcesMixinConfigs.sort()}"
+            assert java.util.Arrays.equals(readZipEntryBytes(sourcesJar, mixinConfigName), generatedBytes):
+                    "sources JAR Mixin config differs from generator output (${projectPath})"
 
-            def config = new groovy.json.JsonSlurper().parseText(
-                    new String(readEntryBytes(mixinConfigName), java.nio.charset.StandardCharsets.UTF_8))
-
+            def config = new groovy.json.JsonSlurper().parseText(generatedText)
             def mixinsList = (config.mixins ?: []) as List<String>
             def clientList = (config.client ?: []) as List<String>
             def allEntries = mixinsList + clientList
-
-            assert config.package == 'com.ice2974.carpeticeaddition.mixins':
-                    "Unexpected mixin package ${config.package} in ${configLabel}"
-            assert config.required == true:
-                    "mixin config required=${config.required} in ${configLabel} (AGENTS.md: 平台 mixins 默认 required=true)"
-            assert config.compatibilityLevel == "JAVA_${platform.java_release}":
-                    "compatibilityLevel ${config.compatibilityLevel} != JAVA_${platform.java_release} in ${configLabel}"
-            assert config.injectors != null && config.injectors.defaultRequire == 1:
-                    "injectors.defaultRequire=${config.injectors?.defaultRequire} in ${configLabel}"
+            def effective = registry.effectiveByVersion[platform.name]
+            assert mixinsList == effective.mixins && clientList == effective.client:
+                    "generated membership/order differs from canonical effective config in ${configLabel}"
             assert allEntries.size() == allEntries.toSet().size():
                     "duplicate mixin entries in ${configLabel}"
             assert (mixinsList as Set).intersect(clientList as Set).isEmpty():
                     "entries listed in both mixins and client arrays in ${configLabel}"
-
-            def jarEntries = new java.util.zip.ZipFile(jarFile).withCloseable { zip ->
-                zip.entries().collect { entry -> entry.name } as Set<String>
+            effective.edges.each { edge ->
+                def sideList = mixinsList.contains(edge.before) ? mixinsList : clientList
+                assert sideList.indexOf(edge.before) >= 0 && sideList.indexOf(edge.before) < sideList.indexOf(edge.after):
+                        "effective precedence violated in ${configLabel}: ${edge.before} must be before ${edge.after}"
             }
+
+            def jarEntries = runtimeEntries as Set<String>
             def dangling = allEntries.findAll { name ->
                 !jarEntries.contains("com/ice2974/carpeticeaddition/mixins/${name}.class".toString())
             }
@@ -280,9 +331,19 @@ def verifyMixinConfigs = tasks.register('verifyMixinConfigs') {
             def unlisted = compiledMixinClasses.findAll { name -> !allEntries.contains(name) }
             assert unlisted.isEmpty(): "mixin classes in source set but missing from ${mixinConfigName} in ${configLabel}: ${unlisted.sort()}"
             assert (allEntries as Set) == compiledMixinClasses:
-                    "mixin entry set != source mixin class set in ${configLabel}"
+                    "mixin entry set != runtime Mixin class set in ${configLabel}"
 
-            println "mixin config OK: ${configLabel} (${mixinsList.size()} mixins + ${clientList.size()} client == ${compiledMixinClasses.size()} source classes)"
+            def fabricMod = new groovy.json.JsonSlurper().parseText(
+                    new String(readZipEntryBytes(jarFile, 'fabric.mod.json'), java.nio.charset.StandardCharsets.UTF_8))
+            assert fabricMod.mixins == [mixinConfigName]:
+                    "fabric.mod.json must reference exactly generated ${mixinConfigName} in ${configLabel}"
+
+            def expectedResourceDirs = [new File(platform.projectDir, 'src/main/resources').canonicalFile,
+                                        file('src/main/resources').canonicalFile]
+            assert platform.sourceSets.main.resources.srcDirs.collect { it.canonicalFile } == expectedResourceDirs:
+                    "resource srcDirs changed for ${projectPath}: ${platform.sourceSets.main.resources.srcDirs}"
+
+            println "mixin config OK: ${configLabel} (${mixinsList.size()} mixins + ${clientList.size()} client; canonical/generated/runtime/classes/fabric.mod closed)"
         }
     }
 }
@@ -538,7 +599,8 @@ def findDifferingOrdinaryResources = { Map<String, byte[]> baselineByName, Map<S
 }
 
 // 普通资源字节级比较的专项语义检查排除项：fabric.mod.json（解析后逐键语义）与
-// *.mixins.json（mapping 感知解析等价）。pack.mcmeta 不豁免：完整字节一致 + pack_format 专项 invariant。
+// *.mixins.json（Phase 11 固定字段 / side membership / runtime target+priority 顺序专项证明）。
+// pack.mcmeta 不豁免：完整字节一致 + pack_format 专项 invariant。
 def isSpecialResourceEntry = { String name ->
     name == 'fabric.mod.json' || name.endsWith('.mixins.json')
 }
@@ -624,6 +686,7 @@ def loadAsmCanonicalizer = { String pkg, ClassLoader loader ->
         import ${pkg}.Opcodes
         import ${pkg}.commons.Remapper
         import ${pkg}.commons.ClassRemapper
+        import ${pkg}.tree.ClassNode
 
         // 注意：parseClass 返回源码中的第一个类，目标入口类必须排在辅助类之前
         class RenameClassfileCanonicalizer {
@@ -672,6 +735,29 @@ def loadAsmCanonicalizer = { String pkg, ClassLoader loader ->
                 def writer = new ClassWriter(0)
                 new ClassReader(classBytes).accept(new ClassRemapper(stripDebugVisitor(api, writer), new TransferredLambdaCanonicalRemapper(renameEntries)), 0)
                 return writer.toByteArray()
+            }
+
+            // Phase 11：从实际 runtime class 的 @Mixin annotation 提取 target/priority，
+            // 用于证明 JSON 重新排序只发生在不同 target 或不同 priority 之间。
+            static Map extractMixinMetadata(byte[] classBytes) {
+                def node = new ClassNode()
+                new ClassReader(classBytes).accept(node, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES)
+                def annotations = []
+                if (node.visibleAnnotations != null) annotations.addAll(node.visibleAnnotations)
+                if (node.invisibleAnnotations != null) annotations.addAll(node.invisibleAnnotations)
+                def annotation = annotations.find { it.desc == 'Lorg/spongepowered/asm/mixin/Mixin;' }
+                assert annotation != null: "runtime Mixin class lacks @Mixin annotation: \${node.name}"
+                def values = [:]
+                if (annotation.values != null) {
+                    for (int i = 0; i < annotation.values.size(); i += 2) {
+                        values[annotation.values[i].toString()] = annotation.values[i + 1]
+                    }
+                }
+                def targets = new LinkedHashSet<String>()
+                (values.value ?: []).each { type -> targets << type.internalName.toString() }
+                (values.targets ?: []).each { target -> targets << target.toString().replace('.', '/') }
+                assert !targets.isEmpty(): "runtime @Mixin annotation has no targets: \${node.name}"
+                [targets: targets, priority: values.containsKey('priority') ? (values.priority as Number).intValue() : 1000]
             }
 
             static byte[] buildSampleClass(String internalName, String sourceFile, String literal, int lineNo) {
@@ -767,6 +853,9 @@ def loadAsmCanonicalizer = { String pkg, ClassLoader loader ->
             },
             canonicalizeTransferred: { byte[] bytes, List renameEntries ->
                 org.codehaus.groovy.runtime.InvokerHelper.invokeStaticMethod(parsed, 'canonicalizeTransferred', [bytes, renameEntries] as Object[])
+            },
+            extractMixinMetadata: { byte[] bytes ->
+                org.codehaus.groovy.runtime.InvokerHelper.invokeStaticMethod(parsed, 'extractMixinMetadata', [bytes] as Object[])
             },
             buildSample : { String internalName, String sourceFile, String literal, int lineNo ->
                 org.codehaus.groovy.runtime.InvokerHelper.invokeStaticMethod(parsed, 'buildSampleClass', [internalName, sourceFile, literal, lineNo] as Object[])
@@ -886,7 +975,7 @@ def proveTransferredEntry = { byte[] baselineBytes, byte[] currentBytes, int exp
 // com/ice2974/ class 条目按显式 mapping 做 bijective 对齐，其余条目严格同名）、
 // 全部项目 class partner（未改名同名对位 / 已改名按 mapping 对位）的内容级等价证明
 // （字节一致 → channel A sources 规范化 → channel B classfile 规范化兜底）、
-// fabric.mod.json 解析后逐键语义、*.mixins.json（字节一致，或 mapping 感知解析等价）、
+// fabric.mod.json 解析后逐键语义、*.mixins.json（字节一致，或 Phase 11 target/priority-aware 顺序等价）、
 // 普通非 class 资源字节级一致（含珊瑚资源包 pack.mcmeta；pack_format 另有专项 invariant）、
 // 全部 class 的 intermediary 引用集合（P4-1 防线）；sources jar 存在性 + mapping 感知条目覆盖。
 // Phase 9 起：sources 新增条目可通过 ownership transfer 两层模型（P9-C1）解释为
@@ -1143,7 +1232,9 @@ def verifyJarEquivalence = tasks.register('verifyJarEquivalence') {
             assert currentModJson == baselineModJson:
                     "fabric.mod.json semantic mismatch for ${currentJar.name} vs ${baselineJar.name}"
 
-            // mixin 配置：优先字节级一致（最严格）；字节不一致时按 mapping 做解析级等价（rename 场景）
+            // Phase 11 Mixin config migration proof：优先字节级一致；否则固定字段与 side membership
+            // mapping-aware 全等，并从实际 resolved runtime class 的 @Mixin annotation 提取 target/priority。
+            // 任意同 target 且同 priority pair 的相对顺序必须保持；只有不同 target/priority 的文本顺序可变化。
             currentEntries.findAll { it.endsWith('.mixins.json') }.sort().each { entryName ->
                 def baselineConfigBytes = readEntryBytes(baselineJar, entryName)
                 def currentConfigBytes = readEntryBytes(currentJar, entryName)
@@ -1153,10 +1244,51 @@ def verifyJarEquivalence = tasks.register('verifyJarEquivalence') {
                 def baselineConfig = slurper.parseText(new String(baselineConfigBytes, java.nio.charset.StandardCharsets.UTF_8))
                 def currentConfig = slurper.parseText(new String(currentConfigBytes, java.nio.charset.StandardCharsets.UTF_8))
                 def mappedConfig = mapMixinConfigEntries(baselineConfig, mapping)
-                assert mappedConfig == currentConfig:
-                        "mixin config ${entryName} differs between ${currentJar.name} and ${baselineJar.name}（mapping 之外的差异）:\n" +
-                        "  baseline(mapped): ${mappedConfig}\n  current: ${currentConfig}"
-                println "mixin config OK (mapping-aware parse equality): ${entryName} (${currentJar.name})"
+                def fixedConfig = { Map config ->
+                    new LinkedHashMap(config.findAll { key, _ -> !(key in ['mixins', 'client']) })
+                }
+                assert fixedConfig(mappedConfig as Map) == fixedConfig(currentConfig as Map):
+                        "mixin config fixed fields differ between ${currentJar.name} and ${baselineJar.name}:\n" +
+                        "  baseline(mapped): ${fixedConfig(mappedConfig as Map)}\n  current: ${fixedConfig(currentConfig as Map)}"
+
+                def asm = probeAsmSupport()
+                assert asm != null:
+                        'Phase 11 Mixin order proof requires existing Gradle ASM support (no new dependency fallback)'
+                def metadataExtractor = loadAsmCanonicalizer(asm.pkg, asm.loader).extractMixinMetadata
+                def packagePath = currentConfig.package.toString().replace('.', '/')
+                int constrainedPairs = 0
+                ['mixins', 'client'].each { side ->
+                    def oldList = ((mappedConfig[side] ?: []) as List).collect { it.toString() }
+                    def newList = ((currentConfig[side] ?: []) as List).collect { it.toString() }
+                    assert oldList.size() == oldList.toSet().size() && newList.size() == newList.toSet().size():
+                            "mixin config ${side} contains duplicate entries (${currentJar.name})"
+                    assert oldList as Set == newList as Set:
+                            "mixin config ${side} membership differs between ${currentJar.name} and ${baselineJar.name}:\n" +
+                            "  missing=${((oldList as Set) - (newList as Set)).sort()}\n" +
+                            "  extra=${((newList as Set) - (oldList as Set)).sort()}"
+                    def metadata = newList.collectEntries { mixinName ->
+                        def classEntry = "${packagePath}/${mixinName}.class".toString()
+                        [(mixinName): metadataExtractor(readEntryBytes(currentJar, classEntry))]
+                    }
+                    for (int left = 0; left < newList.size(); left++) {
+                        for (int right = left + 1; right < newList.size(); right++) {
+                            def first = newList[left]
+                            def second = newList[right]
+                            def firstMeta = metadata[first]
+                            def secondMeta = metadata[second]
+                            if (firstMeta.priority == secondMeta.priority &&
+                                    !(firstMeta.targets as Set).intersect(secondMeta.targets as Set).isEmpty()) {
+                                constrainedPairs++
+                                assert oldList.indexOf(first) < oldList.indexOf(second):
+                                        "Mixin order changed for same-target/same-priority pair in ${currentJar.name}: " +
+                                        "baseline has ${second} before ${first}, current has ${first} before ${second}; " +
+                                        "targets=${(firstMeta.targets as Set).intersect(secondMeta.targets as Set).sort()} priority=${firstMeta.priority}"
+                            }
+                        }
+                    }
+                }
+                println "mixin config OK (Phase 11 target/priority-aware order proof): ${entryName} " +
+                        "(${currentJar.name}; constrainedPairs=${constrainedPairs})"
             }
 
             // 珊瑚资源包 pack.mcmeta 的 pack_format 专项 invariant（pack.mcmeta 完整字节一致
@@ -1337,25 +1469,12 @@ def verifyClassRenameMapping = tasks.register('verifyClassRenameMapping') {
                     "new 类 ${newSimple} 在 active Java 中没有类型声明"
         }
 
-        def mixinConfigFiles = []
-        platformDirs.each { platformDir ->
-            def resources = new File(platformDir, 'src/main/resources')
-            if (resources.isDirectory()) {
-                resources.eachFileRecurse(groovy.io.FileType.FILES) { f ->
-                    if (f.name.endsWith('.mixins.json')) {
-                        mixinConfigFiles << f
-                    }
-                }
-            }
-        }
-        mixinConfigFiles.each { f ->
-            def config = new groovy.json.JsonSlurper().parse(f)
-            def entries = ((config.mixins ?: []) + (config.client ?: [])) as Set
-            mapping.each { oldFqcn, _ ->
-                def oldSimple = oldFqcn.substring(oldFqcn.lastIndexOf('.') + 1)
-                assert !entries.contains(oldSimple):
-                        "mixin 配置仍引用已改名条目 ${oldSimple}: ${f}"
-            }
+        def canonicalMixinRegistry = new groovy.json.JsonSlurper().parse(mixinRegistryFile)
+        def canonicalMixinEntries = (canonicalMixinRegistry.entries ?: []).collect { it.name } as Set
+        mapping.each { oldFqcn, _ ->
+            def oldSimple = oldFqcn.substring(oldFqcn.lastIndexOf('.') + 1)
+            assert !canonicalMixinEntries.contains(oldSimple):
+                    "canonical Mixin registry still references renamed entry ${oldSimple}: ${mixinRegistryFile}"
         }
 
         // 功能性非 Java 文本（gradle / CI / 平台资源）：old 简名或 FQCN 必须不存在。
@@ -1412,7 +1531,7 @@ def verifyClassRenameMapping = tasks.register('verifyClassRenameMapping') {
                 println "提示：${files.unique().size()} 个 active Java 文件的注释中保留旧名 ${simple} 的历史说明（允许，不阻断）"
             }
         }
-        println "verifyClassRenameMapping OK（active Java / mixin 配置 / 功能性文本均无 old 引用）"
+        println "verifyClassRenameMapping OK（active Java / canonical Mixin registry / 功能性文本均无 old 引用）"
     }
 }
 
@@ -1718,9 +1837,10 @@ gradle.projectsEvaluated {
     platformProjects.each { projectPath ->
         def platform = project(projectPath)
         def jarTask = platform.tasks.findByName('remapJar') ?: platform.tasks.named('jar')
+        def sourcesJarTask = platform.tasks.findByName('remapSourcesJar') ?: platform.tasks.named('sourcesJar')
         verifyCraftableCoralBlocksJars.configure { dependsOn jarTask }
         verifyFabricModJson.configure { dependsOn jarTask }
-        verifyMixinConfigs.configure { dependsOn jarTask }
+        verifyMixinConfigs.configure { dependsOn jarTask; dependsOn sourcesJarTask }
         verifyJarEquivalence.configure { dependsOn jarTask }
     }
 }

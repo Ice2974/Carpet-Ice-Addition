@@ -34,6 +34,52 @@ assert project.jar_task in ['remap', 'plain']: "jar_task 必须为 remap 或 pla
 assert project.carpet_repo in ['masa', 'modrinth']: "carpet_repo 必须为 masa 或 modrinth，当前为 ${project.carpet_repo}"
 def remapFamily = project.jar_task == 'remap'
 
+// Phase 11：每个平台从非 runtime 目录中的唯一 canonical registry 独立生成一个 effective config。
+// mcVersion 由 preprocess 插件注入；版本符号来自 settings.json 注册表，禁止在这里解析版本字符串。
+def mixinRegistryFile = rootProject.ext.mixinRegistryFile as File
+def registeredMcVersions = providers.provider {
+    (rootProject.ext.versionProjectNames as List<String>).collectEntries { version ->
+        def versionProject = rootProject.project(":${version}")
+        assert versionProject.ext.has('mcVersion'):
+                "平台 ${versionProject.path} 缺少 preprocess 注入的 project.extra[mcVersion]"
+        [(version): versionProject.ext.get('mcVersion')]
+    }
+}
+def generatedMixinConfigFile = layout.buildDirectory.file("generated/mixinConfig/${project.mixin_config}")
+def generateMixinConfig = tasks.register('generateMixinConfig') {
+    inputs.file(mixinRegistryFile).withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.file(rootProject.file('settings.json')).withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.property('platformVersion', project.name)
+    inputs.property('mcVersion', providers.provider {
+        assert project.ext.has('mcVersion'):
+                "平台 ${project.path} 缺少 preprocess 注入的 project.extra[mcVersion]"
+        project.ext.get('mcVersion')
+    })
+    inputs.property('registeredMcVersions', registeredMcVersions)
+    inputs.property('java_release', project.java_release.toString())
+    inputs.property('mixin_config', project.mixin_config.toString())
+    outputs.file(generatedMixinConfigFile)
+
+    doLast {
+        def support = rootProject.ext.mixinRegistrySupport
+        def registry = support.validateAndExpand(
+                mixinRegistryFile,
+                rootProject.ext.versionProjectNames.collect { it.toString() },
+                registeredMcVersions.get())
+        assert registry.mcVersions[project.name] == (project.ext.get('mcVersion') as Number).intValue():
+                "平台 ${project.path} 的 mcVersion input 与注册映射不一致"
+        def text = support.renderEffectiveConfig(registry, project.name, project.java_release.toInteger())
+        def outputFile = generatedMixinConfigFile.get().asFile
+        outputFile.parentFile.mkdirs()
+        java.nio.file.Files.writeString(
+                outputFile.toPath(), text, java.nio.charset.StandardCharsets.UTF_8,
+                java.nio.file.StandardOpenOption.CREATE,
+                java.nio.file.StandardOpenOption.TRUNCATE_EXISTING,
+                java.nio.file.StandardOpenOption.WRITE)
+    }
+}
+ext.generatedMixinConfigFile = generatedMixinConfigFile
+
 // 防漂移：数据键声明的 loom 插件 id 必须与 family 构建入口 plugins 块实际应用的插件一致
 // （完整 id:version 的精确匹配在 settings.gradle 选择 family 入口时已 fail closed，此处保留 id 级运行期断言）
 def declaredLoomId = project.loom_plugin.substring(0, project.loom_plugin.indexOf(':'))
@@ -84,7 +130,8 @@ sourceSets {
     main {
         resources {
             // P10-B：资源 srcDirs 收敛为 [平台本地, 根]——根承载跨平台共享资源（icon/lang、modern 珊瑚配方），
-            // 平台本地承载 per-version 差异（fabric.mod.json、mixin 配置、pack.mcmeta、1.21.1 old-schema 配方）
+            // 平台本地承载 per-version 差异（fabric.mod.json、pack.mcmeta、1.21.1 old-schema 配方）；
+            // generated Mixin config 通过 task output 单独接入，不属于 resource srcDirs。
             srcDir rootProject.file('src/main/resources')
         }
     }
@@ -145,11 +192,20 @@ afterEvaluate {
             "平台 ${project.name} 生效资源 srcDirs 的相对路径碰撞集合与预期不一致：" +
             "actual=${(actualCollisions as List).sort()} expected=${(expectedCollisions as List).sort()}"
     // P10-A 根资源所有权不变式（长期）：根 src/main/resources 不得收编平台/资源包元数据——
-    // fabric.mod.json 与 per-version 内置资源包 pack.mcmeta 保持平台本地所有权；
-    // 根 *.mixins.json 不设禁令（Phase 11 单一 Mixin 配置体系届时再评估）。
+    // fabric.mod.json 与 per-version 内置资源包 pack.mcmeta 保持平台本地所有权。
     ['fabric.mod.json', 'resourcepacks/craftable_coral_blocks/pack.mcmeta'].each { ownedPath ->
         assert !rootProject.file("src/main/resources/${ownedPath}".toString()).isFile():
                 "根 src/main/resources 不得包含 ${ownedPath}（平台/资源包元数据所有权不变式）"
+    }
+    // Phase 11：手写 Mixin config 不得重新进入任何 runtime resource source dir。
+    // generated task output 是 runtime *.mixins.json 的唯一 owner；比“EXCLUDE 后 first-wins”更早 fail closed。
+    expectedResourceDirs.each { resourceDir ->
+        def handwrittenConfigs = resourceDir.isDirectory()
+                ? project.fileTree(resourceDir) { include '**/*.mixins.json' }.files
+                : []
+        assert handwrittenConfigs.isEmpty():
+                "Phase 11 Mixin resource ownership violation in ${resourceDir}: " +
+                handwrittenConfigs.collect { resourceDir.toPath().relativize(it.toPath()).toString().replace('\\', '/') }.sort()
     }
 }
 
@@ -159,6 +215,9 @@ processResources {
     // P10-0b 真仓 probe 实证）；碰撞集合本身是否被允许由 afterEvaluate 碰撞不变式 fail-closed 裁决。
     // 未显式设置时 Gradle 9.2.1 对重复条目直接构建失败（fail-fast），故必须显式声明。
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    dependsOn generateMixinConfig
+    // Phase 11：显式消费单一 task output；不得将 build/generated 注册为 resource srcDir。
+    from(generateMixinConfig)
     inputs.property 'version', project.version
     inputs.property 'minecraft_range', project.release_minecraft_range
     inputs.property 'minecraft_dependency', project.minecraft_dependency
@@ -188,6 +247,9 @@ processResources {
 tasks.configureEach { task ->
     if (task.name == 'sourcesJar') {
         task.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+        task.dependsOn generateMixinConfig
+        // sourcesJar 不经 processResources，需显式消费同一 generator output。
+        task.from(generateMixinConfig)
     }
 }
 
