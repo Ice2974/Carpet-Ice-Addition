@@ -86,8 +86,8 @@ def extraResourceTiers = project.hasProperty('extra_resource_dirs')
 sourceSets {
     main {
         resources {
-            // P9：common/src/main/resources 本轮不迁移（Phase 10 处理），改为 rootProject 物理路径引用
-            srcDir rootProject.file('common/src/main/resources')
+            // P10-A：common/src/main/resources 纯资源档退出，icon/lang 迁入根 src/main/resources
+            srcDir rootProject.file('src/main/resources')
             extraResourceTiers.each { tier ->
                 srcDir rootProject.file("versions/shared/${tier}/src/main/resources")
             }
@@ -103,13 +103,14 @@ sourceSets {
 //      不参与编译；非 core 平台为 [本地 src/main/java（overwrite 层）, 生成的 preprocess 输出]，
 //      本地文件按同路径替换、异路径附加，且不经宏处理/不经重映射、直接编译。
 //   2) 插件会 setSrcDirs 重写 resources——在 afterEvaluate 显式恢复现行资源语义
-//      [本平台 src/main/resources, common src/main/resources, extra_resource_dirs 各档]；
-//      根 src 只允许 java（下方断言），生成层资源恒为空，恢复不丢失任何输入。
+//      [本平台 src/main/resources, 根 src/main/resources, extra_resource_dirs 各档]；
+//      生成层资源恒为空，恢复不丢失任何输入。
 // 时序（restore 晚于插件改写）已经 P5-1b 行为学实验与全仓冷重建实证。
 project.pluginManager.apply('com.replaymod.preprocess')
 afterEvaluate {
+    // P10-A：根 src/main/resources 以平台本地之后的次序接入（同相对路径时平台本地层优先）
     def expectedResourceDirs = ([new File(project.projectDir, 'src/main/resources'),
-                                 rootProject.file('common/src/main/resources')] +
+                                 rootProject.file('src/main/resources')] +
                                 extraResourceTiers.collect { tier ->
                                     rootProject.file("versions/shared/${tier}/src/main/resources")
                                 })
@@ -121,11 +122,51 @@ afterEvaluate {
     // 仅 core 接线），非 core 平台默认无此目录 → test 保持 NO-SOURCE，单元测试仅由
     // :<mainProjectName>:test 单一入口承担（与上方 main 资源恢复同时序语义：restore 晚于插件改写）。
     sourceSets.test.java.setSrcDirs([new File(project.projectDir, 'src/test/java')])
-    assert !rootProject.file('src/main/resources').isDirectory():
-            '根项目不得创建 src/main/resources（Phase 5 资源语义不变式：根 src 仅 java）'
+
+    // P10-A 资源碰撞不变式（fail closed，配置期生效——任何 Gradle 调用（build / check / verify* /
+    // CI / IDE 同步）都会执行）：对本平台生效资源 srcDirs 求文件相对路径的多所有者交集，
+    // 交集必须恰好等于根 build.gradle 注入的 expectedRootResourceCollisions 对本平台登记的预期集合。
+    // EXCLUDE 的 first-wins 本身不是 fail-closed（静默忽略后续同路径项），碰撞是否被允许由此不变式裁决；
+    // expected map 的 keySet 必须与版本注册表完全一致（未来新增平台缺键不会默认当作空集放行）；
+    // 相对路径统一规范化为 /，Windows 与 CI/Linux 求值一致。
+    def expectedRootResourceCollisions = rootProject.ext.expectedRootResourceCollisions
+    assert expectedRootResourceCollisions != null:
+            'rootProject 未注入 expectedRootResourceCollisions（根 build.gradle 须先于平台项目完成注入）'
+    assert expectedRootResourceCollisions.keySet() == (rootProject.ext.versionProjectNames as Set):
+            "expectedRootResourceCollisions keySet 与版本注册表不一致：" +
+            "expected=${expectedRootResourceCollisions.keySet().sort()} registry=${(rootProject.ext.versionProjectNames as List).sort()}"
+    def pathOwners = new LinkedHashMap<String, Set<String>>()
+    sourceSets.main.resources.srcDirs.each { dir ->
+        if (dir.isDirectory()) {
+            def dirPath = dir.toPath()
+            dir.eachFileRecurse { resource ->
+                if (resource.isFile()) {
+                    def relPath = dirPath.relativize(resource.toPath()).toString().replace('\\', '/')
+                    pathOwners.computeIfAbsent(relPath) { new LinkedHashSet<String>() } << dir.toString()
+                }
+            }
+        }
+    }
+    def actualCollisions = pathOwners.findAll { it.value.size() > 1 }.keySet() as Set
+    def expectedCollisions = expectedRootResourceCollisions[project.name] as Set
+    assert actualCollisions == expectedCollisions:
+            "平台 ${project.name} 生效资源 srcDirs 的相对路径碰撞集合与预期不一致：" +
+            "actual=${(actualCollisions as List).sort()} expected=${(expectedCollisions as List).sort()}"
+    // P10-A 根资源所有权不变式（长期）：根 src/main/resources 不得收编平台/资源包元数据——
+    // fabric.mod.json 与 per-version 内置资源包 pack.mcmeta 保持平台本地所有权；
+    // 根 *.mixins.json 不设禁令（Phase 11 单一 Mixin 配置体系届时再评估）。
+    ['fabric.mod.json', 'resourcepacks/craftable_coral_blocks/pack.mcmeta'].each { ownedPath ->
+        assert !rootProject.file("src/main/resources/${ownedPath}".toString()).isFile():
+                "根 src/main/resources 不得包含 ${ownedPath}（平台/资源包元数据所有权不变式）"
+    }
 }
 
 processResources {
+    // P10-A：多 srcDir 接入根资源后，同相对路径碰撞（P10-B 起 1.21.1 的 old-schema 配方）由
+    // 平台本地层胜出——EXCLUDE 语义为 first-wins、静默忽略后续同路径项（行为经 P10-0a fixture 与
+    // P10-0b 真仓 probe 实证）；碰撞集合本身是否被允许由 afterEvaluate 碰撞不变式 fail-closed 裁决。
+    // 未显式设置时 Gradle 9.2.1 对重复条目直接构建失败（fail-fast），故必须显式声明。
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     inputs.property 'version', project.version
     inputs.property 'minecraft_range', project.release_minecraft_range
     inputs.property 'minecraft_dependency', project.minecraft_dependency
@@ -146,6 +187,15 @@ processResources {
                 carpet_version: project.carpet_version,
                 carpet_dependency: project.carpet_dependency
         )
+    }
+}
+
+// P10-A：sourcesJar 直接消费 resources srcDirs（不经 processResources 输出），存在碰撞时
+// Gradle 9.2.1 默认 fail-fast（P10-0a 实证），与 processResources 同语义显式 EXCLUDE。
+// 惰性匹配：withSourcesJar 注册晚于本脚本位置，不能用 tasks.named。
+tasks.configureEach { task ->
+    if (task.name == 'sourcesJar') {
+        task.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     }
 }
 

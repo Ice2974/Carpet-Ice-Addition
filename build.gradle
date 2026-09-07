@@ -72,6 +72,16 @@ assert mainProjectNameRaw in versionRegistry.collect { it.toString() }:
         "versions/mainProject=${mainProjectNameRaw} 必须是 settings.json 版本注册表登记的版本项目"
 ext.mainProjectName = mainProjectNameRaw
 
+// P10-A：资源碰撞不变式预期数据（common.gradle 各平台 afterEvaluate 配置期消费，fail closed）。
+// key = 平台项目名，keySet 必须与版本注册表完全一致（common.gradle 有全等断言：
+// 未来新增平台缺键不会被默认当作空集放行）；
+// value = 该平台允许的「生效资源 srcDirs 相对路径碰撞集合」（相对路径统一以 / 规范化）。
+// P10-A（common 纯资源档退出）：根 src/main/resources 仅承载 icon/lang，与任何平台本地资源无交集，
+// 全平台预期为空集；P10-B 起 1.21.1 的预期集合由 craftableCoralRecipePaths 派生（见其定义处）。
+ext.expectedRootResourceCollisions = versionRegistry.collectEntries { version ->
+    [(version.toString()): new LinkedHashSet<String>()]
+}
+
 // P6 baseline 快照目录使用正名前（legacy）的平台目录名（platform-mcXXXX，快照永久只读不重建）；
 // 键集必须与注册表完全一致（防漂移断言），新增平台时同步维护
 def legacyBaselineDirNames = [
@@ -1352,7 +1362,8 @@ def verifyClassRenameMapping = tasks.register('verifyClassRenameMapping') {
         if (sharedDir.isDirectory()) {
             sharedDir.eachFileRecurse(groovy.io.FileType.FILES) { textTargets << it }
         }
-        ([rootDir] + platformDirs + [new File(rootDir, 'common')]).each { dir ->
+        // P10-A：common/ 纯资源档已退出，其文件迁入根 src/main/resources（仍由 rootDir 递归扫描覆盖）
+        ([rootDir] + platformDirs).each { dir ->
             if (!dir.isDirectory()) {
                 return
             }
