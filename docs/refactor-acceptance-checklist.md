@@ -82,7 +82,7 @@
 - [ ] itemFrameInvisible / itemFrameFixed：根 src `ItemFrameMixin`（1.21.6–1.21.11 生效形态）+ `1.21.1` / `1.21.3` / `1.21.4` / `1.21.5` override 变体；26.x 为各平台 src 的同名 `ItemFrameMixin`（1.21.x↔26.x 项目类名已由 Phase 6 统一）——对应版本全部冒烟（展示框隐形 / 固定交互）。
 - [ ] BookEditScreen client mixin 仅存在于 1.21.1–1.21.5 平台的 mixin json `client` 数组；1.21.6+ 与 26.x 只有 Clipboard mixin。
 - [ ] 26.x 命令实现（平台 override）与 1.21.x 根 src 实现同为 CommandSourceStack（Mojmap 命名空间，Phase 4 统一），注册与执行正常。
-- [ ] 1.21.1 平台 jar 内包含其自有的 10 个珊瑚配方副本；1.21.3–1.21.11 由 shared/mc1213-12111 提供；26.1.2 / 26.2 各自携带（`verifyCraftableCoralBlocksJars` 已覆盖计数，此处为行为冒烟）。
+- [ ] 1.21.1 平台 jar 内包含其自有的 10 个珊瑚配方 old-schema 副本（平台本地同路径覆盖）；1.21.3–1.21.11、26.1.2 / 26.2 由根 `src/main/resources` 的 modern 档提供（Phase 10 起 shared 档退出；`verifyCraftableCoralBlocksJars` 已覆盖计数，此处为行为冒烟）。
 
 ### 3.4 资源与翻译
 

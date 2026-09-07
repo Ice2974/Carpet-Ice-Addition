@@ -19,10 +19,9 @@
 
 ## 目录边界
 
-- `common/`：纯资源目录（`src/main/resources`，Phase 9 起 Java 源码已全部迁出，资源迁移归 Phase 10），不是独立 Gradle 子项目。
 - `src/main/java`（仓库根）：主源码树——面向 mainProject（1.21.11）的「main 态」源码 + `//#if MC` 预处理宏，经 preprocess 版本图变换为各平台编译输入（Phase 9 起为唯一 Java main 源码所有者，含原 `common` 的规则定义、翻译、公共配置管理与工具逻辑）；只允许 java，不放 resources。
-- `versions/shared/`：纯资源档目录（珊瑚配方资源包），不是独立 Gradle 子项目，不直接产出 jar；只能由平台模块通过 `extra_resource_dirs` 数据键引入，不再承载 Java 源码。
-- `versions/<MC 版本>`（如 `versions/1.21.1`、`versions/26.2`，Phase 8 正名前为 `versions/platform-*`）：per-version override 源码（同路径整文件替换根 src 变换输出 / 异路径附加）、平台资源（mixin json、fabric.mod.json、资源包副本）与 per-version `gradle.properties`。
+- `src/main/resources`（仓库根）：跨平台共享资源目录（Phase 10 起：mod 图标、中英语言文件、珊瑚内置资源包 modern 档配方）；经 `common.gradle` 接入所有平台的资源 srcDirs，次序在平台本地之后（同相对路径时平台本地优先）；不得包含 `fabric.mod.json` 与 `resourcepacks/craftable_coral_blocks/pack.mcmeta`（平台/资源包元数据所有权不变式，配置期断言）。
+- `versions/<MC 版本>`（如 `versions/1.21.1`、`versions/26.2`，Phase 8 正名前为 `versions/platform-*`）：per-version override 源码（同路径整文件替换根 src 变换输出 / 异路径附加）、平台资源（mixin json、fabric.mod.json、内置资源包 pack.mcmeta，1.21.1 另有 old-schema 配方同路径覆盖）与 per-version `gradle.properties`。
 - `docs/`：规则、命令、记录器、开发说明、发布说明等项目资料。
 - `THIRD_PARTY_NOTICES.md`：第三方来源、许可证、致谢、移植 / 参考 / 重写说明的维护文件；不替代 `LICENSE`，也不作为项目功能状态来源。
 - `references/`：本地参考资料目录，不作为项目事实来源，不修改其中内容。
@@ -54,23 +53,24 @@
 
 ## 根源码树与跨版本规则
 
-- 源码架构（Phase 5 起，Phase 8 起平台目录实名）：根 `src/main/java` 主源码树（mainProject = 1.21.11）+ 根 `build.gradle` preprocess 版本图（插件 `com.replaymod.preprocess` 经 JitPack 全 SHA 锁定解析到 Fallen-Breath/preprocessor）+ `versions/<MC 版本>/src/main/java` per-version override；`versions/shared/` 只承载纯资源档。
+- 源码架构（Phase 5 起，Phase 8 起平台目录实名）：根 `src/main/java` 主源码树（mainProject = 1.21.11）+ 根 `build.gradle` preprocess 版本图（插件 `com.replaymod.preprocess` 经 JitPack 全 SHA 锁定解析到 Fallen-Breath/preprocessor）+ `versions/<MC 版本>/src/main/java` per-version override；根 `src/main/resources` 承载跨平台共享资源（Phase 10 起，common/ 与 versions/shared/ 资源档已整体退出）。
 - 单元测试（Phase 9 起）当前归属 core 平台：共享测试源码位于 `versions/<mainProject 版本>/src/test/java`，测试入口为 `:<mainProject 版本>:test`（CI 显式执行）；共享单元测试不得经 preprocess 版本图传播到 non-core 平台（test sourceSet 统一恢复为本平台本地目录）；non-core 平台 test 任务因此默认保持 NO-SOURCE。未来如确需版本专属测试，应作为明确的 per-version 测试需求单独接线和规划，不隐式继承 core tests。
 - 根 src 必须保持「main 态」：纯文本可直接按 1.21.11 编译；所有非 1.21.11 内容必须以 `//$$ ` 前缀的注释态出现在条件分支内；预处理指令行（`//#if` / `//#elseif` / `//#else` / `//#endif` / `//#disable-remap` 等）不加 `$$` 前缀。
 - 宏只用于单处 ≤10 行、不改 Mixin 注入 descriptor 的小差异；结构性分叉（注入目标结构 / 方法签名 / AI 拓扑 / `@At` 字符串差异）必须用平台 override 文件表达，不强行塞进宏。
 - override 语义：非 core 平台的本地 `src/main/java` 按同路径整文件替换根 src 变换输出、异路径附加；override 文件直接编译，不参与宏求值与边重映射，内部不使用预处理指令；core（1.21.11）没有 override 层，本地 src 不参与编译。
 - 版本图边 mapping 文件（`versions/mapping-<a>-<b>.txt`）只在 automatic mapping 无法表达时添加条目（外部库 rename、成员移动、remap↔plain 边）；1.21.x remap 边通常保持 0 字节。修改 mapping 后必须全量编译验证受影响平台。
-- 严禁把根 src 或 `versions/shared/` 注册为独立 Gradle 子项目；Java source root 必须停在标准的 src/main/java，禁止把 com/... package 目录直接注册为 source root。
+- 严禁把根 src（java 或 resources）注册为独立 Gradle 子项目；Java source root 必须停在标准的 src/main/java，禁止把 com/... package 目录直接注册为 source root。
 - 跨小版本差异优先通过宏、平台 override 或版本图 mapping 表达，不优先使用运行期字符串版本号判断来偷渡兼容。
 - 平台模块的 mixins 配置默认保持 `required=true`，除非任务明确要求调整。
 - `org.gradle.parallel=false` 是 preprocess 体系下 Gradle 9 跨项目解析独占锁问题的既有解，未经全量验证不要改回 `true`。
 
 ## 版本注册表与构建配置
 
-- `settings.json` 是支持版本清单的唯一来源；`settings.gradle` 据此动态生成平台子项目（根直接子项目 `:<MC 版本>`，如 `:1.21.11`，磁盘目录 `versions/<MC 版本>`），并断言 `versions/` 目录集合恰为注册表条目目录 ∪ {shared}（双向 fail closed）。
+- `settings.json` 是支持版本清单的唯一来源；`settings.gradle` 据此动态生成平台子项目（根直接子项目 `:<MC 版本>`，如 `:1.21.11`，磁盘目录 `versions/<MC 版本>`），并断言 `versions/` 目录集合恰为注册表条目目录（双向 fail closed；P10-B 起 shared 资源档已退出，无附加目录）。
 - 新增 Minecraft 平台 = 在 `settings.json` 按版本升序登记 + 新建 `versions/<MC 版本>/`（per-version `gradle.properties`、src）+ 根 `build.gradle` 版本图 `createNode` 登记节点并与相邻版本 `link`（含新建对应 `versions/mapping-*.txt`），不要手写 include 清单；平台不写独立 `build.gradle`，`settings.gradle` 按 per-version `gradle.properties` 的 `loom_plugin` 完整 `id:version` 自动选择共享 family 构建入口（`build-remap.gradle` / `build-plain.gradle`，未知值 fail closed）。
 - 平台版本数据（minecraft、loader、fabric-api、carpet、pack_format 等）放在 `versions/<MC 版本>/gradle.properties`，不要向根 `gradle.properties` 回填平台前缀键。
 - 平台共通构建逻辑在根 `common.gradle`（由共享 family 构建入口在 plugins 块之后 apply from 引入），差异由 per-version 数据键驱动；修改共通逻辑时必须同时验证两种 loom 形态（Mojmap layered remap 与免混淆 plain）。
+- 平台资源 srcDirs 固定为 [平台本地 `src/main/resources`，根 `src/main/resources`]（Phase 10 起；无 common/、versions/shared、extra_resource_dirs 档）。同相对路径资源碰撞由平台本地层胜出（`processResources` / `sourcesJar` 显式 `DuplicatesStrategy.EXCLUDE`；first-wins 本身不是 fail-closed），碰撞是否被允许由配置期碰撞不变式 fail-closed 裁决——任何新增碰撞必须同步登记根 `build.gradle` 的 `expectedRootResourceCollisions`（keySet 与版本注册表全等，缺失键不会默认按空集放行）。
 
 ## 规则 / 命令 / 记录器修改
 
@@ -132,7 +132,7 @@
 
 - 只修改 Markdown 文档时，至少运行 `git diff --check`。
 - 修改源码、资源、构建脚本、Mixin、平台入口或 sourceSets 时，先运行 `git diff --check`，再运行受影响模块的 `compileJava`。
-- 涉及 `common/`、根 `src/`、`versions/shared/` 或跨平台公共逻辑时，优先验证所有当前支持平台的编译。
+- 涉及根 `src/`（java 或 resources）、平台 override 或跨平台公共逻辑时，优先验证所有当前支持平台的编译。
 - 如果因环境限制无法运行验证命令，需要在回复中明确说明未验证内容、原因和风险。
 - 不要把未运行的游戏内测试、多人测试或启动测试写成已通过。
 
