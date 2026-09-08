@@ -55,8 +55,11 @@ public abstract class PlayerBreakIceLikeMagmaBlocksMixin {
                     .anyMatch(entry -> entry.getKey().is(Enchantments.SILK_TOUCH) && entry.getIntValue() > 0);
 
             BlockState belowState = this.player.level().getBlockState(brokenPos.below());
+            // blocksMotion() 无非弃用等价 API：语义 = 排除 COBWEB/BAMBOO_SAPLING + legacySolid 尺寸阈值判定，保留原调用以冻结该语义
+            @SuppressWarnings("deprecation")
+            boolean blocksMovement = belowState.blocksMotion();
             boolean validSolidSupport = IceLikeMagmaBlocksHelper.isValidSolidSupport(
-                    belowState.blocksMotion(),
+                    blocksMovement,
                     belowState.is(Blocks.COBWEB),
                     belowState.is(Blocks.BAMBOO_SAPLING)
             );

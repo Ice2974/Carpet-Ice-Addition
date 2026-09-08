@@ -2,8 +2,13 @@ package com.ice2974.carpeticeaddition.rules;
 
 import com.ice2974.carpeticeaddition.settings.CraftableCoralBlocksSettings;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
-import net.fabricmc.fabric.api.resource.ResourcePackActivationType;
+//#if MC>=12111
+import net.fabricmc.fabric.api.resource.v1.ResourceLoader;
+import net.fabricmc.fabric.api.resource.v1.pack.PackActivationType;
+//#else
+//$$import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
+//$$import net.fabricmc.fabric.api.resource.ResourcePackActivationType;
+//#endif
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
@@ -48,7 +53,11 @@ public final class CraftableCoralBlocksDataPackController {
         var container = FabricLoader.getInstance()
                 .getModContainer("carpet-ice-addition")
                 .orElseThrow(() -> new IllegalStateException("Missing carpet-ice-addition mod container"));
-        if (!ResourceManagerHelper.registerBuiltinResourcePack(PACK_ID, container, ResourcePackActivationType.NORMAL)) {
+        //#if MC>=12111
+        if (!ResourceLoader.registerBuiltinPack(PACK_ID, container, PackActivationType.NORMAL)) {
+        //#else
+        //$$        if (!ResourceManagerHelper.registerBuiltinResourcePack(PACK_ID, container, ResourcePackActivationType.NORMAL)) {
+        //#endif
             LOGGER.warn("[Carpet Ice Addition] Failed to register craftableCoralBlocks builtin datapack");
         }
         ServerLifecycleEvents.START_DATA_PACK_RELOAD.register((minecraftServer, ignored) -> onReloadStart(minecraftServer));

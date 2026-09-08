@@ -33,7 +33,7 @@ public abstract class SculkCatalystListenerMixin {
     private void carpetIceAddition$checkWoolCover(ServerLevel world, Holder<GameEvent> event,
             GameEvent.Context emitter, Vec3 emitterPos, CallbackInfoReturnable<Boolean> cir) {
         this.carpetIceAddition$woolAboveCatalyst = false;
-        if (!CarpetIceAdditionSettings.woolSuppressesSculkSpread || !event.is(GameEvent.ENTITY_DIE)) {
+        if (!CarpetIceAdditionSettings.woolSuppressesSculkSpread || !event.is(GameEvent.ENTITY_DIE.key())) {
             return;
         }
         this.carpetIceAddition$woolAboveCatalyst = this.positionSource.getPosition(world)

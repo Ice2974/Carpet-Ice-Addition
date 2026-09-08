@@ -58,7 +58,7 @@ public abstract class WardenAngerManagerMixin {
         }
         for (UUID uuid : List.copyOf(this.angerByUuid.keySet())) {
             if (world.getEntity(uuid) instanceof Player) {
-                this.angerByUuid.remove(uuid);
+                this.angerByUuid.removeInt(uuid);
             }
         }
     }

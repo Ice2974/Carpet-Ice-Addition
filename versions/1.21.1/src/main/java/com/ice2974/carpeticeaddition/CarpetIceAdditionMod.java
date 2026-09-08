@@ -27,8 +27,6 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.storage.LevelResource;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
@@ -36,7 +34,6 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
     public static final String MOD_ID = "carpet-ice-addition";
     public static final String MOD_NAME = "Carpet Ice Addition";
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(MOD_NAME);
     private static final CarpetIceAdditionMod INSTANCE = new CarpetIceAdditionMod();
     private static String version;
 
