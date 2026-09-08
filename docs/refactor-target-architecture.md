@@ -1,6 +1,6 @@
 # 最终架构与历史迁移记录（Fallen-Breath 多版本架构）
 
-> 当前架构以本节、源码和 `settings.json` 为准；下文编号 §0–§9 保留历史设计与阶段记录，其中旧目录、旧 schema、迁移约束不再描述当前 ownership。历史基线见 [refactor-baseline.md](refactor-baseline.md)，长期验收见 [refactor-acceptance-checklist.md](refactor-acceptance-checklist.md)。Phase 12 结果与未完成验证见 [refactor-phase12-verification.md](refactor-phase12-verification.md)。
+> 当前架构以本节、源码和 `settings.json` 为准；下文编号 §0–§9 保留历史设计与阶段记录，其中旧目录、旧 schema、迁移约束不再描述当前 ownership。历史基线见 [refactor-baseline.md](refactor-baseline.md)，长期验收见 [refactor-acceptance-checklist.md](refactor-acceptance-checklist.md)。Phase 12 最终验收结果见 [refactor-phase12-verification.md](refactor-phase12-verification.md)。
 
 ## 当前终态与长期边界
 
@@ -30,7 +30,7 @@
 
 Fallen-Breath root/preprocess/override/real-version 机制等价；双 Loom family、完整 SHA、canonical Mixin registry、碰撞与 artifact verifiers 是本项目有意保留的差异。Fallen-Breath/TIS 是架构参考，AMS 是具体参考实例；preprocessor 是构建工具来源，许可证职责见 THIRD_PARTY_NOTICES.md，不改变项目 LICENSE。
 
-Phase 1–11 已验收；Phase 12 的实现状态、最终 CI 与本地/sterile 验证必须按 verification 记录判断，不将实现已提交等同于最终验收通过。
+**Phase 1–12 已全部验收完成。** Phase 12 的最终 CI、主工作区与 final-HEAD tracked-only sterile 验证、P6 11/11、resolver 16/16 及 Level 3 继承结论以 [refactor-phase12-verification.md](refactor-phase12-verification.md) 为准；长期门禁以 [refactor-acceptance-checklist.md](refactor-acceptance-checklist.md) 为准。
 
 ## 历史迁移设计与阶段记录
 
@@ -202,7 +202,7 @@ carpet-ice-addition/
 | java_release | 21 或 25 |
 | pack_format | 48 … 107 |
 | mixin_config | carpet-ice-addition-mc1211.mixins.json |
-| shared_tiers | 有序列表，逐字来自基线 §1.3（如 `mc121x,mc1211-12110,mc121x-killitem,mc1211-1218,mc1211-1215,mc1211-1214`）。**（Phase 1 形态；Phase 5 起该键已随 Java 档位机制移除，见 §6 Phase 5 执行结果）** |
+| shared_tiers | 有序列表，逐字来自基线 §1.3（如 `mc121x,mc1211-12110,mc121x-killitem,mc1211-1218,mc1211-12115,mc1211-1214`）。**（Phase 1 形态；Phase 5 起该键已随 Java 档位机制移除，见 §6 Phase 5 执行结果）** |
 | extra_resource_dirs | common 之外追加的资源目录（1.21.x 除 mc1211 为 `shared/mc1213-12111/src/main/resources`；其余为空）。**（Phase 1 形态；Phase 10 起该键已随 versions/shared 整体退出删除，见 §6 Phase 10）** |
 
 原则：**每个字段值都能在现有构建脚本 / 根 properties 中逐字找到出处**；不允许在迁移中"顺手修正"任何值（含已知的 `mod_version` vs `version` 引用不一致——那是 Phase 1 之后单独的清理项）。
@@ -352,6 +352,7 @@ carpet-ice-addition/
 | + Phase 9 | 退出 `common` Java 子项目 + 单元测试归属 `:1.21.11:test` | **已完成**（2026-09-06，见 §6 Phase 9） |
 | + Phase 10 | root resources 收敛 + `common/` / `versions/shared` 资源档完全退出（资源 srcDirs = [平台本地， 根] + 碰撞不变式） | **已完成**（2026-09-07，见 §6 Phase 10） |
 | + Phase 11 | 单一 canonical Mixin registry + per-project build-time generator | **已完成**（2026-09-07，见 §6 Phase 11；Level 3 已由用户确认） |
+| + Phase 12 | 最终 Fallen-Breath 架构一致性审计、actual publish identity 解耦、历史 legacy fallback 与最终验收收口 | **已完成并验收**（2026-09-08；见 [refactor-phase12-verification.md](refactor-phase12-verification.md)） |
 
 ## 9. 待人工确认项汇总
 
