@@ -33,6 +33,7 @@
     { "name": "GateBehaviorIronGolemOptimizationMixin", "side": "common" },
     { "name": "GoToPotentialJobSiteIronGolemOptimizationMixin", "side": "common", "maxMc": "1.21.11" },
     { "name": "GoToWantedItemIronGolemOptimizationMixin", "side": "common" },
+    { "name": "IceLikeMagmaBlocksNoDropMixin", "side": "common" },
     { "name": "ItemFrameMixin", "side": "common" },
     { "name": "ItemUtilsPortableInfiniteWaterMixin", "side": "common" },
     { "name": "JukeboxManagerRecordWorldEventMixin", "side": "common" },

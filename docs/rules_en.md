@@ -139,7 +139,7 @@ Makes pickaxes an effective tool for mining beacons.
 
 ### iceLikeMagmaBlocks
 
-Allows magma blocks broken by players with tools without Silk Touch to generate a lava source using ice-like support checks when the block below is a valid solid block or liquid block.
+When players break magma blocks with tools without Silk Touch, the magma block does not drop, and a lava source is generated using ice-like support checks when the block below provides valid solid support or liquid support.
 
 - Type: `boolean`
 - Default: `false`
