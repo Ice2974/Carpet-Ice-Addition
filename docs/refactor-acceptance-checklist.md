@@ -1,6 +1,8 @@
 # 重构验收清单（三级验收）
 
 > 本清单定义 Fallen-Breath 多版本架构迁移过程中每一步的验收标准，配套 [refactor-baseline.md](refactor-baseline.md)（对照基准数据）与 [refactor-target-architecture.md](refactor-target-architecture.md)（阶段划分）。清单描述"必须验证什么"，具体修复不属于本文档职责。
+>
+> **当前重构状态（2026-09-08）：Phase 12 accepted / completed；Phase 1–12 Fallen-Breath 风格多版本架构重构 completed。** Phase 12 最终自动门禁与 Level 3 继承证据见 [refactor-phase12-verification.md](refactor-phase12-verification.md)。
 
 约定：
 
@@ -22,22 +24,22 @@
 | Phase 2 编译与行为等价验证 | Level 1 + 2 + 3 | 与动工前构建快照 / Release 2.13.1 资产对照 |
 | Phase 3 源码结构优化（每步） | Level 1 + 2 | 受影响特性的定向验证 |
 | Phase 3 / Phase 4 收尾 | Level 1 + 2 + 3 | — |
-| Phase 12 | 全量自动门禁 + 按最终 diff 判定 Level 3 | 方案 C 只改 publish identity；继承条件见 §0.1 |
+| Phase 12 | 全量自动门禁 + 按最终 diff 判定 Level 3 | **已验收**；方案 C 只改 publish identity，Level 3 按 §0.1 条件继承 |
 | 正式发布 | Level 3 | 发布验收（§4） |
 
 ### 0.1 Phase 12 收口与长期门禁
 
-- [ ] `clean build :1.21.11:test verifyCraftableCoralBlocksJars verifyFabricModJson verifyMixinConfigs verifyClassRenameMapping selfTestRenameEquivalence` 通过；3 suites / 46 tests PASS，其余 10 平台 test = NO-SOURCE。
-- [ ] 全量 build 后执行 `verifyJarEquivalence -PbaselineDir=D:/Project/Carpet-Ice-Addition-P6-baseline-final`，11/11 PASS，47 mapping、27 owners / 42 entries 和既有证明 scope 保持。
-- [ ] `projects` = root + 11；`git diff --check` 通过；仅含 tracked 内容的 sterile 检出复跑上述构建与等价门禁。
-- [ ] 无第三 Java/resource tier，无 tracked/generated 或手写 `*.mixins.json`；11 平台 runtime/sources/generated 各恰一配置，引用与 P11 语义闭环，clean 可重建。
-- [ ] `python scripts/verify_publish_resolver.py`（先 build）通过：生产 marker 恰一对，layout 与 dispatch attribution 同实现，actual 精确 filename 与真实 Gradle 产物一致，历史 fixture/错误路径 fail closed。
-- [ ] actual 发布 identity 不消费 `mixin_config`、fabric mixins 或人工 mcXXXX；legacy fallback 只由明确 legacy 树进入。
-- [ ] 最终 HEAD 的 Build workflow 通过。Build 不运行 P6 `verifyJarEquivalence`，也不代替本地 sterile 验证；docs-only push 不自动触发，需手动 Build。
+- [x] `clean build :1.21.11:test verifyCraftableCoralBlocksJars verifyFabricModJson verifyMixinConfigs verifyClassRenameMapping selfTestRenameEquivalence` 通过；3 suites / 46 tests PASS，其余 10 平台 test = NO-SOURCE。
+- [x] 全量 build 后执行 `verifyJarEquivalence -PbaselineDir=D:/Project/Carpet-Ice-Addition-P6-baseline-final`，11/11 PASS，47 mapping、27 owners / 42 entries 和既有证明 scope 保持。
+- [x] `projects` = root + 11 version projects（12 projects including root）；`git diff --check` 通过；仅含 tracked 内容的 final-HEAD sterile 检出以 `--no-build-cache --rerun-tasks` 复跑上述构建与等价门禁通过。
+- [x] 无第三 Java/resource tier，无 tracked/generated 或手写 `*.mixins.json`；11 平台 runtime/sources/generated 各恰一配置，引用与 P11 语义闭环，clean 可重建。
+- [x] `python scripts/verify_publish_resolver.py`（先 build）通过：16/16 tests PASS，生产 marker 恰一对，layout 与 dispatch attribution 同实现，actual 精确 filename 与真实 Gradle 产物一致，历史 fixture/错误路径 fail closed；真实 Gradle runtime filename/metadata 11/11 PASS。
+- [x] actual 发布 identity 不消费 `mixin_config`、fabric mixins 或人工 mcXXXX；legacy fallback 只由明确 legacy 树进入。
+- [x] 最终代码/工作流验证基点 `26a4c35f49827a201c81adacb71b6fe959182322` 的 Build #65 通过。Build 不运行 P6 `verifyJarEquivalence`，也不代替本地 sterile 验证；最终文档收口为 docs-only，不改变已验收 runtime/build 行为。
 
-方案 C 保留 runtime Mixin filename：在 runtime 文件内容不变、P6 11/11、CI 通过、bootstrap path 不变的条件下，继承已确认的 Phase 11 Level 3，不重复全平台游戏测试。docs/comments/dead metadata 同样按实际 artifact 判定。若改变 config filename/fabric reference，必须重新执行 11/11 dedicated server startup，以及 1.21.1、1.21.5/1.21.6 membership boundary、1.21.11、26.1.2、26.2 client/integrated-server 代表集，检查 server-only 连接、missing/duplicate config、wrong side、compatibilityLevel 与 MixinApplyError。
+方案 C 保留 runtime Mixin filename：runtime 文件内容不变、P6 11/11、CI 通过、bootstrap path 不变的条件均已满足，因此**继承已确认的 Phase 11 Level 3，不重复全平台游戏测试**。docs/comments/dead metadata 同样按实际 artifact 判定。若未来改变 config filename/fabric reference，必须重新执行 11/11 dedicated server startup，以及 1.21.1、1.21.5/1.21.6 membership boundary、1.21.11、26.1.2、26.2 client/integrated-server 代表集，检查 server-only 连接、missing/duplicate config、wrong side、compatibilityLevel 与 MixinApplyError。
 
-真实 Publish dispatch 的外部发布动作另行由用户决定；静态 harness 不是端到端发布成功证明。runtime `mcXXXX` 文件名是长期 compatibility identity，不是临时迁移层。
+真实 Publish dispatch 的外部发布动作另行由用户决定；静态 harness 不是端到端发布成功证明。该动作属于正式发布验收，不阻塞 Phase 12 架构重构 acceptance。runtime `mcXXXX` 文件名是长期 compatibility identity，不是临时迁移层。
 
 ## 1. Level 1 架构验收
 
