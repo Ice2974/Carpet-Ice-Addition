@@ -110,7 +110,8 @@ jobs:
 
       - name: Build and verify
         if: github.event_name == 'release'
-        run: ./gradlew build verifyCraftableCoralBlocksJars verifyFabricModJson --stacktrace
+        # 与 Build 的独立门禁一致；不接入依赖外部快照的 verifyJarEquivalence。
+        run: ./gradlew build :1.21.11:test verifyCraftableCoralBlocksJars verifyFabricModJson verifyMixinConfigs verifyClassRenameMapping selfTestRenameEquivalence --stacktrace
 
       - name: Collect release jars and build manifest
         env:
