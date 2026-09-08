@@ -7,11 +7,10 @@ import com.ice2974.carpeticeaddition.rules.FluidTickDelayValidator;
 import static carpet.api.settings.RuleCategory.FEATURE;
 
 /**
- * Fluid tick-delay rules for 1.21.x (Yarn mappings).
+ * Fluid tick-delay rules.
  *
- * <p>The {@link Validator} needs the MC type {@code ServerCommandSource}, so the
- * rule fields cannot live in the MC-free common module. The parsing logic itself
- * is shared via {@link FluidTickDelayUtil}.
+ * <p>The {@link FluidTickDelayValidator} needs the MC type {@code CommandSourceStack}.
+ * The pure parsing logic itself is shared via {@link FluidTickDelayUtil}.
  *
  * <p>Cached values ({@link #waterFrozen}, {@link #waterDelay}, etc.) are updated
  * by {@link #refreshCachedValues()} on the server main thread (after

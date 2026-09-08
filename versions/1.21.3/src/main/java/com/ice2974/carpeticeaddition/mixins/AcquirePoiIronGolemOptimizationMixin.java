@@ -30,7 +30,7 @@ import net.minecraft.world.entity.ai.village.poi.PoiType;
  * 无钟铁塔中 MEETING_POINT 永远缺失，该变体原本每 20-40t 触发一次全量 POI 查询。
  * HOME / MEETING 不被 jobSite 判定标记的行为由 IronGolemVillagerOptimizerTest 单测
  * 在代码级验证。5 参重载仅存在于 1.21.1 / 1.21.3（1.21.4 起被带 BiPredicate 的
- * 6 参重载取代，见 1.21.4 / 1.21.5-1.21.11 平台档；1.21.1 副本见 1.21.1 平台档）。
+ * 6 参重载取代，见 1.21.4 / 1.21.5-1.21.11 平台 override；1.21.1 副本见 1.21.1 平台 override）。
  */
 @Mixin(AcquirePoi.class)
 public abstract class AcquirePoiIronGolemOptimizationMixin {

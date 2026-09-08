@@ -219,11 +219,8 @@ processResources {
     // Phase 11：显式消费单一 task output；不得将 build/generated 注册为 resource srcDir。
     from(generateMixinConfig)
     inputs.property 'version', project.version
-    inputs.property 'minecraft_range', project.release_minecraft_range
     inputs.property 'minecraft_dependency', project.minecraft_dependency
-    inputs.property 'fabric_version', project.fabric_version
     inputs.property 'fabric_dependency', project.fabric_dependency
-    inputs.property 'carpet_version', project.carpet_version
     inputs.property 'carpet_dependency', project.carpet_dependency
 
     filesMatching('fabric.mod.json') {
@@ -231,11 +228,8 @@ processResources {
                 version: project.version,
                 id: project.mod_id,
                 name: project.mod_name,
-                minecraft_range: project.release_minecraft_range,
                 minecraft_dependency: project.minecraft_dependency,
-                fabric_version: project.fabric_version,
                 fabric_dependency: project.fabric_dependency,
-                carpet_version: project.carpet_version,
                 carpet_dependency: project.carpet_dependency
         )
     }

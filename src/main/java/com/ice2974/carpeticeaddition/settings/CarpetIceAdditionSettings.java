@@ -23,8 +23,8 @@ public final class CarpetIceAdditionSettings {
     @Rule(categories = {ICE, FEATURE})
     public static boolean crafterStopsWhenOutputBlocked = false;
 
-    // craftableCoralBlocks 规则定义在各平台模块的 CraftableCoralBlocksSettings：
-    // 其 Validator 需引用 MC 类（ServerCommandSource / CommandSourceStack），无法放入 common。
+    // craftableCoralBlocks 规则定义在独立的 CraftableCoralBlocksSettings：
+    // 其 Validator 需引用 MC 类（CommandSourceStack）。
 
     @Rule(categories = {ICE, BUGFIX})
     public static boolean recordWorldEventFix = false;

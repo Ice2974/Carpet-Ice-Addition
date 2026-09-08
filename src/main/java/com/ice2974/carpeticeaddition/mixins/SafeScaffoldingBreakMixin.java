@@ -36,7 +36,7 @@ public abstract class SafeScaffoldingBreakMixin {
             }
 
             //#disable-remap player.level() 存在多版本双重解析（<=1.21.5 解析 Entity.level=method_37908、>=1.21.6 解析 Player.level=method_51469），
-            //# 保持原文本让各版本 javac 自行解析回基线方法（与 mojmap-unified 档行为一致）
+            //# 保持原文本让各版本 javac 自行解析回基线方法（沿袭 mojmap-unified 共享档时代已验证的行为）
             BlockState state = this.player.level().getBlockState(pos);
             //#enable-remap
             if (!state.is(Blocks.SCAFFOLDING)) {

@@ -6,9 +6,10 @@ import java.util.Objects;
  * Pure-Java parsing and calculation helpers for the {@code waterFluidTickDelay}
  * and {@code lavaFluidTickDelay} Carpet rules.
  *
- * <p>This class lives in the common module so it can be unit-tested without any
- * Minecraft dependency. The actual rule fields and their {@code Validator}
- * (which needs MC types) live in the per-mapping shared roots.
+ * <p>This class is intentionally free of Minecraft types so it can be unit-tested
+ * by the core-platform test suite ({@code :1.21.11:test}). The actual rule fields
+ * and their {@code Validator} (which needs MC types) live in
+ * {@code CarpetIceAdditionFluidSettings}.
  */
 public final class FluidTickDelayUtil {
     /** Sentinel value indicating that a fluid is frozen. */

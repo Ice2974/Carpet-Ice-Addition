@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * 这是 CORE 职业链中唯一的“具体 MultiTickTask 子类”（由 VillagerTaskListProvider 直接 new），
  * 因此在自身构造器尾部自标记（等价于类名单效果，但类名跨版本漂移，无法并入共享 SkipClasses）。
  * 语义为走向潜在工作站，与铁傀儡生成链无关。WalkTowardJobSiteTask 是 1.21.1 的 Yarn 类名，
- * 1.21.3 起更名为 WalkTowardsJobSiteTask（见 1.21.3-1.21.11 平台档）。
+ * 1.21.3 起更名为 WalkTowardsJobSiteTask（见 1.21.3-1.21.11 平台 override）。
  */
 @Mixin(GoToPotentialJobSite.class)
 public abstract class GoToPotentialJobSiteIronGolemOptimizationMixin {

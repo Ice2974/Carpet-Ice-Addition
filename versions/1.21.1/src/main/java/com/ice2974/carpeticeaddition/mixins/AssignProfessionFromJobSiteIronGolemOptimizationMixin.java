@@ -14,7 +14,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * 纯工厂 holder（create 返回匿名 SingleTickTask），不能进类名单。
  * 该任务属于 CORE 的职业链（走到工作站获得职业），与铁傀儡生成链无关。
  * GoToWorkTask 是 1.21.1 的 Yarn 类名，1.21.3 起更名为 UpdateJobSiteTask
- * （对应版本见 1.21.3-1.21.11 平台档），故本类仅存在于 1.21.1 平台。
+ * （对应版本见 1.21.3-1.21.11 平台 override），故本类仅存在于 1.21.1 平台。
  */
 @Mixin(AssignProfessionFromJobSite.class)
 public abstract class AssignProfessionFromJobSiteIronGolemOptimizationMixin {

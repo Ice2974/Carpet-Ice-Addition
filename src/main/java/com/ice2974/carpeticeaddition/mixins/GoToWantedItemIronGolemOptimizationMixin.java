@@ -19,7 +19,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * 物品进入原版近身拾取范围时仍可被 MobEntity 原版拾取路径捡起。
  * 村民只使用 create(float, boolean, int) 三参重载，故以参数描述符精确匹配。
  * WalkTowardsNearestVisibleWantedItemTask 是 1.21.3 起 WalkToNearestVisibleWantedItemTask
- * 的更名（Yarn 改名断点，语义不变），1.21.1 版本见 1.21.1 平台档。
+ * 的更名（Yarn 改名断点，语义不变），1.21.1 版本见 1.21.1 平台 override。
  */
 @Mixin(GoToWantedItem.class)
 public abstract class GoToWantedItemIronGolemOptimizationMixin {
