@@ -75,4 +75,4 @@
 
 - ~~26.x transferred-entry scoped channel-B 规范化范围扩展（lambda 序号）~~ **已授权并关闭**（2026-09-06 人工授权 + 游戏内验证，见 §2）。
 - ~~push 后观察 GitHub Actions Build 结果（build.yml 已显式加入 `:1.21.11:test`）；如失败按既有约束上报，不以放宽断言适配。~~ **已关闭**：Build #59 @ `77b7117` 通过（2026-09-06 人工确认，见 §5）。
-- `common/src/main/resources` 的迁移（含根 src 资源语义是否调整）归 Phase 10。
+- **已关闭**：`common/src/main/resources` 的后续迁移已于 Phase 10 完成，见 [Phase 10 验证记录](refactor-phase10-verification.md)；本文上方保留 Phase 9 当时的资源 ownership。

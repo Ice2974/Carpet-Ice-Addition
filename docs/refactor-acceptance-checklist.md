@@ -22,11 +22,26 @@
 | Phase 2 编译与行为等价验证 | Level 1 + 2 + 3 | 与动工前构建快照 / Release 2.13.1 资产对照 |
 | Phase 3 源码结构优化（每步） | Level 1 + 2 | 受影响特性的定向验证 |
 | Phase 3 / Phase 4 收尾 | Level 1 + 2 + 3 | — |
+| Phase 12 | 全量自动门禁 + 按最终 diff 判定 Level 3 | 方案 C 只改 publish identity；继承条件见 §0.1 |
 | 正式发布 | Level 3 | 发布验收（§4） |
+
+### 0.1 Phase 12 收口与长期门禁
+
+- [ ] `clean build :1.21.11:test verifyCraftableCoralBlocksJars verifyFabricModJson verifyMixinConfigs verifyClassRenameMapping selfTestRenameEquivalence` 通过；3 suites / 46 tests PASS，其余 10 平台 test = NO-SOURCE。
+- [ ] 全量 build 后执行 `verifyJarEquivalence -PbaselineDir=D:/Project/Carpet-Ice-Addition-P6-baseline-final`，11/11 PASS，47 mapping、27 owners / 42 entries 和既有证明 scope 保持。
+- [ ] `projects` = root + 11；`git diff --check` 通过；仅含 tracked 内容的 sterile 检出复跑上述构建与等价门禁。
+- [ ] 无第三 Java/resource tier，无 tracked/generated 或手写 `*.mixins.json`；11 平台 runtime/sources/generated 各恰一配置，引用与 P11 语义闭环，clean 可重建。
+- [ ] `python scripts/verify_publish_resolver.py`（先 build）通过：生产 marker 恰一对，layout 与 dispatch attribution 同实现，actual 精确 filename 与真实 Gradle 产物一致，历史 fixture/错误路径 fail closed。
+- [ ] actual 发布 identity 不消费 `mixin_config`、fabric mixins 或人工 mcXXXX；legacy fallback 只由明确 legacy 树进入。
+- [ ] 最终 HEAD 的 Build workflow 通过。Build 不运行 P6 `verifyJarEquivalence`，也不代替本地 sterile 验证；docs-only push 不自动触发，需手动 Build。
+
+方案 C 保留 runtime Mixin filename：在 runtime 文件内容不变、P6 11/11、CI 通过、bootstrap path 不变的条件下，继承已确认的 Phase 11 Level 3，不重复全平台游戏测试。docs/comments/dead metadata 同样按实际 artifact 判定。若改变 config filename/fabric reference，必须重新执行 11/11 dedicated server startup，以及 1.21.1、1.21.5/1.21.6 membership boundary、1.21.11、26.1.2、26.2 client/integrated-server 代表集，检查 server-only 连接、missing/duplicate config、wrong side、compatibilityLevel 与 MixinApplyError。
+
+真实 Publish dispatch 的外部发布动作另行由用户决定；静态 harness 不是端到端发布成功证明。runtime `mcXXXX` 文件名是长期 compatibility identity，不是临时迁移层。
 
 ## 1. Level 1 架构验收
 
-- [ ] **L1-1 全平台构建**：`.\gradlew.bat build verifyCraftableCoralBlocksJars verifyFabricModJson verifyMixinConfigs --stacktrace` 全绿（Windows 下用 `.\gradlew.bat`；`verifyMixinConfigs` 为 P3-3 新增防线，随 CI 接入同步加入本命令）。
+- [ ] **L1-1 全平台构建**：`.\gradlew.bat build :1.21.11:test verifyCraftableCoralBlocksJars verifyFabricModJson verifyMixinConfigs verifyClassRenameMapping selfTestRenameEquivalence --stacktrace` 全绿（Windows 下用 `.\gradlew.bat`；`verifyMixinConfigs` 为 P3-3 新增防线，随 CI 接入同步加入本命令）。
 - [ ] **L1-2 jar 生成与命名**：11 个平台 jar 齐全，文件名与基线 §3 表一致（mod_version 变更时仅版本段变化；label 部分逐字符一致）。
 - [ ] **L1-3 fabric.mod.json 语义**：逐平台与基线 §1.2 / §5 比对——`depends`（minecraft / fabric-api / carpet / fabricloader）、`version`、`id`、`name`、`license`、`environment`、entrypoints、`mixins` 引用全部一致；无未展开 `${`、无 BOM、JSON 合法（`verifyFabricModJson` 覆盖后半部分，前半部分需人工或脚本比对）。
 - [ ] **L1-4 mixin 配置闭环**：逐平台验证 canonical registry → generated effective config → runtime JAR 内 Mixin class → `fabric.mod.json` 引用的 fail-closed 闭环；运行时配置文件名、package、compatibilityLevel、side membership 与 fixed fields 符合该平台 canonical 展开结果，且 config entry 与 runtime Mixin class 双向全等。
@@ -97,8 +112,8 @@
 ## 4. 发布验收
 
 - [ ] 期望产物：基线 §3 的 11 个 jar + 对应 `-sources.jar`。
-- [ ] publish.yml 前置断言通过：Release tag == `mod_version`；每平台恰 1 个非 sources jar；文件名含 `-v${MOD_VERSION}-`。
-- [ ] Modrinth：项目 `3ZWOd2ma`；loaders=fabric；依赖 carpet（必需）+ fabric-api（必需）；game_versions 为 `*_release_minecraft_range` 的闭区间展开；version_name 形如 `Carpet Ice Addition v${MOD_VERSION} for mc<label>`。
+- [ ] publish.yml 前置断言通过：Release tag == `mod_version`；actual 每平台恰 1 个 runtime JAR，精确文件名与 per-version range 派生值相同，metadata 的 id/version/minecraft dependency 与目标树一致。legacy 显式分支维持历史 Mixin-code 归属，平台子集缺失/冲突拒绝。
+- [ ] Modrinth：项目 `3ZWOd2ma`；loaders=fabric；依赖 carpet（必需）+ fabric-api（必需）；game_versions 为 `release_minecraft_range` 的闭区间展开；version_name 形如 `Carpet Ice Addition v${MOD_VERSION} for mc<label>`。
 - [ ] 幂等性：publish 重跑（dispatch 模式）不产生重复版本，预检 / 后验逻辑正常跳过或补齐。
 
 ## 附录 A：规则总表（41 条）

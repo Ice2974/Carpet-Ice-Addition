@@ -357,4 +357,4 @@ P3-3 无人工项（纯增量校验，验收清单 §3.5 的 mixin 完整性自�
 | 自检 | `verifyJarEquivalence -PbaselineDir=<该目录>`：11/11 通过 |
 | 历史基线 | `…-P3-baseline`（`32d0f26`）与 `…-P3-baseline-P3-4`（`d904d6f`）均保留不动，作为各阶段差异分析对照 |
 
-Phase 3 至此全部完成（P3-0 ~ P3-5 implementation + acceptance 均 accepted）；后续结构优化见 §7.4（Phase 4 待评估项）。
+Phase 3 至此全部完成（P3-0 ~ P3-5 implementation + acceptance 均 accepted）；§7.4 保留当时的 Phase 4 待评估项；Phase 4 已完成，结果见 [Phase 4 验证记录](refactor-phase4-verification.md)。

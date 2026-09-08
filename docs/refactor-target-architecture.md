@@ -1,10 +1,40 @@
-# 目标架构草案与迁移路线（Fallen-Breath 多版本架构）
+# 最终架构与历史迁移记录（Fallen-Breath 多版本架构）
 
-> 本文档是迁移的目标设计与路线图，不随实现自动更新。基线数据见 [refactor-baseline.md](refactor-baseline.md)（下称"基线"），验收标准见 [refactor-acceptance-checklist.md](refactor-acceptance-checklist.md)（下称"验收清单"）。
->
-> 参考实例：本地 `references/Carpet-AMS-Addition-master`（只读，不修改）是 Carpet TIS Addition（Fallen-Breath）多版本架构的同构实现，本文第 1 章以其为解剖对象。
->
-> **最终目标（2026-09-05 锁定）：完整迁移到 Fallen-Breath 风格源码架构**——根 src 主源码树 + per-version override + preprocess `#if MC` 版本图 + 单一 Mojmap 命名空间。Phase 4（Mojmap 统一）完成后**不等于**完整迁移完成；剩余收敛相为 Phase 5（§6）——**已于 2026-09-05 执行并验收（执行结果见 §6 Phase 5 执行结果，验证记录见 [refactor-phase5-verification.md](refactor-phase5-verification.md)）**，完整迁移达成。
+> 当前架构以本节、源码和 `settings.json` 为准；下文编号 §0–§9 保留历史设计与阶段记录，其中旧目录、旧 schema、迁移约束不再描述当前 ownership。历史基线见 [refactor-baseline.md](refactor-baseline.md)，长期验收见 [refactor-acceptance-checklist.md](refactor-acceptance-checklist.md)。Phase 12 结果与未完成验证见 [refactor-phase12-verification.md](refactor-phase12-verification.md)。
+
+## 当前终态与长期边界
+
+| 机制 | 当前 owner / 数据来源 |
+|---|---|
+| 平台注册 | `settings.json` 的真实 Minecraft 版本；`settings.gradle` 动态包含根直接子项目并校验目录集合 |
+| Java main | 根 `src/main/java`，面向 `versions/mainProject`（1.21.11）；non-core `versions/<v>/src/main/java` 为 override/addition |
+| resources | `[versions/<v>/src/main/resources, src/main/resources]`；同路径 EXCLUDE，允许集合由 `expectedRootResourceCollisions` fail closed |
+| Mixin | `gradle/mixins/registry.json` 唯一 canonical；`gradle/mixin-registry.gradle` 展开；各平台 generator 仅写 `build/generated/mixinConfig`，经 task output 接入 runtime/sources JAR |
+| tests | `:1.21.11:test`；non-core 本地 test sourceSet 默认 NO-SOURCE |
+| 构建 family | per-version `loom_plugin` 完整坐标选 `build-remap.gradle` / `build-plain.gradle`；共通逻辑为 `common.gradle` |
+| 版本差异 | preprocess graph + 小差异宏 + 结构性 per-version override；单一 Mojmap 命名空间 |
+| 发布 | actual 树使用 registry + `release_minecraft_range` + `mod_version` 派生精确资产名，release 对 build/libs、dispatch 对 Release assets 验证 |
+
+当前 registry 为 11 版本、共 12 projects、graph 为 11 nodes / 10 edges；`strictExtraMappings=true`、`org.gradle.parallel=false`。Loom 冻结为 `fabric-loom:1.13.6` / `net.fabricmc.fabric-loom:1.15.1`，preprocessor 锁定 Fallen-Breath 全 SHA `c5abb4fb12aad2590c852c1bc6c8d5758606ec0b`。支持版本名单只在 registry 维护。
+
+不存在 `common/` 子项目、`versions/shared/`、额外 shared Java/resource tier、`extra_resource_dirs`、`preprocess_enabled`、per-version thin build.gradle 或 runtime resource tree 中手写 Mixin config。
+
+### Phase 12 最终选择：方案 C
+
+- `mixin_config` 和 `carpet-ice-addition-mcXXXX.mixins.json` **正式长期保留**为 runtime compatibility identity；不是当前 Gradle project/source/preprocess/publish platform identity。无后续统一文件名的悬空计划。
+- actual 发布消费者不读取 Mixin 字段来确定平台；精确文件名必须与真实 Gradle 输出/目标 Release 资产匹配，且 JAR 内 mod id、version、Minecraft dependency 与目标树一致。命名算法是现有 Gradle 命名的派生视图，由生产 resolver 的 fail-closed 产物检查防漂移，不建立 actual→mcXXXX 表。
+- 旧 tag 的 legacy registry 由显式分支识别并保留 Mixin-code fallback；actual 失败绝不回退。workflow 内嵌生产逻辑使默认分支 dispatch 在 checkout 历史 tag 后仍可运行。harness 机械提取 layout/selection/asset attribution 全部逻辑并校验 marker 唯一性。
+- `legacyBaselineDirNames` 服务只读 P6 baseline；47 条 class rename mapping、P9 27 owners / 42 class entries、26.x scoped channel B、P10 collision/目录 entry 边界与 P11 precedence verifier 均长期保留。
+- P6 baseline `D:/Project/Carpet-Ice-Addition-P6-baseline-final` 不重建、不扩大豁免；`verifyJarEquivalence` 是本地架构回归门禁，不能称为 CI 已覆盖。
+- Helper、duck interface、API compatibility 与 logger 失败隔离都有真实消费者；不为模仿参考实现删除或改写游戏逻辑。
+
+Fallen-Breath root/preprocess/override/real-version 机制等价；双 Loom family、完整 SHA、canonical Mixin registry、碰撞与 artifact verifiers 是本项目有意保留的差异。Fallen-Breath/TIS 是架构参考，AMS 是具体参考实例；preprocessor 是构建工具来源，许可证职责见 THIRD_PARTY_NOTICES.md，不改变项目 LICENSE。
+
+Phase 1–11 已验收；Phase 12 的实现状态、最终 CI 与本地/sterile 验证必须按 verification 记录判断，不将实现已提交等同于最终验收通过。
+
+## 历史迁移设计与阶段记录
+
+以下保留当时事实和决策（包括已退出的目录、schema 与阶段专属约束），不应复制为当前构建配置。参考解剖对象为只读 `references/Carpet-AMS-Addition-master`。
 
 ## 0. 总约束（全部阶段适用）
 
@@ -93,7 +123,7 @@
 ### 3.3 Carpet API 差异
 
 - fabric-carpet 自身代码不混淆，`CarpetServer` / `SettingsManager` / `CarpetExtension` 等 API 在各 MC 版本间基本稳定，mappings 选择不影响 carpet API 调用面。
-- 现有 `bridge/Mc<ver>Bridge` 薄桥接模式已覆盖残余差异，Phase 1 保留。
+- Phase 1 当时的 `bridge/Mc<ver>Bridge` 薄桥接用于残余差异；Phase 3 已删除，当前不存在该 ownership/注册层。
 - carpet 依赖版本与依赖区间已是 per-version 数据（基线 §1.2），Phase 1 仅改存放位置。
 
 ### 3.4 结论
@@ -328,9 +358,9 @@ carpet-ice-addition/
 1. ~~**Phase 3 / Phase 4 触发**：是否执行、何时执行（建议判据见 §6 各表）。~~ **已关闭**：Phase 3（2026-09-04~09-05）与 Phase 4（2026-09-05）均已执行并验收。
 2. ~~**preprocessor 供应链（Phase 5 门禁）**：JitPack commit 锁定第三方插件的接受度；`THIRD_PARTY_NOTICES.md` 登记内容（Fallen-Breath/preprocessor、TIS 架构来源致谢）。门禁结论必须显式记录……~~ **已关闭**：门禁通过（P5-1 落地全 SHA commit 锁定 + `THIRD_PARTY_NOTICES.md` 登记），Phase 5 已执行并验收（2026-09-05）。
 3. ~~**mixin json 统一管理形态**：方案 A（单模板生成）vs 方案 B（多份 + 校验任务）。~~ **已关闭**：Phase 11 采用单一 canonical registry + build-time generator，保留原 runtime 文件名并升级 verifier 闭环（2026-09-07）。
-4. **注册表文件名**：`settings.json`（TIS 命名）vs `minecraftVersions.json`（参考实现命名）。
-5. **旧 jar 对照基线留存位置**：建议 Phase 1 动工前本地 `gradlew build` 产物复制到仓库外目录（或 `.minecraft/` 部署实例），Release 2.13.1 资产作历史参考。
+4. **已关闭：注册表文件名**为 `settings.json`，现有构建与 publish 均消费它，不再待选择。
+5. **已关闭：当前架构回归基线**为只读 `D:/Project/Carpet-Ice-Addition-P6-baseline-final`；更早阶段 baseline 与 Release 2.13.1 仅历史对照，不重建。
 6. ~~**loom 插件选择的数据化形态**：`loom_plugin` 属性 + common.gradle 按 id apply（版本冻结），是否接受。~~ **已关闭**（Phase 1 起数据化运行；Phase 7 起由 settings.gradle 按 `loom_plugin` 完整 `id:version` 选择共享 family 构建入口，common.gradle 保留 id 级运行期断言，见 §6 Phase 7）。
-7. **publish.yml 联动**（R9）：settings.gradle 改造后其平台解析段需要同步调整（仅解析方式，不改行为），是否纳入 Phase 1 范围一并处理。
+7. **已关闭：publish.yml 联动**已随阶段实施；Phase 12 采用方案 C，actual 结构化 identity 与 legacy fallback 的最终边界见文首。
 8. ~~**AGENTS.md 同步**：Phase 1 落地后，`AGENTS.md` 中涉及 settings.gradle / shared 档位 / gradle.properties 的协作规则需同步改写（本轮不动，列为 Phase 1 收尾待办）。~~ **已关闭**（2026-09-05，Phase 5 收尾 P5-8a 一并改写为根 src + preprocess 版本图 + per-version override 架构口径）。
 9. ~~**Phase 11 Level 3**：11/11 dedicated server 启动与代表性 client / integrated-server 回归待人工执行。~~ **已关闭**：用户已确认 Phase 11 Level 3 完成；11/11 client 和全规则矩阵仍为推荐发布前加强项，步骤与验收标准见 `refactor-phase11-verification.md` §7。
