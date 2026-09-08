@@ -120,168 +120,205 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          # 平台清单与目录布局以 settings.json（版本注册表）为唯一来源，mod_version、mod_name 以根 gradle.properties 为来源。
-          # 布局解析层（下方 marker 包裹的 resolve_platform_layout）是唯一生产实现，fail closed：
-          #   - JSON 层：.versions 为非空 string 数组、每项形如 mc[0-9]+（legacy）或实际版本号如 1.21.1 / 26.2（actual）、无重复；
-          #   - 目录层：每条目解析出仓库相对目录（platform_dir 值含 versions/ 前缀，全部消费点禁止再拼接 versions/）且 gradle.properties 存在；
-          #   - 兼容双树形态：legacy mcXXXX 仅为历史 tag 补发布兼容（checkout 旧 tag 树时产生），不得作为当前 main 的标识形态；
-          #   - 同树混合 legacy/actual、未知形态、mixin_config 缺失或平台码冲突一律失败。
-          # === P8-LAYOUT-RESOLVER-BEGIN（唯一生产实现；验证 harness 仅允许按 marker 机械提取本函数执行，禁止维护复制版逻辑） ===
-          resolve_platform_layout() {
-            local root="$1"
-            local legacy_re='^mc[0-9]+$'
-            local actual_re='^[0-9]+\.[0-9]+(\.[0-9]+)*$'
-            if ! jq -e '
-                 (.versions | type) == "array"
-                 and (.versions | length) > 0
-                 and all(.versions[]; (type == "string") and (test("^mc[0-9]+$") or test("^[0-9]+\\.[0-9]+(\\.[0-9]+)*$")))
-                 and (.versions | length) == (.versions | unique | length)
-               ' "$root/settings.json" > /dev/null; then
-              echo "::error::settings.json versions 校验失败：须为非空数组、元素均为 string、每项形如 mc[0-9]+ 或实际版本号（如 1.21.1 / 26.2）、且无重复。"
-              jq empty "$root/settings.json" 2>/dev/null || echo "::error::settings.json 不是合法 JSON 或不存在。"
-              return 1
-            fi
-            mapfile -t PLATFORMS < <(jq -r '.versions[]' "$root/settings.json")
-            if [ "${#PLATFORMS[@]}" -eq 0 ]; then
-              echo "::error::未能从 settings.json 提取平台清单。"
-              return 1
-            fi
-            declare -gA platform_dir=()
-            declare -gA platform_entry=()
-            local legacy_count=0 actual_count=0 entry dir mixin_config asset_code
-            for entry in "${PLATFORMS[@]}"; do
-              if [[ "$entry" =~ $legacy_re ]]; then
-                dir="versions/platform-${entry}"
-                legacy_count=$((legacy_count + 1))
-              elif [[ "$entry" =~ $actual_re ]]; then
-                dir="versions/${entry}"
-                actual_count=$((actual_count + 1))
-              else
-                echo "::error::settings.json 条目 ${entry} 不是可识别的平台标识（legacy mcXXXX 或实际版本号）。"
-                return 1
-              fi
-              if [ ! -f "$root/$dir/gradle.properties" ]; then
-                echo "::error::平台数据文件不存在：$dir/gradle.properties（条目 ${entry}）。"
-                return 1
-              fi
-              platform_dir["$entry"]="$dir"
-              mixin_config=$(grep -E '^mixin_config[[:space:]]*=' "$root/$dir/gradle.properties" | head -1 | cut -d= -f2- | tr -d '\r[:space:]')
-              asset_code=""
-              if [ -n "$mixin_config" ]; then
-                asset_code=$(printf '%s' "$mixin_config" | sed -n 's/^carpet-ice-addition-\(mc[0-9][0-9]*\)\.mixins\.json$/\1/p')
-              fi
-              if [ -z "$asset_code" ]; then
-                echo "::error::无法从 $dir/gradle.properties 的 mixin_config（${mixin_config:-缺失}）解析 jar 侧平台码（应为 carpet-ice-addition-mcXXXX.mixins.json）。"
-                return 1
-              fi
-              if [ -n "${platform_entry[$asset_code]:-}" ] && [ "${platform_entry[$asset_code]}" != "$entry" ]; then
-                echo "::error::jar 侧平台码 ${asset_code} 被多个注册表条目解析（${platform_entry[$asset_code]} 与 ${entry}），平台码必须一一对应。"
-                return 1
-              fi
-              platform_entry["$asset_code"]="$entry"
-            done
-            if [ "$legacy_count" -gt 0 ] && [ "$actual_count" -gt 0 ]; then
-              echo "::error::settings.json 混合 legacy（mcXXXX）与 actual（实际版本号）形态（legacy ${legacy_count} / actual ${actual_count}），同一树必须为单一形态。"
-              return 1
-            fi
-            if [ "$legacy_count" -gt 0 ]; then
-              echo "布局形态：legacy mcXXXX（${legacy_count} 个平台）——历史 tag 补发布兼容路径，仅由 checkout 的旧 tag 树产生。"
-            else
-              echo "布局形态：actual 实际版本目录（${actual_count} 个平台）。"
-            fi
-          }
-          # === P8-LAYOUT-RESOLVER-END ===
-          resolve_platform_layout "$GITHUB_WORKSPACE"
-          MOD_VERSION=$(sed -n 's/^mod_version=//p' gradle.properties | tr -d '\r')
-          MOD_NAME=$(sed -n 's/^mod_name=//p' gradle.properties | tr -d '\r')
+          # P12：唯一生产 resolver 随 workflow 携带，checkout 历史 tag 不依赖该树存在新脚本。
+          # actual identity 来自结构化版本数据；legacy 分支保留旧资产兼容。harness 机械提取整个模块。
+          resolver_script=$(mktemp)
+          cat > "$resolver_script" <<'PUBLISH_RESOLVER_PY'
+          # === P12-PUBLISH-RESOLVER-BEGIN ===
+          import json
+          import re
+          import sys
+          import zipfile
+          from pathlib import Path
+
+
+          def require(condition, message):
+              if not condition:
+                  raise ValueError(message)
+
+
+          def read_properties(path, required):
+              props = {}
+              for number, raw in enumerate(path.read_text(encoding="utf-8-sig").splitlines(), 1):
+                  line = raw.strip()
+                  if not line or line.startswith(("#", "!")):
+                      continue
+                  key, sep, value = line.partition("=")
+                  key, value = key.strip(), value.strip()
+                  require(sep and key and key not in props, f"Invalid/duplicate property: {path}:{number}")
+                  props[key] = value
+              for key in required:
+                  require(props.get(key), f"Missing property {key}: {path}")
+              return props
+
+
+          def release_label(value):
+              # Derived view of common.gradle naming; collect_assets checks real Gradle outputs.
+              require(re.fullmatch(r"[0-9]+(?:\.[0-9]+)+(?:\s*[~-]\s*[0-9]+(?:\.[0-9]+)+)?", value),
+                      f"Invalid release_minecraft_range: {value}")
+              parts = re.split(r"\s*[~-]\s*", value)
+              numbers = [tuple(map(int, part.split("."))) for part in parts]
+              width = max(map(len, numbers))
+              ordered = sorted(zip(parts, numbers), key=lambda item: item[1] + (0,) * (width - len(item[1])))
+              if len(ordered) == 1:
+                  return value
+              (lower, lo), (upper, hi) = ordered
+              if lo[:2] == hi[:2] and abs((hi[2] if len(hi) > 2 else 0) - (lo[2] if len(lo) > 2 else 0)) >= 2:
+                  return f"{lo[0]}.{lo[1]}.x"
+              return f"{lower}-{upper}"
+
+
+          def resolve_platform_layout(root):
+              root = Path(root)
+              versions = json.loads((root / "settings.json").read_text(encoding="utf-8"))["versions"]
+              require(isinstance(versions, list) and versions and all(isinstance(v, str) for v in versions),
+                      "settings.json versions must be a non-empty string array")
+              require(len(versions) == len(set(versions)), "Duplicate registry entries")
+              if all(re.fullmatch(r"mc[0-9]+", v) for v in versions):
+                  kind = "legacy"
+              elif all(re.fullmatch(r"[0-9]+(?:\.[0-9]+)+", v) for v in versions):
+                  kind = "actual"
+              else:
+                  raise ValueError("Mixed or unknown registry layout")
+              global_props = read_properties(root / "gradle.properties", ["mod_id", "mod_version", "mod_name"])
+              mod_version = global_props["mod_version"]
+              require(re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._+-]*", mod_version), "Invalid mod_version")
+              rows, identities = [], set()
+              for entry in versions:
+                  directory = f"versions/platform-{entry}" if kind == "legacy" else f"versions/{entry}"
+                  props = read_properties(root / directory / "gradle.properties",
+                                          ["release_minecraft_range", "minecraft_dependency"])
+                  row = {"platform": entry, "platform_dir": directory,
+                         "minecraft_dependency": props["minecraft_dependency"]}
+                  if kind == "actual":
+                      # No Mixin fields or artificial platform codes participate in this branch.
+                      label = release_label(props["release_minecraft_range"])
+                      identity = f"Carpet-Ice-Addition-v{mod_version}-mc{label}.jar"
+                      row["file_name"] = identity
+                  else:
+                      match = re.fullmatch(r"carpet-ice-addition-(mc[0-9]+)\.mixins\.json", props.get("mixin_config", ""))
+                      require(match, f"Invalid legacy mixin_config: {entry}")
+                      identity = match[1]
+                      row["legacy_code"] = identity
+                  require(identity not in identities, f"Ambiguous asset identity: {identity}")
+                  identities.add(identity)
+                  rows.append(row)
+              return {"kind": kind, "mod_id": global_props["mod_id"], "mod_version": mod_version,
+                      "mod_name": global_props["mod_name"], "platforms": rows}
+
+
+          def select_platforms(layout, csv):
+              selected = list(dict.fromkeys(token.strip() for token in csv.split(",") if token.strip()))
+              known = {row["platform"] for row in layout["platforms"]}
+              require(set(selected) <= known, f"Unknown platforms: {sorted(set(selected) - known)}")
+              return selected or [row["platform"] for row in layout["platforms"]]
+
+
+          def attribute_asset(layout, asset):
+              asset = Path(asset)
+              with zipfile.ZipFile(asset) as jar:
+                  require(jar.namelist().count("fabric.mod.json") == 1, f"Expected one fabric.mod.json: {asset.name}")
+                  metadata = json.loads(jar.read("fabric.mod.json"))
+              require(isinstance(metadata, dict), f"Invalid metadata: {asset.name}")
+              if layout["kind"] == "actual":
+                  candidates = [row for row in layout["platforms"] if row["file_name"] == asset.name]
+              else:
+                  # Only a positively identified legacy tree can enter this compatibility path.
+                  require(layout["kind"] == "legacy", "Unknown layout kind")
+                  codes = set()
+                  mixins = metadata.get("mixins", [])
+                  require(isinstance(mixins, list), "Invalid legacy mixins")
+                  for item in mixins:
+                      config = item if isinstance(item, str) else item.get("config") if isinstance(item, dict) else None
+                      match = re.search(r"(?:^|/)carpet-ice-addition-(mc[0-9]+)\.mixins\.json$", config) if isinstance(config, str) else None
+                      if match:
+                          codes.add(match[1])
+                  require(len(codes) == 1, f"Ambiguous/missing legacy asset code: {asset.name}")
+                  candidates = [row for row in layout["platforms"] if row["legacy_code"] in codes]
+                  require(asset.name.startswith(f"Carpet-Ice-Addition-v{layout['mod_version']}-mc"), "Wrong legacy asset version")
+              require(len(candidates) == 1, f"Unknown/ambiguous asset filename: {asset.name}")
+              row = candidates[0]
+              require(metadata.get("id") == layout["mod_id"], f"Wrong mod id: {asset.name}")
+              require(metadata.get("version") == layout["mod_version"], f"Wrong mod version: {asset.name}")
+              depends = metadata.get("depends")
+              require(isinstance(depends, dict) and depends.get("minecraft") == row["minecraft_dependency"],
+                      f"Wrong Minecraft dependency: {asset.name}")
+              return row
+
+
+          def runtime_assets(directory):
+              return sorted(p for p in Path(directory).glob("Carpet-Ice-Addition-v*.jar")
+                            if p.is_file() and not p.name.endswith("-sources.jar"))
+
+
+          def collect_assets(root, layout, selected, event, assets_dir):
+              root = Path(root)
+              grouped = {row["platform"]: [] for row in layout["platforms"]}
+              if event == "workflow_dispatch":
+                  for asset in runtime_assets(assets_dir):
+                      row = attribute_asset(layout, asset)
+                      grouped[row["platform"]].append(asset)
+                  require(all(len(paths) <= 1 for paths in grouped.values()), "Multiple assets for one platform")
+              else:
+                  require(event == "release", f"Unknown event: {event}")
+                  for row in layout["platforms"]:
+                      paths = runtime_assets(root / row["platform_dir"] / "build/libs")
+                      require(len(paths) == 1, f"Expected one Gradle runtime JAR: {row['platform']}")
+                      actual = attribute_asset(layout, paths[0])
+                      require(actual["platform"] == row["platform"], f"Gradle artifact/platform mismatch: {paths[0].name}")
+                      grouped[row["platform"]] = paths
+              rows = {row["platform"]: row for row in layout["platforms"]}
+              resolved = []
+              for entry in selected:
+                  require(len(grouped[entry]) == 1, f"Expected one selected runtime asset: {entry}")
+                  asset = grouped[entry][0]
+                  row = dict(rows[entry], file_name=asset.name, source=str(asset.resolve()))
+                  row["jar"] = f"{row['platform_dir']}/build/libs/{asset.name}"
+                  resolved.append(row)
+              return dict(layout, platforms=resolved)
+
+
+          def main():
+              action, root, csv = sys.argv[1:4]
+              layout = resolve_platform_layout(root)
+              selected = select_platforms(layout, csv)
+              if action == "collect":
+                  layout = collect_assets(root, layout, selected, *sys.argv[4:6])
+              else:
+                  require(action == "layout", "Unknown resolver action")
+              print(json.dumps(layout))
+
+
+          if __name__ == "__main__":
+              try:
+                  main()
+              except (ValueError, KeyError, OSError, zipfile.BadZipFile) as error:
+                  sys.exit(f"::error::{error}")
+          # === P12-PUBLISH-RESOLVER-END ===
+          PUBLISH_RESOLVER_PY
+          resolved_file=$(mktemp)
+          python3 "$resolver_script" layout "$GITHUB_WORKSPACE" "$PLATFORMS_INPUT" > "$resolved_file"
+          MOD_VERSION=$(jq -r '.mod_version' "$resolved_file")
+          MOD_NAME=$(jq -r '.mod_name' "$resolved_file")
           user_agent="Ice2974/Carpet-Ice-Addition/${MOD_VERSION}"
-
-          # dispatch 模式：解析 platforms CSV 输入（trim、去空、去重、未知平台校验；空 = 全部），
-          # 再从 GitHub Release 资产取正式 JAR，经布局解析层放回与 release 模式相同的
-          # <平台目录>/build/libs/ 相对路径（platform_dir 值为完整仓库相对路径），使 manifest 主循环两种模式完全共用；
-          # scope 外平台的资产缺失不影响本次发布
+          assets_dir=""
           if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
-            declare -A known_platforms=()
-            for p in "${PLATFORMS[@]}"; do known_platforms["$p"]=1; done
-            requested_platforms=()
-            declare -A seen_platforms=()
-            IFS=',' read -r -a raw_tokens <<< "${PLATFORMS_INPUT}"
-            for token in "${raw_tokens[@]}"; do
-              token="${token#"${token%%[![:space:]]*}"}"
-              token="${token%"${token##*[![:space:]]}"}"
-              [ -n "$token" ] || continue
-              if [ -n "${seen_platforms[$token]:-}" ]; then
-                echo "platforms 输入重复出现 ${token}，已去重。"
-                continue
-              fi
-              seen_platforms["$token"]=1
-              requested_platforms+=("$token")
-            done
-            if [ "${#requested_platforms[@]}" -gt 0 ]; then
-              unknown_tokens=()
-              for token in "${requested_platforms[@]}"; do
-                [ -n "${known_platforms[$token]:-}" ] || unknown_tokens+=("$token")
-              done
-              if [ "${#unknown_tokens[@]}" -gt 0 ]; then
-                echo "::error::platforms 输入包含未知平台：${unknown_tokens[*]}。合法平台：${PLATFORMS[*]}。"
-                exit 1
-              fi
-              PLATFORMS=("${requested_platforms[@]}")
-            fi
-            echo "本次发布平台范围（共 ${#PLATFORMS[@]} 个）：${PLATFORMS[*]}"
-
             assets_dir=$(mktemp -d)
             gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --dir "$assets_dir" \
               --pattern 'Carpet-Ice-Addition-v*.jar'
-            downloaded=0
-            shopt -s nullglob
-            for asset in "$assets_dir"/*.jar; do
-              file_name=$(basename "$asset")
-              if ! mixins_json=$(unzip -p "$asset" fabric.mod.json); then
-                echo "::error::无法从资产 ${file_name} 读取 fabric.mod.json，无法解析所属平台。"
-                exit 1
-              fi
-              # 遍历全部 mixins 条目（兼容 string 与 object.config），从符合本项目 mixin
-              # 命名规则的配置中解析平台；必须恰好解析出一个平台且在清单内
-              candidates=$(jq -r '
-                [.mixins[]? |
-                   if type == "string" then .
-                   elif type == "object" then (.config // empty)
-                   else empty end
-                   | select(type == "string")]
-                | [ .[] | match("(?:^|/)carpet-ice-addition-(?<platform>mc[0-9]+)\\.mixins\\.json$")
-                       | .captures[] | select(.name == "platform") | .string ]
-                | unique | join(",")' <<<"$mixins_json")
-              IFS=',' read -r -a candidate_arr <<< "$candidates"
-              if [ "${#candidate_arr[@]}" -ne 1 ] || [ -z "${candidate_arr[0]:-}" ]; then
-                echo "::error::资产 ${file_name} 的 mixins 未恰好解析出 1 个平台（解析结果：[${candidates}]）。"
-                echo "  mixins 原始条目："
-                jq -c '.mixins[]?' <<<"$mixins_json" | sed 's/^/    /'
-                exit 1
-              fi
-              asset_platform="${candidate_arr[0]}"
-              # jar 侧平台码（mcXXXX，mixin 配置命名固定标识）经布局解析层映射回注册表条目与其目录
-              if [ -z "${platform_entry[$asset_platform]:-}" ]; then
-                echo "::error::资产 ${file_name} 解析出的平台码 ${asset_platform} 不在任何注册表条目的 mixin_config 登记内。"
-                exit 1
-              fi
-              asset_entry="${platform_entry[$asset_platform]}"
-              if [[ "$file_name" != "Carpet-Ice-Addition-v${MOD_VERSION}-mc"*.jar ]]; then
-                echo "::error::JAR 文件名 ${file_name} 未包含 -v${MOD_VERSION}-，与 mod_version 不一致。"
-                exit 1
-              fi
-              target_dir="${platform_dir[$asset_entry]}"
-              mkdir -p "${target_dir}/build/libs"
-              cp "$asset" "${target_dir}/build/libs/${file_name}"
-              downloaded=$((downloaded + 1))
-            done
-            shopt -u nullglob
-            if [ "$downloaded" -eq 0 ]; then
-              echo "::error::Release ${RELEASE_TAG} 中没有匹配 Carpet-Ice-Addition-v*.jar 的资产。"
-              exit 1
-            fi
-            echo "已从 Release ${RELEASE_TAG} 下载 ${downloaded} 个资产并映射到平台目录。"
           fi
+          # release 验证真实 build/libs；dispatch 验证目标 Release 资产，均 fail closed。
+          python3 "$resolver_script" collect "$GITHUB_WORKSPACE" "$PLATFORMS_INPUT" "$EVENT_NAME" "$assets_dir" > "$resolved_file"
+          mapfile -t PLATFORMS < <(jq -r '.platforms[].platform' "$resolved_file")
+          declare -A platform_dir=() platform_jar=()
+          while IFS=$'\t' read -r platform directory jar source; do
+            platform_dir["$platform"]="$directory"
+            platform_jar["$platform"]="$jar"
+            if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+              mkdir -p "$directory/build/libs"
+              cp "$source" "$jar"
+            fi
+          done < <(jq -r '.platforms[] | [.platform, .platform_dir, .jar, .source] | @tsv' "$resolved_file")
 
           # Modrinth 发布 metadata 只在此处一次性解析：release 标签集与依赖项目 ID，经 manifest 供 11 个发布 job 共用
           tags_file=$(mktemp)
@@ -298,6 +335,7 @@ jobs:
           # 断言 minecraft_dependency 与 release_minecraft_range 起止一致，再对 release 标签展开闭区间
           expand_script=$(mktemp)
           cat > "$expand_script" <<'PY'
+          # === P12-RANGE-EXPANSION-BEGIN ===
           import json
           import os
           import re
@@ -364,6 +402,7 @@ jobs:
           if not game_versions:
               fail(f"{dependency_key}={props[dependency_key]} 在 Modrinth release 标签中展开结果为空。")
           print(json.dumps(game_versions))
+          # === P12-RANGE-EXPANSION-END ===
           PY
 
           rm -rf staging
@@ -371,19 +410,9 @@ jobs:
           entries_file=$(mktemp)
 
           for platform in "${PLATFORMS[@]}"; do
-            lib_dir="${platform_dir[$platform]}/build/libs"
-            mapfile -t jars < <(find "$lib_dir" -maxdepth 1 -name 'Carpet-Ice-Addition-v*.jar' ! -name '*-sources.jar' | sort)
-            if [ "${#jars[@]}" -ne 1 ]; then
-              echo "::error::平台 ${platform} 应恰好产出 1 个正式 JAR，实际 ${#jars[@]} 个。"
-              find "$lib_dir" -maxdepth 1 -type f -name '*.jar' -printf '  %f\n' || true
-              exit 1
-            fi
-            jar="${jars[0]}"
+            # 只消费 resolver 已验证的具体路径，不重新猜测资产归属。
+            jar="${platform_jar[$platform]}"
             file_name=$(basename "$jar")
-            if [[ "$file_name" != "Carpet-Ice-Addition-v${MOD_VERSION}-mc"*.jar ]]; then
-              echo "::error::JAR 文件名 ${file_name} 未包含 -v${MOD_VERSION}-，与 mod_version 不一致。"
-              exit 1
-            fi
             cp --parents "$jar" staging/
             stem="${file_name#Carpet-Ice-Addition-v}"
             label="${stem%.jar}"
