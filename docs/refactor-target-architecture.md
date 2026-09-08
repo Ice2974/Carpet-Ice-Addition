@@ -202,7 +202,7 @@ carpet-ice-addition/
 | java_release | 21 或 25 |
 | pack_format | 48 … 107 |
 | mixin_config | carpet-ice-addition-mc1211.mixins.json |
-| shared_tiers | 有序列表，逐字来自基线 §1.3（如 `mc121x,mc1211-12110,mc121x-killitem,mc1211-1218,mc1211-12115,mc1211-1214`）。**（Phase 1 形态；Phase 5 起该键已随 Java 档位机制移除，见 §6 Phase 5 执行结果）** |
+| shared_tiers | 有序列表，逐字来自基线 §1.3（如 `mc121x,mc1211-12110,mc121x-killitem,mc1211-1218,mc1211-1215,mc1211-1214`）。**（Phase 1 形态；Phase 5 起该键已随 Java 档位机制移除，见 §6 Phase 5 执行结果）** |
 | extra_resource_dirs | common 之外追加的资源目录（1.21.x 除 mc1211 为 `shared/mc1213-12111/src/main/resources`；其余为空）。**（Phase 1 形态；Phase 10 起该键已随 versions/shared 整体退出删除，见 §6 Phase 10）** |
 
 原则：**每个字段值都能在现有构建脚本 / 根 properties 中逐字找到出处**；不允许在迁移中"顺手修正"任何值（含已知的 `mod_version` vs `version` 引用不一致——那是 Phase 1 之后单独的清理项）。
