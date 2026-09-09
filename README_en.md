@@ -29,13 +29,16 @@
 
 ## License
 
-New and modified code in this project is licensed under the **PolyForm Noncommercial License 1.0.0**. Commercial use is strictly prohibited.
+Except for third-party components explicitly noted otherwise, the code of Carpet Ice Addition is licensed under the **GNU Lesser General Public License v3.0 or later** (`LGPL-3.0-or-later`).
 
-This project includes features inspired by or originally ported from third-party Carpet extensions. The original licenses of the related third-party projects still apply to their corresponding content and notices, including but not limited to:
+Feature designs of some rules were inspired by the following third-party Carpet extensions. The corresponding implementations were written independently for this project and do not incorporate source code from those projects. Upstream licenses are recorded as information about those projects and do not apply to this project's independent implementations:
 
-- **Carpet-Fixes**: MIT, related rule `recordWorldEventFix`
-- **Carpet-TCTC-Addition**: LGPL-3.0, related rules `botTabListNamePrefix`, `botTabListNameSuffix`
-- **DoormatCarpetExtension**: LGPL-3.0, related rule `disablePlayerAttackingTamedMobs`
+- **Carpet-Fixes** (MIT): `recordWorldEventFix`
+- **Carpet-TCTC-Addition** (LGPL-3.0): `botTabListNamePrefix`, `botTabListNameSuffix`, `disableIllegalTextCharacterCheck`
+- **DoormatCarpetExtension** (LGPL-3.0): `disablePlayerAttackingTamedMobs`
+- **carpet-redcraft-addons** (AGPL-3.0): `itemFrameInvisible`, `itemFrameFixed`
+
+Build architecture references and build-time tooling acknowledgements: Fallen-Breath/fabric-mod-template, Carpet TIS Addition, Carpet AMS Addition, and Fallen-Breath/preprocessor.
 
 See:
 

@@ -25,13 +25,16 @@
 
 ## 许可证
 
-本项目的新增与修改代码使用 **PolyForm Noncommercial License 1.0.0**，严格禁止商业使用。
+除另有明确说明的第三方组件外，Carpet Ice Addition 的自有代码采用 **GNU Lesser General Public License v3.0 或更高版本**（`LGPL-3.0-or-later`）。
 
-本项目包含参考或最初移植自第三方 Carpet 拓展的功能。相关第三方项目的原始许可仍适用于其对应内容和来源说明，包括但不限于：
+本项目部分功能的设计参考了以下第三方 Carpet 拓展；对应功能均为本项目独立实现，未使用其源码。所列上游许可证为对应项目自身的信息，不适用于本项目的独立实现：
 
-- **Carpet-Fixes**：MIT，相关规则 `recordWorldEventFix`
-- **Carpet-TCTC-Addition**：LGPL-3.0，相关规则 `botTabListNamePrefix`、`botTabListNameSuffix`
-- **DoormatCarpetExtension**：LGPL-3.0，相关规则 `disablePlayerAttackingTamedMobs`
+- **Carpet-Fixes**（MIT）：`recordWorldEventFix`
+- **Carpet-TCTC-Addition**（LGPL-3.0）：`botTabListNamePrefix`、`botTabListNameSuffix`、`disableIllegalTextCharacterCheck`
+- **DoormatCarpetExtension**（LGPL-3.0）：`disablePlayerAttackingTamedMobs`
+- **carpet-redcraft-addons**（AGPL-3.0）：`itemFrameInvisible`、`itemFrameFixed`
+
+构建架构参考与构建期工具致谢：Fallen-Breath/fabric-mod-template、Carpet TIS Addition、Carpet AMS Addition、Fallen-Breath/preprocessor。
 
 详见：
 
