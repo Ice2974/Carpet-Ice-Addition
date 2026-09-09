@@ -1,4 +1,9 @@
 ﻿# Carpet Ice Addition
+
+[![License](https://img.shields.io/badge/License-LGPL--3.0--or--later-blue)](LICENSE)
+[![Modrinth](https://img.shields.io/modrinth/dt/carpet-ice-addition?color=00AF5C&label=Modrinth%20downloads&logo=modrinth)](https://modrinth.com/mod/carpet-ice-addition)
+[![GitHub](https://img.shields.io/github/downloads/Ice2974/Carpet-Ice-Addition/total?color=161616&label=GitHub%20downloads&logo=github)](https://github.com/Ice2974/Carpet-Ice-Addition/releases)
+
 **中文** | [English](README_en.md)
 
 ## 依赖
