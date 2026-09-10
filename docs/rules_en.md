@@ -396,3 +396,12 @@ Naming a villager iron_golem trims its AI to the minimum behavior set required b
 - Default: `false`
 - Possible values: `false`, `true`
 - Categories: `ICE`, `FEATURE`, `OPTIMIZATION`
+
+### enchantedGoldenAppleEffectRollback
+
+Restores the effects of eating an enchanted golden apple to those from Java Edition 1.8: Regeneration V for 30 seconds, Absorption I for 2 minutes, Resistance I for 5 minutes, and Fire Resistance I for 5 minutes.
+
+- Type: `boolean`
+- Default: `false`
+- Possible values: `false`, `true`
+- Categories: `ICE`, `FEATURE`, `SURVIVAL`

@@ -24,6 +24,7 @@
     { "name": "DisableIllegalTextCharacterCheckClipboardMixin", "side": "client" },
     { "name": "DisableIllegalTextCharacterCheckMixin", "side": "common" },
     { "name": "DisablePlayerAttackingTamedMobsMixin", "side": "common" },
+    { "name": "EnchantedGoldenAppleEffectRollbackMixin", "side": "common" },
     { "name": "EndPortalBlockCustomEndPlatformPositionMixin", "side": "common" },
     { "name": "EntitySetCustomNameIronGolemOptimizationMixin", "side": "common" },
     { "name": "EntitySetCustomNameTradingOptimizationMixin", "side": "common" },

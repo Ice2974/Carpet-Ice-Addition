@@ -396,3 +396,12 @@
 - 默认值: `false`
 - 可选值: `false`, `true`
 - 分类: `ICE`, `FEATURE`, `OPTIMIZATION`
+
+### 附魔金苹果效果回调 (enchantedGoldenAppleEffectRollback)
+
+使附魔金苹果的食用效果恢复至 Java 版 1.8：获得 30 秒生命恢复 V、2 分钟伤害吸收 I、5 分钟抗性提升 I和5分钟抗火 I。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`, `SURVIVAL`
