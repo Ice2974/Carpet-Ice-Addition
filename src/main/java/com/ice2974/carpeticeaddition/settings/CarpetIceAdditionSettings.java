@@ -137,4 +137,7 @@ public final class CarpetIceAdditionSettings {
 
     @Rule(categories = {ICE, BUGFIX})
     public static boolean nameTagDuplicateNamingFix = false;
+
+    @Rule(categories = {ICE, FEATURE, SURVIVAL})
+    public static boolean enchantedGoldenAppleEffectRollback = false;
 }
