@@ -1,5 +1,6 @@
 package com.ice2974.carpeticeaddition.rules;
 
+import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -35,6 +36,11 @@ public final class DelayedJukeboxStartEventManager {
         if (state == null) {
             return;
         }
+        if (!CarpetIceAdditionSettings.recordWorldEventFix) {
+            // 规则已关闭：丢弃 pending start，防止其在 stop 事件之后被补发造成 MC-112245 复现。
+            PENDING_EVENTS.remove(world);
+            return;
+        }
 
         for (Map.Entry<BlockPos, Integer> entry : state.startEvents.entrySet()) {
             if (!state.stoppedThisTick.contains(entry.getKey())) {
@@ -43,6 +49,14 @@ public final class DelayedJukeboxStartEventManager {
         }
 
         PENDING_EVENTS.remove(world);
+    }
+
+    /**
+     * Drops all pending events. Called when the server closes so the static map
+     * does not keep strong references to unloaded {@link ServerLevel} instances.
+     */
+    public static void clearAll() {
+        PENDING_EVENTS.clear();
     }
 
     private static final class PendingWorldEvents {

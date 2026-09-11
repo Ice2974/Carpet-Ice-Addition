@@ -252,7 +252,7 @@ Warns players at the start of the night when they reach the vanilla insomnia tim
 
 ### neutralPhantoms
 
-Makes phantoms neutral toward players: they will not attack players first, but will fight back when attacked.
+Makes phantoms neutral toward players: they will not attack players first, but will fight back when attacked. After the rule is turned off, retaliation targets and records created by this mod are cleared on the next server AI update; while the rule is off, retaliation records are neither read from nor written to entity data.
 
 - Type: `boolean`
 - Default: `false`
@@ -352,22 +352,22 @@ Skips vanilla text character validation, allowing characters that are normally r
 
 ### waterFluidTickDelay
 
-Customizes the water flow delay in game ticks. Setting it to `freeze` freezes scheduled ticks related to water flow.
+Customizes the water flow delay in game ticks; the default `vanilla` leaves the vanilla delay untouched. Setting it to `freeze` freezes scheduled ticks related to water flow. Any positive integer (including 5) forces that delay; only in the `vanilla` state do other mods modifying the fluid tick delay take effect.
 
 - Type: `String`
-- Default: `5`
-- Suggested values: `freeze`, `5`
-- Accepted values: `freeze` or an integer from `1` through `72000`
+- Default: `vanilla`
+- Suggested values: `freeze`, `vanilla`
+- Accepted values: `vanilla`, `freeze`, or an integer from `1` through `72000`
 - Categories: `ICE`, `FEATURE`
 
 ### lavaFluidTickDelay
 
-Customizes the lava flow delay in game ticks. In ultrawarm dimensions, the delay is divided by three with a minimum value of 1. Setting it to `freeze` freezes lava flow without affecting random ticks.
+Customizes the lava flow delay in game ticks; the default `vanilla` leaves the vanilla delay untouched. In ultrawarm dimensions, the delay is divided by three with a minimum value of 1. Setting it to `freeze` freezes lava flow without affecting random ticks. Any positive integer (including 30) forces that delay; only in the `vanilla` state do other mods modifying the fluid tick delay take effect.
 
 - Type: `String`
-- Default: `30`
-- Suggested values: `freeze`, `30`
-- Accepted values: `freeze` or an integer from `1` through `72000`
+- Default: `vanilla`
+- Suggested values: `freeze`, `vanilla`
+- Accepted values: `vanilla`, `freeze`, or an integer from `1` through `72000`
 - Categories: `ICE`, `FEATURE`
 
 ### villagerTradingOptimization

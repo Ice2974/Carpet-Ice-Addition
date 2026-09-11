@@ -17,16 +17,18 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
- * Overrides {@code getTickRate} for vanilla lava (both source and flowing)
+ * Overrides {@code getTickDelay} for vanilla lava (both source and flowing)
  * based on the {@code lavaFluidTickDelay} rule.
  *
  * <p>1.21.11 variant: ultrawarm is accessed via the environment attribute
- * {@code EnvironmentAttributes.FAST_LAVA_GAMEPLAY}, which replaced
+ * {@code EnvironmentAttributes.FAST_LAVA}, which replaced
  * {@code DimensionType.ultrawarm()} starting from 1.21.11.
  *
- * <p>When the rule is {@code freeze}, vanilla's default delay is returned so the
- * freeze Mixin can use it as a keep-alive period. Otherwise the configured delay
- * is returned, divided by 3 (minimum 1) in ultrawarm dimensions.
+ * <p>When the rule is {@code vanilla} (the default) or {@code freeze}, vanilla's
+ * own body runs untouched, so other mods hooking the same method also take
+ * effect ({@code freeze} uses the vanilla default as the keep-alive period).
+ * Otherwise the configured delay is forced, divided by 3 (minimum 1) in
+ * ultrawarm dimensions.
  *
  * <p>The identity check ({@code self == Fluids.LAVA || self == Fluids.FLOWING_LAVA})
  * ensures third-party fluids that extend {@link LavaFluid} are not affected.
@@ -41,6 +43,9 @@ public abstract class LavaFluidTickDelayMixin {
             return;
         }
         if (CarpetIceAdditionFluidSettings.lavaFrozen) {
+            return;
+        }
+        if (CarpetIceAdditionFluidSettings.lavaVanilla) {
             return;
         }
 //#if MC>=12111

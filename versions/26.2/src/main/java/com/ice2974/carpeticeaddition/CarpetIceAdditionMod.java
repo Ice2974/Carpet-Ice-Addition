@@ -8,6 +8,7 @@ import com.ice2974.carpeticeaddition.command.MachineStatusCommand;
 import com.ice2974.carpeticeaddition.rules.BotTabListNameHelper;
 import com.ice2974.carpeticeaddition.rules.CraftableCoralBlocksDataPackController;
 import com.ice2974.carpeticeaddition.rules.CraftableCoralBlocksState;
+import com.ice2974.carpeticeaddition.rules.DelayedJukeboxStartEventManager;
 import com.ice2974.carpeticeaddition.rules.VillagerTradingOptimizationRuleHelper;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionEndPlatformSettings;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionHighVersionSettings;
@@ -148,6 +149,8 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
 
     @Override
     public void onServerClosed(MinecraftServer server) {
+        // 静态 pending map 不能跨 server 生命周期持有 ServerLevel 强引用。
+        DelayedJukeboxStartEventManager.clearAll();
         VillagerEventsRuntime.onServerClosed(server);
         KillItemConfigManager.shutdown();
         MachineStatusConfigManager.shutdown();

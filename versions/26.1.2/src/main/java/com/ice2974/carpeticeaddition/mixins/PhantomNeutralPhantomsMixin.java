@@ -52,6 +52,7 @@ public abstract class PhantomNeutralPhantomsMixin implements NeutralPhantomsReta
     @Inject(method = "serverAiStep", at = @At("HEAD"))
     private void carpetIceAddition$tickNeutralPhantomsRetaliation(CallbackInfo ci) {
         if (!CarpetIceAdditionSettings.neutralPhantoms) {
+            carpetIceAddition$clearRetaliationOnRuleDisabled();
             return;
         }
         if (!((Object) this instanceof Phantom phantom)) {
@@ -131,6 +132,10 @@ public abstract class PhantomNeutralPhantomsMixin implements NeutralPhantomsReta
         if (!((Object) this instanceof Phantom)) {
             return;
         }
+        // 规则关闭期间不持久化反击状态，防止尚未 tick 到自清理的实体把旧 CIA 反击带入存档。
+        if (!CarpetIceAdditionSettings.neutralPhantoms) {
+            return;
+        }
         if (this.carpetIceAddition$neutralPhantomsTargetUuid == null) {
             return;
         }
@@ -150,6 +155,10 @@ public abstract class PhantomNeutralPhantomsMixin implements NeutralPhantomsReta
         if (!((Object) this instanceof Phantom)) {
             return;
         }
+        // 规则关闭期间不读回旧反击记录，阻断其跨规则关闭/跨重启在规则再次开启后复活。
+        if (!CarpetIceAdditionSettings.neutralPhantoms) {
+            return;
+        }
 
         input.getString(CARPET_ICE_ADDITION$NEUTRAL_PHANTOMS_TARGET_UUID_KEY).ifPresent(uuidString -> {
             try {
@@ -167,6 +176,20 @@ public abstract class PhantomNeutralPhantomsMixin implements NeutralPhantomsReta
     @Unique
     private boolean carpetIceAddition$shouldForgiveDeadPlayers(ServerLevel serverLevel) {
         return serverLevel.getGameRules().get(GameRules.FORGIVE_DEAD_PLAYERS);
+    }
+
+    @Unique
+    private void carpetIceAddition$clearRetaliationOnRuleDisabled() {
+        if (this.carpetIceAddition$neutralPhantomsTargetUuid == null) {
+            return;
+        }
+        // 规则已关闭：仅当当前 target 确为 CIA 记录的反击玩家时才由 CIA 清除，
+        // 原版或其他 Mod 设置的 target 不受影响。
+        if (this.getTargetUnchecked() instanceof ServerPlayer targetPlayer
+                && targetPlayer.getUUID().equals(this.carpetIceAddition$neutralPhantomsTargetUuid)) {
+            this.setTarget(null);
+        }
+        this.carpetIceAddition$clearNeutralPhantomsRetaliationTarget();
     }
 
     @Unique

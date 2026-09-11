@@ -15,6 +15,13 @@ public final class FluidTickDelayUtil {
     /** Sentinel value indicating that a fluid is frozen. */
     public static final String FREEZE = "freeze";
 
+    /**
+     * Sentinel value indicating that vanilla's own tick-delay calculation must
+     * be used unmodified, letting vanilla (and other mods hooking the same
+     * method) decide the delay. This is the rule default.
+     */
+    public static final String VANILLA = "vanilla";
+
     /** Default delay for water, matching vanilla. */
     public static final int DEFAULT_WATER_DELAY = 5;
 
@@ -28,23 +35,57 @@ public final class FluidTickDelayUtil {
     }
 
     /**
+     * The three mutually exclusive states a fluid tick-delay rule value can
+     * resolve to. Exactly one mode is active per cached state; the factories in
+     * this class guarantee the mutual exclusion.
+     */
+    public enum Mode {
+        /**
+         * Freeze sentinel: flow scheduling is frozen and the vanilla default
+         * delay is used as the keep-alive period.
+         */
+        FROZEN,
+        /**
+         * Vanilla passthrough: the Mixin lets the vanilla {@code getTickDelay}
+         * body run untouched, so other mods hooking it also take effect.
+         */
+        VANILLA,
+        /**
+         * Explicit numeric override: the Mixin forces the configured delay,
+         * shadowing vanilla and any other modification.
+         */
+        EXPLICIT
+    }
+
+    /**
      * Immutable result of computing the cached state for one rule value.
      *
-     * <p>When {@code frozen} is {@code true}, {@code delay} holds the vanilla
-     * default (used as the keep-alive period). Otherwise it holds the configured
-     * positive-integer delay, or the default if the value was somehow invalid.
+     * <p>{@code delay} is only meaningful for {@link Mode#FROZEN} (vanilla
+     * default, used as the keep-alive period) and {@link Mode#EXPLICIT}
+     * (configured value). For {@link Mode#VANILLA} it holds the vanilla
+     * default but has no consumer.
      */
     public static final class CachedDelayState {
-        private final boolean frozen;
+        private final Mode mode;
         private final int delay;
 
-        public CachedDelayState(boolean frozen, int delay) {
-            this.frozen = frozen;
+        public CachedDelayState(Mode mode, int delay) {
+            this.mode = mode;
             this.delay = delay;
         }
 
+        public Mode mode() {
+            return mode;
+        }
+
+        /** @return {@code true} only when this state is the freeze sentinel. */
         public boolean frozen() {
-            return frozen;
+            return mode == Mode.FROZEN;
+        }
+
+        /** @return {@code true} only when this state is the vanilla passthrough. */
+        public boolean vanilla() {
+            return mode == Mode.VANILLA;
         }
 
         public int delay() {
@@ -56,17 +97,17 @@ public final class FluidTickDelayUtil {
             if (this == o) return true;
             if (!(o instanceof CachedDelayState)) return false;
             CachedDelayState that = (CachedDelayState) o;
-            return frozen == that.frozen && delay == that.delay;
+            return mode == that.mode && delay == that.delay;
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(frozen, delay);
+            return Objects.hash(mode, delay);
         }
 
         @Override
         public String toString() {
-            return "CachedDelayState{frozen=" + frozen + ", delay=" + delay + "}";
+            return "CachedDelayState{mode=" + mode + ", delay=" + delay + "}";
         }
     }
 
@@ -75,6 +116,13 @@ public final class FluidTickDelayUtil {
      */
     public static boolean isFrozen(String value) {
         return FREEZE.equals(value);
+    }
+
+    /**
+     * @return {@code true} if the rule value represents the vanilla passthrough sentinel.
+     */
+    public static boolean isVanilla(String value) {
+        return VANILLA.equals(value);
     }
 
     /**
@@ -102,14 +150,14 @@ public final class FluidTickDelayUtil {
     }
 
     /**
-     * @return {@code true} if the value is a valid rule value ({@code freeze}
-     *         or an integer from 1 through {@link #MAX_FLUID_TICK_DELAY}).
+     * @return {@code true} if the value is a valid rule value ({@code freeze},
+     * {@code vanilla}, or an integer from 1 through {@link #MAX_FLUID_TICK_DELAY}).
      */
     public static boolean isValidRuleValue(String value) {
         if (value == null || value.isEmpty()) {
             return false;
         }
-        if (isFrozen(value)) {
+        if (isFrozen(value) || isVanilla(value)) {
             return true;
         }
         return parsePositiveDelayOrNull(value) != null;
@@ -119,7 +167,8 @@ public final class FluidTickDelayUtil {
      * Computes the cached state for a water rule value.
      *
      * <p>When frozen, the delay is the vanilla default ({@link #DEFAULT_WATER_DELAY}).
-     * When the value is invalid, the default is returned as a safe fallback.
+     * When the value is invalid, the vanilla passthrough is returned as the safe
+     * fallback (unknown values must not override vanilla).
      *
      * @param value     the current rule string
      * @return an immutable {@link CachedDelayState} that can be directly used to
@@ -127,17 +176,23 @@ public final class FluidTickDelayUtil {
      */
     public static CachedDelayState computeWaterState(String value) {
         if (isFrozen(value)) {
-            return new CachedDelayState(true, DEFAULT_WATER_DELAY);
+            return new CachedDelayState(Mode.FROZEN, DEFAULT_WATER_DELAY);
+        }
+        if (isVanilla(value)) {
+            return new CachedDelayState(Mode.VANILLA, DEFAULT_WATER_DELAY);
         }
         Integer parsed = parsePositiveDelayOrNull(value);
-        return new CachedDelayState(false, parsed != null ? parsed : DEFAULT_WATER_DELAY);
+        return parsed != null
+                ? new CachedDelayState(Mode.EXPLICIT, parsed)
+                : new CachedDelayState(Mode.VANILLA, DEFAULT_WATER_DELAY);
     }
 
     /**
      * Computes the cached state for a lava rule value.
      *
      * <p>When frozen, the delay is the vanilla default ({@link #DEFAULT_LAVA_DELAY}).
-     * When the value is invalid, the default is returned as a safe fallback.
+     * When the value is invalid, the vanilla passthrough is returned as the safe
+     * fallback (unknown values must not override vanilla).
      *
      * @param value     the current rule string
      * @return an immutable {@link CachedDelayState} that can be directly used to
@@ -145,10 +200,15 @@ public final class FluidTickDelayUtil {
      */
     public static CachedDelayState computeLavaState(String value) {
         if (isFrozen(value)) {
-            return new CachedDelayState(true, DEFAULT_LAVA_DELAY);
+            return new CachedDelayState(Mode.FROZEN, DEFAULT_LAVA_DELAY);
+        }
+        if (isVanilla(value)) {
+            return new CachedDelayState(Mode.VANILLA, DEFAULT_LAVA_DELAY);
         }
         Integer parsed = parsePositiveDelayOrNull(value);
-        return new CachedDelayState(false, parsed != null ? parsed : DEFAULT_LAVA_DELAY);
+        return parsed != null
+                ? new CachedDelayState(Mode.EXPLICIT, parsed)
+                : new CachedDelayState(Mode.VANILLA, DEFAULT_LAVA_DELAY);
     }
 
     /**

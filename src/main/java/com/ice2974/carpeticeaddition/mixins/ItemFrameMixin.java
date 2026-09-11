@@ -136,8 +136,14 @@ public abstract class ItemFrameMixin {
 
     @Inject(method = "addAdditionalSaveData", at = @At("TAIL"))
     private void carpetIceAddition$writePaidFlags(ValueOutput view, CallbackInfo ci) {
-        view.putBoolean(ItemFrameInteractionHelper.INVISIBLE_FRAME_PAID_KEY, this.carpetIceAddition$invisibleFramePaid);
-        view.putBoolean(ItemFrameInteractionHelper.FIXED_FRAME_PAID_KEY, this.carpetIceAddition$fixedFramePaid);
+        // 仅在确有 CIA 付费记录时写入，避免给未使用过该功能的展示框 NBT 引入 0b 键；
+        // 读取保持无条件以兼容旧存档，实体 NBT 全量重建会使存量 0b 键在下次保存后消失。
+        if (this.carpetIceAddition$invisibleFramePaid) {
+            view.putBoolean(ItemFrameInteractionHelper.INVISIBLE_FRAME_PAID_KEY, true);
+        }
+        if (this.carpetIceAddition$fixedFramePaid) {
+            view.putBoolean(ItemFrameInteractionHelper.FIXED_FRAME_PAID_KEY, true);
+        }
     }
 
     @Inject(method = "readAdditionalSaveData", at = @At("TAIL"))

@@ -12,12 +12,13 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
- * Overrides {@code getTickRate} for vanilla water (both source and flowing)
+ * Overrides {@code getTickDelay} for vanilla water (both source and flowing)
  * based on the {@code waterFluidTickDelay} rule.
  *
- * <p>When the rule is {@code freeze}, vanilla's default delay is returned so the
- * freeze Mixin can use it as a keep-alive period. Otherwise the configured delay
- * is returned.
+ * <p>When the rule is {@code vanilla} (the default) or {@code freeze}, vanilla's
+ * own body runs untouched, so other mods hooking the same method also take
+ * effect ({@code freeze} uses the vanilla default as the keep-alive period).
+ * Otherwise the configured delay is forced, shadowing vanilla.
  *
  * <p>The identity check ({@code self == Fluids.WATER || self == Fluids.FLOWING_WATER})
  * ensures third-party fluids that extend {@link WaterFluid} are not affected.
@@ -32,6 +33,9 @@ public abstract class WaterFluidTickDelayMixin {
             return;
         }
         if (CarpetIceAdditionFluidSettings.waterFrozen) {
+            return;
+        }
+        if (CarpetIceAdditionFluidSettings.waterVanilla) {
             return;
         }
         cir.setReturnValue(CarpetIceAdditionFluidSettings.waterDelay);
