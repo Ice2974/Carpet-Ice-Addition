@@ -75,6 +75,14 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
                 CarpetIceAdditionFluidSettings.refreshCachedValues();
                 return;
             }
+            if ("recordWorldEventFix".equals(ruleName)) {
+                // 关闭瞬间即建立生命周期边界：pending 不得跨一次 false 状态存活，
+                // 否则 true→false→true 同 tick 切换后旧 pending 会在重新开启后被补发。
+                if (!CarpetIceAdditionSettings.recordWorldEventFix) {
+                    DelayedJukeboxStartEventManager.clearAll();
+                }
+                return;
+            }
             if ("villagerTradingOptimization".equals(ruleName)) {
                 VillagerTradingOptimizationRuleHelper.rebuildMismatchedVillagers(
                         source != null ? source.getServer() : CarpetServer.minecraft_server);

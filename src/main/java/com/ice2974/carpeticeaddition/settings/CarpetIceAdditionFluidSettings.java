@@ -16,7 +16,8 @@ import static carpet.api.settings.RuleCategory.FEATURE;
  * {@code getTickDelay} at all, so vanilla (and other mods hooking the same
  * method) decide the delay. Any explicit integer — including values equal to
  * the vanilla defaults — is a forced override; {@code freeze} freezes flow
- * scheduling while keeping vanilla-default keep-alive ticks.
+ * scheduling, with the keep-alive period obtained at runtime through the
+ * vanilla {@code getTickDelay} call path rather than from the cached delay.
  *
  * <p>Cached values ({@link #waterFrozen}, {@link #waterDelay}, etc.) are updated
  * by {@link #refreshCachedValues()} on the server main thread (after

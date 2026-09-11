@@ -25,6 +25,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * <p>The keep-alive re-schedule uses the fluid currently at the position (not
  * the stale {@code this}), so that if the block has been replaced the stale
  * schedule dies out instead of creating ghost ticks.
+ *
+ * <p>The keep-alive delay is taken from {@code currentFluid.getTickDelay(level)}
+ * at runtime rather than from the cached rule state: under {@code freeze} the
+ * tick-delay mixins do not override {@code getTickDelay}, so other mods
+ * hooking that method may alter the keep-alive period, while the flow itself
+ * stays frozen.
  */
 @Mixin(FlowingFluid.class)
 public abstract class FlowingFluidFreezeMixin {

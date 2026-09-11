@@ -352,7 +352,7 @@ Skips vanilla text character validation, allowing characters that are normally r
 
 ### waterFluidTickDelay
 
-Customizes the water flow delay in game ticks; the default `vanilla` leaves the vanilla delay untouched. Setting it to `freeze` freezes scheduled ticks related to water flow. Any positive integer (including 5) forces that delay; only in the `vanilla` state do other mods modifying the fluid tick delay take effect.
+Customizes the water flow delay in game ticks; the default `vanilla` leaves the vanilla delay untouched, and modifications from vanilla and other mods all take effect. Any positive integer (including 5) forces that delay. Setting it to `freeze` freezes scheduled ticks related to water flow; the keep-alive delay used while frozen is still taken from the vanilla `getTickDelay` call path, so other mods' modifications may affect that period, but they cannot unfreeze the flow.
 
 - Type: `String`
 - Default: `vanilla`
@@ -362,7 +362,7 @@ Customizes the water flow delay in game ticks; the default `vanilla` leaves the 
 
 ### lavaFluidTickDelay
 
-Customizes the lava flow delay in game ticks; the default `vanilla` leaves the vanilla delay untouched. In ultrawarm dimensions, the delay is divided by three with a minimum value of 1. Setting it to `freeze` freezes lava flow without affecting random ticks. Any positive integer (including 30) forces that delay; only in the `vanilla` state do other mods modifying the fluid tick delay take effect.
+Customizes the lava flow delay in game ticks; the default `vanilla` leaves the vanilla delay untouched, and modifications from vanilla and other mods all take effect. Any positive integer (including 30) forces that delay; in ultrawarm dimensions, the configured delay is divided by three with a minimum value of 1. Setting it to `freeze` freezes lava flow without affecting random ticks; the keep-alive delay used while frozen is still taken from the vanilla `getTickDelay` call path, so other mods' modifications may affect that period, but they cannot unfreeze the flow.
 
 - Type: `String`
 - Default: `vanilla`

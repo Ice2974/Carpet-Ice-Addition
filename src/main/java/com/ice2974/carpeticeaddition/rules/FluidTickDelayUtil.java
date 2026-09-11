@@ -41,8 +41,11 @@ public final class FluidTickDelayUtil {
      */
     public enum Mode {
         /**
-         * Freeze sentinel: flow scheduling is frozen and the vanilla default
-         * delay is used as the keep-alive period.
+         * Freeze sentinel: flow scheduling is frozen. The cached
+         * {@link CachedDelayState#delay() delay} only retains the vanilla
+         * baseline for cache-structure compatibility; the actual keep-alive
+         * period is obtained at runtime by {@code FlowingFluidFreezeMixin}
+         * through {@code Fluid#getTickDelay}, not from this cache.
          */
         FROZEN,
         /**
@@ -60,10 +63,13 @@ public final class FluidTickDelayUtil {
     /**
      * Immutable result of computing the cached state for one rule value.
      *
-     * <p>{@code delay} is only meaningful for {@link Mode#FROZEN} (vanilla
-     * default, used as the keep-alive period) and {@link Mode#EXPLICIT}
-     * (configured value). For {@link Mode#VANILLA} it holds the vanilla
-     * default but has no consumer.
+     * <p>{@code delay} is only consumed at runtime in {@link Mode#EXPLICIT}
+     * (the configured value forced by the tick-delay mixins). In
+     * {@link Mode#FROZEN} and {@link Mode#VANILLA} it merely retains the
+     * vanilla baseline for cache-structure compatibility and has no runtime
+     * consumer — under {@code freeze} the keep-alive period is obtained at
+     * runtime via {@code Fluid#getTickDelay} (see
+     * {@code FlowingFluidFreezeMixin}), not from this cached value.
      */
     public static final class CachedDelayState {
         private final Mode mode;
