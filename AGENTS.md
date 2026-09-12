@@ -74,7 +74,7 @@
 - 平台资源 srcDirs 固定为 [平台本地 `src/main/resources`，根 `src/main/resources`]（Phase 10 起；无 common/、versions/shared、extra_resource_dirs 档）。同相对路径资源碰撞由平台本地层胜出（`processResources` / `sourcesJar` 显式 `DuplicatesStrategy.EXCLUDE`；first-wins 本身不是 fail-closed），碰撞是否被允许由配置期碰撞不变式 fail-closed 裁决——任何新增碰撞必须同步登记根 `build.gradle` 的 `expectedRootResourceCollisions`（keySet 与版本注册表全等，缺失键不会默认按空集放行）。
 - Mixin effective config 由 `gradle/mixins/registry.json` 经每个平台的 `generateMixinConfig` 生成到独立 `build/generated/mixinConfig/`；只允许通过显式 task-output wiring 接入 `processResources` / `sourcesJar`，不得将 generated 目录注册为 resource srcDir，也不得在 root / platform runtime resource source tree 手写 `*.mixins.json`。运行时仍使用各平台既有 `carpet-ice-addition-mcXXXX.mixins.json` 文件名。
 - `mixin_config` 与 `mcXXXX` runtime Mixin 文件名是长期 runtime compatibility identity，不是当前 project/source/preprocess/publish platform identity。当前 actual 版本树的发布资产必须由 `settings.json` + per-version `release_minecraft_range` + 根 `mod_version` 派生精确文件名，并与真实产物校验；不得从 Mixin 引用或拼接版本码识别平台。
-- 历史 `mcXXXX` registry 树的发布 fallback 只能由显式 legacy 分支进入；actual 解析失败不得回退。修改发布解析时运行 `python scripts/verify_publish_resolver.py`（先 build），harness 必须机械提取并测试 workflow 中 layout 与 asset attribution 的同一份生产逻辑，marker 缺失/重复须失败。
+- 发布解析只接受 `settings.json` 实际版本号注册表；历史 `mcXXXX` registry 树 / `versions/platform-mcXXXX/` 布局不再支持补发布，解析遇之 fail closed。修改发布解析时运行 `python scripts/verify_publish_resolver.py`（先 build），harness 必须机械提取并测试 workflow 中 layout 与 asset attribution 的同一份生产逻辑，marker 缺失/重复须失败。
 
 
 ## 规则 / 命令 / 记录器修改

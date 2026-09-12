@@ -1,8 +1,7 @@
 """Exercise the workflow's production resolver, without publishing or network access.
 
 Run after Gradle build: actual filenames are checked against real build/libs outputs.
-The legacy fixture is a verbatim properties snapshot of the historical 3.0.0 tree,
-not another supported-version registry. No resolver implementation is copied here.
+No resolver implementation is copied here.
 """
 
 import json
@@ -60,19 +59,10 @@ class PublishResolverTests(unittest.TestCase):
     def layout(self):
         return call("resolve_platform_layout", self.root)
 
-    def legacy(self):
-        fixture = json.loads((ROOT / "scripts/fixtures/publish-3.0.0.json").read_text(encoding="utf-8"))
-        self.assertEqual(fixture["source_commit"], "7395a9eae8ed616ffa6f6f5a2d9998efcb0680b2")
-        for relative, content in fixture["files"].items():
-            path = self.root / relative
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(content, encoding="utf-8")
-        return self.layout()
-
     def metadata(self, layout, row):
         return {"id": layout["mod_id"], "version": layout["mod_version"],
                 "depends": {"minecraft": row["minecraft_dependency"]},
-                "mixins": [f"carpet-ice-addition-{row.get('legacy_code', 'unrelated')}.mixins.json"]}
+                "mixins": ["carpet-ice-addition-unrelated.mixins.json"]}
 
     def asset(self, layout, row, metadata=None, name=None, directory=None):
         name = name or row.get("file_name", f"Carpet-Ice-Addition-v{layout['mod_version']}-mc{row['platform']}.jar")
@@ -139,7 +129,7 @@ class PublishResolverTests(unittest.TestCase):
                 metadata = self.metadata(layout, row)
                 metadata["mixins"] = mixins
                 self.assertEqual(call("attribute_asset", layout, self.asset(layout, row, metadata)), row)
-        # A valid old code may never rescue an invalid actual filename.
+        # A legacy-style filename must be rejected as an unknown actual filename.
         with self.assertRaises(ValueError):
             call("attribute_asset", layout, self.asset(layout, row, name="Carpet-Ice-Addition-v3.0.0-mc1211.jar"))
 
@@ -159,7 +149,9 @@ class PublishResolverTests(unittest.TestCase):
 
     def test_invalid_registry(self):
         original = json.loads((self.root / "settings.json").read_text())["versions"]
-        for versions in [[], None, "1.21.1", [1], [original[0]] * 2, ["mc1211", original[0]], ["../escape"], ["unknown"]]:
+        # ["mc1211"] 是纯 legacy 注册表，["mc1211", original[0]] 是混入 legacy 条目；两者都必须 fail closed。
+        for versions in [[], None, "1.21.1", [1], [original[0]] * 2,
+                         ["mc1211"], ["mc1211", original[0]], ["../escape"], ["unknown"]]:
             with self.subTest(versions=versions):
                 (self.root / "settings.json").write_text(json.dumps({"versions": versions}))
                 with self.assertRaises(ValueError):
@@ -255,40 +247,6 @@ class PublishResolverTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.collect(layout, event="release")
 
-    def test_legacy_snapshot_and_duplicate_assets(self):
-        layout = self.legacy()
-        self.assertEqual(layout["kind"], "legacy")
-        for row in layout["platforms"]:
-            self.asset(layout, row)
-        self.assertEqual(len(self.collect(layout)["platforms"]), 11)
-        row = layout["platforms"][0]
-        metadata = self.metadata(layout, row)
-        metadata["mixins"] = [{"config": metadata["mixins"][0]}]
-        path = self.asset(layout, row, metadata)
-        self.assertEqual(call("attribute_asset", layout, path), row)
-        self.asset(layout, row, name="Carpet-Ice-Addition-v3.0.0-mcduplicate.jar")
-        with self.assertRaisesRegex(ValueError, "Multiple assets"):
-            self.collect(layout)
-
-    def test_legacy_bad_codes(self):
-        layout = self.legacy()
-        row = layout["platforms"][0]
-        for mixins in [[], ["carpet-ice-addition-mc999.mixins.json"],
-                       ["carpet-ice-addition-mc1211.mixins.json", "carpet-ice-addition-mc1213.mixins.json"]]:
-            with self.subTest(mixins=mixins):
-                metadata = self.metadata(layout, row)
-                metadata["mixins"] = mixins
-                with self.assertRaises(ValueError):
-                    call("attribute_asset", layout, self.asset(layout, row, metadata))
-        first = self.root / row["platform_dir"] / "gradle.properties"
-        second = self.root / layout["platforms"][1]["platform_dir"] / "gradle.properties"
-        shutil.copyfile(first, second)
-        with self.assertRaises(ValueError):
-            self.layout()
-        first.write_text(first.read_text(encoding="utf-8").replace("mixin_config=", "removed="), encoding="utf-8")
-        with self.assertRaises(ValueError):
-            self.layout()
-
     def test_range_expansion_production(self):
         tags = Path(self.temp.name) / "tags.json"
         tags.write_text(json.dumps([{"version": v, "version_type": "release"}
@@ -300,14 +258,7 @@ class PublishResolverTests(unittest.TestCase):
                                     capture_output=True, text=True, env=env)
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(json.loads(result.stdout), expected)
-        layout = self.legacy()
-        for row in layout["platforms"]:
-            if row["legacy_code"] in ["mc1211", "mc261"]:
-                result = subprocess.run([sys.executable, "-c", EXPANSION, str(self.root / row["platform_dir"])],
-                                        capture_output=True, text=True, env=env)
-                self.assertEqual(result.returncode, 0, result.stderr)
-                self.assertTrue(json.loads(result.stdout))
-        path = self.root / layout["platforms"][0]["platform_dir"] / "gradle.properties"
+        path = self.root / "versions/1.21.1" / "gradle.properties"
         path.write_text(path.read_text(encoding="utf-8").replace("release_minecraft_range=1.21~1.21.1",
                                                                "release_minecraft_range=26.2"), encoding="utf-8")
         result = subprocess.run([sys.executable, "-c", EXPANSION, str(path.parent)],

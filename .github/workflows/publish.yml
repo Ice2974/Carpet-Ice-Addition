@@ -13,7 +13,7 @@ on:
         required: true
         type: string
       platforms:
-        description: '可选：仅发布这些平台，逗号分隔（按目标 tag 树 settings.json 的条目写法：P8+ tag 为实际版本号如 1.21.3,1.21.4；历史 tag 为 mc1213,mc1214）；留空表示全部平台'
+        description: '可选：仅发布这些平台，逗号分隔（按目标 tag 树 settings.json 的条目写法，如 1.21.3,1.21.4）；留空表示全部平台'
         required: false
         default: ''
         type: string
@@ -121,8 +121,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          # P12：唯一生产 resolver 随 workflow 携带，checkout 历史 tag 不依赖该树存在新脚本。
-          # actual identity 来自结构化版本数据；legacy 分支保留旧资产兼容。harness 机械提取整个模块。
+          # P12：唯一生产 resolver 随 workflow 携带，checkout 发布 tag 不依赖该树存在新脚本。
+          # 发布身份来自结构化版本数据。harness 机械提取整个模块。
           resolver_script=$(mktemp)
           cat > "$resolver_script" <<'PUBLISH_RESOLVER_PY'
           # === P12-PUBLISH-RESOLVER-BEGIN ===
@@ -175,36 +175,23 @@ jobs:
               require(isinstance(versions, list) and versions and all(isinstance(v, str) for v in versions),
                       "settings.json versions must be a non-empty string array")
               require(len(versions) == len(set(versions)), "Duplicate registry entries")
-              if all(re.fullmatch(r"mc[0-9]+", v) for v in versions):
-                  kind = "legacy"
-              elif all(re.fullmatch(r"[0-9]+(?:\.[0-9]+)+", v) for v in versions):
-                  kind = "actual"
-              else:
-                  raise ValueError("Mixed or unknown registry layout")
+              require(all(re.fullmatch(r"[0-9]+(?:\.[0-9]+)+", v) for v in versions),
+                      "settings.json versions must be actual Minecraft version numbers like 1.21.11")
               global_props = read_properties(root / "gradle.properties", ["mod_id", "mod_version", "mod_name"])
               mod_version = global_props["mod_version"]
               require(re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._+-]*", mod_version), "Invalid mod_version")
               rows, identities = [], set()
               for entry in versions:
-                  directory = f"versions/platform-{entry}" if kind == "legacy" else f"versions/{entry}"
+                  directory = f"versions/{entry}"
                   props = read_properties(root / directory / "gradle.properties",
                                           ["release_minecraft_range", "minecraft_dependency"])
-                  row = {"platform": entry, "platform_dir": directory,
-                         "minecraft_dependency": props["minecraft_dependency"]}
-                  if kind == "actual":
-                      # No Mixin fields or artificial platform codes participate in this branch.
-                      label = release_label(props["release_minecraft_range"])
-                      identity = f"Carpet-Ice-Addition-v{mod_version}-mc{label}.jar"
-                      row["file_name"] = identity
-                  else:
-                      match = re.fullmatch(r"carpet-ice-addition-(mc[0-9]+)\.mixins\.json", props.get("mixin_config", ""))
-                      require(match, f"Invalid legacy mixin_config: {entry}")
-                      identity = match[1]
-                      row["legacy_code"] = identity
+                  label = release_label(props["release_minecraft_range"])
+                  identity = f"Carpet-Ice-Addition-v{mod_version}-mc{label}.jar"
                   require(identity not in identities, f"Ambiguous asset identity: {identity}")
                   identities.add(identity)
-                  rows.append(row)
-              return {"kind": kind, "mod_id": global_props["mod_id"], "mod_version": mod_version,
+                  rows.append({"platform": entry, "platform_dir": directory,
+                               "minecraft_dependency": props["minecraft_dependency"], "file_name": identity})
+              return {"mod_id": global_props["mod_id"], "mod_version": mod_version,
                       "mod_name": global_props["mod_name"], "platforms": rows}
 
 
@@ -221,22 +208,7 @@ jobs:
                   require(jar.namelist().count("fabric.mod.json") == 1, f"Expected one fabric.mod.json: {asset.name}")
                   metadata = json.loads(jar.read("fabric.mod.json"))
               require(isinstance(metadata, dict), f"Invalid metadata: {asset.name}")
-              if layout["kind"] == "actual":
-                  candidates = [row for row in layout["platforms"] if row["file_name"] == asset.name]
-              else:
-                  # Only a positively identified legacy tree can enter this compatibility path.
-                  require(layout["kind"] == "legacy", "Unknown layout kind")
-                  codes = set()
-                  mixins = metadata.get("mixins", [])
-                  require(isinstance(mixins, list), "Invalid legacy mixins")
-                  for item in mixins:
-                      config = item if isinstance(item, str) else item.get("config") if isinstance(item, dict) else None
-                      match = re.search(r"(?:^|/)carpet-ice-addition-(mc[0-9]+)\.mixins\.json$", config) if isinstance(config, str) else None
-                      if match:
-                          codes.add(match[1])
-                  require(len(codes) == 1, f"Ambiguous/missing legacy asset code: {asset.name}")
-                  candidates = [row for row in layout["platforms"] if row["legacy_code"] in codes]
-                  require(asset.name.startswith(f"Carpet-Ice-Addition-v{layout['mod_version']}-mc"), "Wrong legacy asset version")
+              candidates = [row for row in layout["platforms"] if row["file_name"] == asset.name]
               require(len(candidates) == 1, f"Unknown/ambiguous asset filename: {asset.name}")
               row = candidates[0]
               require(metadata.get("id") == layout["mod_id"], f"Wrong mod id: {asset.name}")
