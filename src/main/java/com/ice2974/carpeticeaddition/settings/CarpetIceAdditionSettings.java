@@ -86,6 +86,9 @@ public final class CarpetIceAdditionSettings {
     @Rule(categories = {ICE, FEATURE})
     public static boolean disablePlayerAttackingTamedMobs = false;
 
+    @Rule(categories = {ICE, FEATURE})
+    public static boolean enhancedTrident = false;
+
     @Rule(categories = {ICE, SURVIVAL})
     public static boolean phantomSpawnWarning = false;
 

@@ -241,6 +241,19 @@ Affected mobs include cats, wolves, parrots, nautiluses, zombie nautiluses, hors
 - Possible values: `false`, `true`
 - Categories: `ICE`, `FEATURE`
 
+### enhancedTrident
+
+Allows tridents to hit multiple entities during a movement and regain the ability to deal damage when moved again after stopping.\
+One actual movement (a normal flight segment or a non-zero displacement segment produced by a piston push) can resolve a full vanilla hit against each entity on the swept path (damage, enchantments, knockback, hit sound, and the `PROJECTILE_LAND` game event all run per target through vanilla logic, with no target-count limit); entities behind blocks are never hit through walls.\
+A stationary trident (zero displacement) never deals damage; the velocity response (deflection and scaling) executes only once per movement, based on the first target hit.\
+A small piston displacement is enough to hit again, even if the trident never left the target entity's bounding box; Loyalty's return phase never attacks.\
+Source: inspired by the trident multi-hit behavior in Java Edition snapshot 25w41a and the Bedrock trident killer design; implemented independently, not a port.
+
+- Type: `boolean`
+- Default: `false`
+- Possible values: `false`, `true`
+- Categories: `ICE`, `FEATURE`
+
 ### phantomSpawnWarning
 
 Warns players at the start of the night when they reach the vanilla insomnia time threshold for phantom spawning.

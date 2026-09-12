@@ -1,0 +1,2 @@
+net.minecraft.world.entity.projectile.arrow.ThrownTrident net.minecraft.world.entity.projectile.ThrownTrident
+net.minecraft.world.entity.projectile.arrow.AbstractArrow net.minecraft.world.entity.projectile.AbstractArrow
