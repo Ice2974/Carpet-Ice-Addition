@@ -16,6 +16,12 @@ package com.ice2974.carpeticeaddition.rules;
  * candidates are never hit), required so a piston can re-hit an entity the trident
  * never left. Zero-length segments are rejected up front, so a stationary trident
  * never establishes an attack round.
+ *
+ * <p>Within group 0, hits are ordered by the candidate-box center projected onto the
+ * movement direction; within group 1, by the segment entry parameter. Both groups fall
+ * back to ascending entity id. These orderings decide which target becomes the head
+ * (and therefore which target's vanilla self-motion response is kept), so they must
+ * stay deterministic.
  */
 public final class EnhancedTridentHelper {
 
@@ -110,34 +116,33 @@ public final class EnhancedTridentHelper {
     }
 
     /**
-     * Total order over sweep hits: group 0 (segment start inside the candidate box) first,
-     * then ascending entry parameter, ties broken by ascending entity id. Deterministic
-     regardless of broadphase iteration order.
+     * 候选盒中心相对段起点沿段向量 {@code d} 的投影（未归一化：同一次扫掠内所有
+     * 候选共享同一 {@code d}，按正数 |d| 缩放不改变全序）。组 0 的组内排序键：
+     * 中心更靠移动方向前方的目标排在前。
      */
-    public static int compareHits(int groupA, double tA, int idA, int groupB, double tB, int idB) {
-        if (groupA != groupB) {
-            return Integer.compare(groupA, groupB);
-        }
-        int byT = Double.compare(tA, tB);
-        if (byT != 0) {
-            return byT;
-        }
-        return Integer.compare(idA, idB);
+    public static double centerProjection(
+            double sx, double sy, double sz, double dx, double dy, double dz,
+            double minX, double minY, double minZ, double maxX, double maxY, double maxZ) {
+        double cx = (minX + maxX) * 0.5D;
+        double cy = (minY + maxY) * 0.5D;
+        double cz = (minZ + maxZ) * 0.5D;
+        return (cx - sx) * dx + (cy - sy) * dy + (cz - sz) * dz;
     }
 
     /**
-     * Parameter of point {@code hit} along segment {@code [p, p + d]}, clamped to
-     * {@code [0, 1]}. Used to trim sweep candidates that lie behind the first block face
-     * between the segment ends.
+     * Total order over sweep hits: group 0 (segment start inside the candidate box) first,
+     * then ascending within-group sort key (group 0: candidate-box center projected onto
+     * the movement direction; group 1: segment entry parameter), ties broken by ascending
+     * entity id. Deterministic regardless of broadphase iteration order.
      */
-    public static double paramAlong(
-            double px, double py, double pz, double dx, double dy, double dz,
-            double hx, double hy, double hz) {
-        double lengthSqr = dx * dx + dy * dy + dz * dz;
-        if (lengthSqr <= 0.0D) {
-            return 0.0D;
+    public static int compareHits(int groupA, double keyA, int idA, int groupB, double keyB, int idB) {
+        if (groupA != groupB) {
+            return Integer.compare(groupA, groupB);
         }
-        double t = ((hx - px) * dx + (hy - py) * dy + (hz - pz) * dz) / lengthSqr;
-        return Math.max(0.0D, Math.min(1.0D, t));
+        int byKey = Double.compare(keyA, keyB);
+        if (byKey != 0) {
+            return byKey;
+        }
+        return Integer.compare(idA, idB);
     }
 }

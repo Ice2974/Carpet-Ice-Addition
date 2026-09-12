@@ -90,7 +90,7 @@ public abstract class EnhancedTridentMixin implements EnhancedTridentState {
             // R1 的 end 已被 vanilla tick 按方块碰撞裁剪，maxT 恒为 1
             List<EnhancedTridentSweeper.SweepHit> hits = EnhancedTridentSweeper.collect(
                     self, start, end, self.getBoundingBox(),
-                    EnhancedTridentState.sweepMargin(self), 1.0D);
+                    EnhancedTridentState.sweepMargin(), 1.0D);
             if (hits.isEmpty()) {
                 return;
             }

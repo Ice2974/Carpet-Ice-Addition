@@ -1,7 +1,5 @@
 package com.ice2974.carpeticeaddition.rules;
 
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.projectile.ProjectileUtil;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.List;
@@ -26,20 +24,16 @@ public interface EnhancedTridentState {
     void carpetIceAddition$setDispatching(boolean dispatching);
 
     /**
-     * 本版本 vanilla 扫掠容差（候选盒 inflate 量），与 {@code AbstractArrow#findHitEntity}
-     * 实际使用的取值保持一致。
+     * 本规则多目标扫掠的统一容差（候选盒 inflate 量），全部受支持版本固定为
+     * {@code 0.3}。
      *
-     * <p>1.21.6 起该路径经 {@code ProjectileUtil.getEntityHitResult(…, float)} 使用
-     * {@code computeMargin(entity)}：随实体年龄从 0 爬坡到 0.3（已对 1.21.6 / 1.21.9 /
-     * 1.21.10 / 1.21.11 / 26.1.2 / 26.2 字节码核实公式一致）；1.21.1～1.21.5 的同路径为
-     * 字面量 {@code 0.3f}。这里按各版本 vanilla 自身的解析取值，不引入统一常数。
+     * <p>取值与 1.21.1～1.21.5 的 vanilla {@code AbstractArrow#findHitEntity} 路径
+     * 一致（字面量 {@code 0.3f}）；有意不复刻 1.21.6+ 该路径的
+     * {@code ProjectileUtil#computeMargin} 随实体年龄从 0 爬坡到 0.3 的行为——本规则
+     * 是独立定义的增强行为，命中宽度不应随三叉戟存在时间变化。
      */
-    static double sweepMargin(Entity projectile) {
-        //#if MC>=12106
-        return ProjectileUtil.computeMargin(projectile);
-        //#else
-        //$$ return 0.3D;
-        //#endif
+    static double sweepMargin() {
+        return 0.3D;
     }
 
     /**

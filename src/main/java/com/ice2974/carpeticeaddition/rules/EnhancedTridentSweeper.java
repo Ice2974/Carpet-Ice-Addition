@@ -7,7 +7,6 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -16,9 +15,10 @@ import java.util.List;
  * <p>broadphase 与 vanilla {@code AbstractArrow#findHitEntity} 的构造一致
  * （起点盒 {@code expandTowards(段向量).inflate(1.0)}），逐候选做精确测试：膨胀
  * {@code margin} 的候选 AABB 包含段起点 → 组 0（{@code hitVec = start}）；否则取
- * 段对该盒的入射参数 t，t 超出 {@code maxT}（段已被方块阻挡裁剪）的候选丢弃 →
- * 组 1。组 0 恒先于组 1，组内按 t 升序、实体 ID 升序，得到与 broadphase 迭代顺序
- * 无关的确定性全序；{@code Level#getEntities} 返回的候选天然按实体去重。
+ * 段对该盒的入射参数 t，t 超出 {@code maxT} 的候选丢弃 → 组 1。组 0 恒先于组 1；
+ * 组 0 内按候选盒中心沿段向量的投影升序，组 1 内按入射参数 t 升序，均以实体 ID
+ * 升序 tie-break，得到与 broadphase 迭代顺序无关的确定性全序；
+ * {@code Level#getEntities} 返回的候选天然按实体去重。
  */
 public final class EnhancedTridentSweeper {
 
@@ -30,13 +30,16 @@ public final class EnhancedTridentSweeper {
         public final Entity entity;
         /** 0 = 段起点位于候选有效盒内；1 = 段射入候选有效盒。 */
         public final int group;
-        /** 组 1 的入射参数，∈ [0, maxT]；组 0 恒为 0。 */
+        /** 组 1 的入射参数，∈ [0, maxT]；组 0 未使用（命中位置为段起点）。 */
         public final double t;
+        /** 组内排序键：组 0 为候选盒中心沿段向量的投影，组 1 与 t 相同。 */
+        public final double sortKey;
 
-        public SweepHit(Entity entity, int group, double t) {
+        public SweepHit(Entity entity, int group, double t, double sortKey) {
             this.entity = entity;
             this.group = group;
             this.t = t;
+            this.sortKey = sortKey;
         }
     }
 
@@ -51,21 +54,25 @@ public final class EnhancedTridentSweeper {
         List<SweepHit> hits = new ArrayList<>(candidates.size());
         for (Entity candidate : candidates) {
             AABB box = candidate.getBoundingBox().inflate(margin);
-            if (box.contains(start)) {
-                hits.add(new SweepHit(candidate, 0, 0.0D));
+            if (EnhancedTridentHelper.boxContains(
+                    box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ,
+                    start.x, start.y, start.z)) {
+                hits.add(new SweepHit(candidate, 0, 0.0D, EnhancedTridentHelper.centerProjection(
+                        start.x, start.y, start.z, segment.x, segment.y, segment.z,
+                        box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ)));
             } else {
                 double t = EnhancedTridentHelper.segmentBoxEntryT(
                         start.x, start.y, start.z, segment.x, segment.y, segment.z,
                         box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ);
                 if (!Double.isNaN(t) && t <= maxT) {
-                    hits.add(new SweepHit(candidate, 1, t));
+                    hits.add(new SweepHit(candidate, 1, t, t));
                 }
             }
         }
 
-        hits.sort(Comparator.comparingInt((SweepHit hit) -> hit.group)
-                .thenComparingDouble(hit -> hit.t)
-                .thenComparingInt(hit -> hit.entity.getId()));
+        hits.sort((hitA, hitB) -> EnhancedTridentHelper.compareHits(
+                hitA.group, hitA.sortKey, hitA.entity.getId(),
+                hitB.group, hitB.sortKey, hitB.entity.getId()));
         return hits;
     }
 

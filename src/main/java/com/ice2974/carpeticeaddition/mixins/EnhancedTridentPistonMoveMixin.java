@@ -10,11 +10,8 @@ import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.projectile.arrow.AbstractArrow;
 import net.minecraft.world.entity.projectile.arrow.ThrownTrident;
-import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.AABB;
-import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.EntityHitResult;
-import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 
@@ -34,15 +31,24 @@ import java.util.List;
  * <ul>
  *   <li>只支持 {@code MoverType.PISTON}（SHULKER / SHULKER_BOX 不在本规则范围）；
  *       位移段长不大于 ε（零位移）不建轮、不改速度、不扫描；无候选时不建轮、不写速度。</li>
- *   <li>扫掠用移动<b>前</b>的包围盒与段向量（显式传参，不隐式读移动后状态），段经
- *       方块 clip 裁剪，不隔墙命中；段起点位于候选有效盒内（组 0）即命中——活塞小幅
- *       位移即使始终未离开实体 AABB 也能再次命中。</li>
+ *   <li>不对方块做独立的二次裁剪：{@code Entity.move} 对 PISTON 位移先
+ *       limitPistonMovement、再 collide → collideBoundingBox 按实体 AABB 对方块
+ *       碰撞做扫掠裁剪后才 setPos（1.21.1 与 26.2 字节码两端核实），移动后的 post
+ *       就是 vanilla 实际允许的终点——实际发生的 pre→post 段本身不可能穿墙，
+ *       直接以 maxT = 1 扫描全段即可；反之，独立 raycast 会在三叉戟仍插在方块内时
+ *       把起点方块当作 t≈0 的阻挡，错误取消合法的活塞命中。</li>
  *   <li>入射向量 = 段向量本身（伤害固定 8.0+附魔、与速度无关；击退方向与 deflection
- *       依据 deltaMovement，故派发前注入段向量）。队首经 @Invoker
+ *       依据 deltaMovement，故派发前临时注入段向量）。队首经 @Invoker
  *       hitTargetOrDeflectSelf 走完整原版链，secondary 由 onHit 包装在同一调用栈内
- *       派发；全部 NONE 后速度恢复为队首响应后的 afterFirst，速度响应每次移动仅按
- *       队首执行一次。队首被盾反（onHit 未被调用、轮未消费）时保留 deflect 写入的
- *       原版状态，finally 中清除残留轮。</li>
+ *       派发；普通 secondary 后速度恢复为队首响应后的 afterFirst，真 deflection
+ *       保留 deflect 写入的原版状态并终止本轮。队首被盾反（onHit 未被调用、轮未
+ *       消费）时保留 deflect 写入的原版状态，finally 中清除残留轮。</li>
+ *   <li>注入速度的回收以「引用同一性」判定：完整命中链结束后 deltaMovement 仍是
+ *       注入的那个 Vec3 实例（如成功伤害 Enderman 的提前 return 路径——vanilla 未做
+ *       任何 self-motion 响应）时，注入值只是本规则的临时 artifact，恢复为活塞
+ *       move 完成后的真实速度；vanilla 一旦改写过速度，字段必然指向新实例（Vec3
+ *       运算全部分配新对象、get/setDeltaMovement 为纯字段读写），保留 vanilla 写入
+ *       的结果，三叉戟不会凭空获得段方向的持续速度。</li>
  * </ul>
  *
  * <p>R2 完成后不写 {@code dealtDamage}——onHitEntity 链自身在每次命中时置位；下一
@@ -71,17 +77,10 @@ public abstract class EnhancedTridentPistonMoveMixin {
             if (!EnhancedTridentHelper.isSignificantSegment(segment.x, segment.y, segment.z)) {
                 return;
             }
-            double maxT = 1.0D;
-            BlockHitResult blockHit = self.level().clip(
-                    new ClipContext(pre, post, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, self));
-            if (blockHit.getType() != HitResult.Type.MISS) {
-                Vec3 location = blockHit.getLocation();
-                maxT = EnhancedTridentHelper.paramAlong(
-                        pre.x, pre.y, pre.z, segment.x, segment.y, segment.z,
-                        location.x, location.y, location.z);
-            }
+            // post 已是 vanilla Entity.move 经方块碰撞裁剪后的实际终点（见类 javadoc），
+            // 实际发生的 pre→post 段不可能穿墙，无需再独立 raycast 二次裁剪
             List<EnhancedTridentSweeper.SweepHit> hits = EnhancedTridentSweeper.collect(
-                    self, pre, post, preBox, EnhancedTridentState.sweepMargin(self), maxT);
+                    self, pre, post, preBox, EnhancedTridentState.sweepMargin(), 1.0D);
             if (hits.isEmpty()) {
                 return;
             }
@@ -93,6 +92,7 @@ public abstract class EnhancedTridentPistonMoveMixin {
             EnhancedTridentState state = (EnhancedTridentState) self;
             state.carpetIceAddition$setRound(new EnhancedTridentState.EnhancedTridentRound(
                     self.tickCount, head.entity.getId(), secondaries, segment, pre, segment));
+            Vec3 velocityBeforeDispatch = self.getDeltaMovement();
             try {
                 self.setDeltaMovement(segment);
                 ((EnhancedTridentProjectileAccessor) (Object) this).carpetIceAddition$hitTargetOrDeflectSelf(
@@ -101,6 +101,9 @@ public abstract class EnhancedTridentPistonMoveMixin {
                 // 已消费时轮已被 onHit 包装取走（此处为 no-op）；未消费（队首盾反等
                 // deflection 路径不经过 onHit）时清除残留，速度保持 deflect 的写入
                 state.carpetIceAddition$setRound(null);
+                if (self.getDeltaMovement() == segment) {
+                    self.setDeltaMovement(velocityBeforeDispatch);
+                }
             }
         } catch (Throwable throwable) {
             if ((Object) this instanceof EnhancedTridentState state) {
