@@ -87,10 +87,9 @@ public abstract class EnhancedTridentMixin implements EnhancedTridentState {
             if (this.carpetIceAddition$round != null && this.carpetIceAddition$round.tick != self.tickCount) {
                 this.carpetIceAddition$round = null;
             }
-            // R1 的 end 已被 vanilla tick 按方块碰撞裁剪，maxT 恒为 1
+            // R1 的 end 已被 vanilla tick 按方块碰撞裁剪，段即为实际飞行路径
             List<EnhancedTridentSweeper.SweepHit> hits = EnhancedTridentSweeper.collect(
-                    self, start, end, self.getBoundingBox(),
-                    EnhancedTridentState.sweepMargin(), 1.0D);
+                    self, start, end, self.getBoundingBox(), EnhancedTridentState.sweepMargin());
             if (hits.isEmpty()) {
                 return;
             }
@@ -100,9 +99,8 @@ public abstract class EnhancedTridentMixin implements EnhancedTridentState {
                 secondaries.add(hits.get(i));
             }
             this.carpetIceAddition$round = new EnhancedTridentState.EnhancedTridentRound(
-                    self.tickCount, head.entity.getId(), secondaries, self.getDeltaMovement(), start, segment);
-            cir.setReturnValue(new EntityHitResult(
-                    head.entity, EnhancedTridentSweeper.hitLocation(start, segment, head)));
+                    self.tickCount, head.entity.getId(), secondaries, self.getDeltaMovement());
+            cir.setReturnValue(new EntityHitResult(head.entity, head.location));
         } catch (Throwable throwable) {
             this.carpetIceAddition$round = null;
             CarpetIceAdditionMod.reportFeatureCompatibilityIssue("enhancedTrident", throwable);

@@ -1,27 +1,23 @@
 package com.ice2974.carpeticeaddition.rules;
 
 /**
- * Pure-Java geometry and ordering primitives for the {@code enhancedTrident} Carpet rule.
+ * Pure-Java ordering and parameter primitives for the {@code enhancedTrident} Carpet rule.
  *
  * <p>This class is intentionally free of Minecraft types so it can be unit-tested by the
- * core-platform test suite ({@code :1.21.11:test}). The Minecraft-facing sweep that feeds
- * these primitives lives in {@link EnhancedTridentSweeper}.
+ * core-platform test suite ({@code :1.21.11:test}). The Minecraft-facing sweep lives in
+ * {@link EnhancedTridentSweeper}, which delegates the per-candidate geometry to vanilla
+ * {@code AABB} methods (bytecode-verified identical across all supported versions):
+ * group 0 (segment start inside the margin-inflated candidate box) via
+ * {@code AABB#contains} semantics — implemented here as {@link #boxContains} — and
+ * group 1 via a direct {@code AABB#clip(start, end)} call in the Sweeper. Group 0 is an
+ * intentional rule extension over vanilla flight (where {@code AABB#clip} returns empty
+ * for a start inside the box, so such candidates are never hit), required so a piston can
+ * re-hit an entity the trident never left. Zero-length segments are rejected up front,
+ * so a stationary trident never establishes an attack round.
  *
- * <p>The per-candidate test mirrors vanilla {@code ProjectileUtil#getEntityHitResult}
- * (the 7-arg overload used by {@code AbstractArrow#findHitEntity}, bytecode-verified
- * identical across all supported versions): candidates are tested against their
- * margin-inflated AABB via segment entry. Candidates already containing the segment
- * start form group 0 and take precedence — an intentional rule extension over vanilla
- * flight (where {@code AABB#clip} returns empty for a start inside the box, so such
- * candidates are never hit), required so a piston can re-hit an entity the trident
- * never left. Zero-length segments are rejected up front, so a stationary trident
- * never establishes an attack round.
- *
- * <p>Within group 0, hits are ordered by the candidate-box center projected onto the
- * movement direction; within group 1, by the segment entry parameter. Both groups fall
- * back to ascending entity id. These orderings decide which target becomes the head
- * (and therefore which target's vanilla self-motion response is kept), so they must
- * stay deterministic.
+ * <p>Orderings must stay deterministic regardless of broadphase iteration order because
+ * they decide which target becomes the head (and therefore which target's vanilla
+ * self-motion response is kept).
  */
 public final class EnhancedTridentHelper {
 
@@ -39,86 +35,20 @@ public final class EnhancedTridentHelper {
     }
 
     /**
-     * Entry parameter {@code t} in {@code [0, 1]} of segment {@code [s, s + d]} into the
-     * AABB, or {@link Double#NaN} when the segment misses the box. A start inside the box
-     * yields {@code 0}.
+     * 与 vanilla {@code AABB#contains(double, double, double)} 严格等价的半开区间判定
+     * （min 面含、max 面不含：{@code min <= v && v < max}），已对全部受支持版本字节码
+     * 核实一致。作为 group-0「start inside」的判定基础；不扩大 vanilla 的边界范围。
      */
-    public static double segmentBoxEntryT(
-            double sx, double sy, double sz, double dx, double dy, double dz,
-            double minX, double minY, double minZ, double maxX, double maxY, double maxZ) {
-        double tMin = 0.0D;
-        double tMax = 1.0D;
-
-        if (dx == 0.0D) {
-            if (sx < minX || sx > maxX) {
-                return Double.NaN;
-            }
-        } else {
-            double t1 = (minX - sx) / dx;
-            double t2 = (maxX - sx) / dx;
-            if (t1 > t2) {
-                double tmp = t1;
-                t1 = t2;
-                t2 = tmp;
-            }
-            tMin = Math.max(tMin, t1);
-            tMax = Math.min(tMax, t2);
-            if (tMin > tMax) {
-                return Double.NaN;
-            }
-        }
-
-        if (dy == 0.0D) {
-            if (sy < minY || sy > maxY) {
-                return Double.NaN;
-            }
-        } else {
-            double t1 = (minY - sy) / dy;
-            double t2 = (maxY - sy) / dy;
-            if (t1 > t2) {
-                double tmp = t1;
-                t1 = t2;
-                t2 = tmp;
-            }
-            tMin = Math.max(tMin, t1);
-            tMax = Math.min(tMax, t2);
-            if (tMin > tMax) {
-                return Double.NaN;
-            }
-        }
-
-        if (dz == 0.0D) {
-            if (sz < minZ || sz > maxZ) {
-                return Double.NaN;
-            }
-        } else {
-            double t1 = (minZ - sz) / dz;
-            double t2 = (maxZ - sz) / dz;
-            if (t1 > t2) {
-                double tmp = t1;
-                t1 = t2;
-                t2 = tmp;
-            }
-            tMin = Math.max(tMin, t1);
-            tMax = Math.min(tMax, t2);
-            if (tMin > tMax) {
-                return Double.NaN;
-            }
-        }
-
-        return tMin;
-    }
-
     public static boolean boxContains(
             double minX, double minY, double minZ, double maxX, double maxY, double maxZ,
             double px, double py, double pz) {
-        return px >= minX && px <= maxX && py >= minY && py <= maxY && pz >= minZ && pz <= maxZ;
+        return px >= minX && px < maxX && py >= minY && py < maxY && pz >= minZ && pz < maxZ;
     }
 
     /**
      * 候选盒中心相对段起点沿段向量 {@code d} 的投影（未归一化：同一次扫掠内所有
-     * 候选共享同一 {@code d}，按正数 |d| 缩放不改变全序）。组 0 的组内排序键：
-     * 中心更靠移动方向前方的目标排在前。
+     * 候选共享同一 {@code d}，按正数 |d| 缩放不改变全序）。group-0 的组内排序键：
+     * 按投影值升序排列，投影值相同按 entity ID 升序。
      */
     public static double centerProjection(
             double sx, double sy, double sz, double dx, double dy, double dz,
@@ -127,6 +57,22 @@ public final class EnhancedTridentHelper {
         double cy = (minY + maxY) * 0.5D;
         double cz = (minZ + maxZ) * 0.5D;
         return (cx - sx) * dx + (cy - sy) * dy + (cz - sz) * dz;
+    }
+
+    /**
+     * 点 {@code hit} 沿段 {@code [p, p + d]} 的参数，钳制到 {@code [0, 1]}。用于从
+     * vanilla {@code AABB#clip} 返回的命中点反推 group-1 的排序参数 t（vanilla 严格
+     * 保证 d ∈ (0, 1)，钳制仅为吸收重投影的浮点过冲），不实现任何 clip 几何。
+     */
+    public static double paramAlong(
+            double px, double py, double pz, double dx, double dy, double dz,
+            double hx, double hy, double hz) {
+        double lengthSqr = dx * dx + dy * dy + dz * dz;
+        if (lengthSqr <= 0.0D) {
+            return 0.0D;
+        }
+        double t = ((hx - px) * dx + (hy - py) * dy + (hz - pz) * dz) / lengthSqr;
+        return Math.max(0.0D, Math.min(1.0D, t));
     }
 
     /**

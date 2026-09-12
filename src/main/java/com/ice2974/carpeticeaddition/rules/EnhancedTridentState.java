@@ -37,9 +37,9 @@ public interface EnhancedTridentState {
     }
 
     /**
-     * 一次实际移动的攻击轮：建轮 tick、预期首目标实体 ID、其余目标（含各自的命中
-     * 参数）、本轮入射向量（派发前注入 deltaMovement，决定击退方向与 deflection
-     * 判定），以及本轮扫掠段起点与段向量（计算各目标的命中位置）。
+     * 一次实际移动的攻击轮：建轮 tick、预期首目标实体 ID、其余目标（含各自的排序
+     * 键与命中位置），以及本轮入射向量（派发前注入 deltaMovement，决定击退方向与
+     * deflection 判定）。
      */
     final class EnhancedTridentRound {
 
@@ -47,22 +47,16 @@ public interface EnhancedTridentState {
         public final int expectedFirstEntityId;
         public final List<EnhancedTridentSweeper.SweepHit> secondaryTargets;
         public final Vec3 incoming;
-        public final Vec3 sweepStart;
-        public final Vec3 sweepSegment;
 
         public EnhancedTridentRound(
                 int tick,
                 int expectedFirstEntityId,
                 List<EnhancedTridentSweeper.SweepHit> secondaryTargets,
-                Vec3 incoming,
-                Vec3 sweepStart,
-                Vec3 sweepSegment) {
+                Vec3 incoming) {
             this.tick = tick;
             this.expectedFirstEntityId = expectedFirstEntityId;
             this.secondaryTargets = secondaryTargets;
             this.incoming = incoming;
-            this.sweepStart = sweepStart;
-            this.sweepSegment = sweepSegment;
         }
     }
 }

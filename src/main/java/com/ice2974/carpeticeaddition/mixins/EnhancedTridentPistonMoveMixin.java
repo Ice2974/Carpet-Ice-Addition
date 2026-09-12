@@ -78,9 +78,9 @@ public abstract class EnhancedTridentPistonMoveMixin {
                 return;
             }
             // post 已是 vanilla Entity.move 经方块碰撞裁剪后的实际终点（见类 javadoc），
-            // 实际发生的 pre→post 段不可能穿墙，无需再独立 raycast 二次裁剪
+            // 实际发生的 pre→post 段不可能穿墙，直接以该段扫掠
             List<EnhancedTridentSweeper.SweepHit> hits = EnhancedTridentSweeper.collect(
-                    self, pre, post, preBox, EnhancedTridentState.sweepMargin(), 1.0D);
+                    self, pre, post, preBox, EnhancedTridentState.sweepMargin());
             if (hits.isEmpty()) {
                 return;
             }
@@ -91,12 +91,12 @@ public abstract class EnhancedTridentPistonMoveMixin {
             }
             EnhancedTridentState state = (EnhancedTridentState) self;
             state.carpetIceAddition$setRound(new EnhancedTridentState.EnhancedTridentRound(
-                    self.tickCount, head.entity.getId(), secondaries, segment, pre, segment));
+                    self.tickCount, head.entity.getId(), secondaries, segment));
             Vec3 velocityBeforeDispatch = self.getDeltaMovement();
             try {
                 self.setDeltaMovement(segment);
                 ((EnhancedTridentProjectileAccessor) (Object) this).carpetIceAddition$hitTargetOrDeflectSelf(
-                        new EntityHitResult(head.entity, EnhancedTridentSweeper.hitLocation(pre, segment, head)));
+                        new EntityHitResult(head.entity, head.location));
             } finally {
                 // 已消费时轮已被 onHit 包装取走（此处为 no-op）；未消费（队首盾反等
                 // deflection 路径不经过 onHit）时清除残留，速度保持 deflect 的写入

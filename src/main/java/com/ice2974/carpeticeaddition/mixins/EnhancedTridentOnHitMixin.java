@@ -75,8 +75,7 @@ public abstract class EnhancedTridentOnHitMixin {
                     ProjectileDeflection deflection =
                             ((EnhancedTridentProjectileAccessor) (Object) this)
                                     .carpetIceAddition$hitTargetOrDeflectSelf(
-                                            new EntityHitResult(target, EnhancedTridentSweeper.hitLocation(
-                                                    round.sweepStart, round.sweepSegment, secondary)));
+                                            new EntityHitResult(target, secondary.location));
                     if (deflection != ProjectileDeflection.NONE) {
                         return;
                     }
