@@ -6,7 +6,6 @@
     "defaultRequire": 1
   },
   "entries": [
-    { "name": "AbstractArrowBedrockTridentPortAccessor", "side": "common" },
     { "name": "AcquirePoiIronGolemOptimizationMixin", "side": "common" },
     { "name": "AmethystNaturalGrowthMixin", "side": "common" },
     { "name": "AssignProfessionFromJobSiteIronGolemOptimizationMixin", "side": "common" },
@@ -66,7 +65,6 @@
     { "name": "ServerWorldPhantomSpawnWarningMixin", "side": "common" },
     { "name": "ServerWorldRecordWorldEventMixin", "side": "common" },
     { "name": "SetRaidStatusIronGolemOptimizationMixin", "side": "common" },
-    { "name": "ThrownTridentBedrockTridentPortMixin", "side": "common" },
     { "name": "TrialSpawnerDataMixin", "side": "common" },
     { "name": "VillagerGoalPackagesIronGolemOptimizationMixin", "side": "common" },
     { "name": "VillagerIronGolemOptimizationMixin", "side": "common" },
