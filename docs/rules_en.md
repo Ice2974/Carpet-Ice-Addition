@@ -418,3 +418,16 @@ Restores the effects of eating an enchanted golden apple to those from Java Edit
 - Default: `false`
 - Possible values: `false`, `true`
 - Categories: `ICE`, `FEATURE`, `SURVIVAL`
+
+### bedrockImpalingPort
+
+Makes Impaling behave like Bedrock Edition, dealing additional damage to any target in water or rain.
+
+Impaling's target check is replaced with "the target is in water or being rained on": any entity in water or rain (including non-aquatic entities and players) receives the bonus damage, while vanilla aquatic entities in a dry environment no longer do. Impaling levels, the bonus damage values, and all other enchantment behavior are unchanged, and both trident melee and thrown tridents are covered.
+
+This rule only replaces the check while Impaling keeps its vanilla target-condition structure. If a datapack extends or rewrites Impaling's target condition, adds other requirements, adds other fields to the EntityPredicate, or adds a second `minecraft:damage` effect, the rule does not intervene and the datapack behavior is fully preserved.
+
+- Type: `boolean`
+- Default: `false`
+- Possible values: `false`, `true`
+- Categories: `ICE`, `FEATURE`
