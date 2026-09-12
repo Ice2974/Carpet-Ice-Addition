@@ -140,4 +140,7 @@ public final class CarpetIceAdditionSettings {
 
     @Rule(categories = {ICE, FEATURE, SURVIVAL})
     public static boolean enchantedGoldenAppleEffectRollback = false;
+
+    @Rule(categories = {ICE, FEATURE})
+    public static boolean bedrockTridentPort = false;
 }

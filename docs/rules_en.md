@@ -405,3 +405,12 @@ Restores the effects of eating an enchanted golden apple to those from Java Edit
 - Default: `false`
 - Possible values: `false`, `true`
 - Categories: `ICE`, `FEATURE`, `SURVIVAL`
+
+### bedrockTridentPort
+
+Makes a landed trident deal damage to entities again when it is moved again, like Bedrock Edition. A landed trident at rest never deals contact damage to entities that walk into it; each landing period grants at most one re-hit opportunity, which is consumed on hit and only renews after the trident lands again and is moved again. Throwing, flight, first hits, Loyalty returns, enchantments, and damage sources all keep their vanilla Java behavior, and disabling the rule immediately restores vanilla behavior.
+
+- Type: `boolean`
+- Default: `false`
+- Possible values: `false`, `true`
+- Categories: `ICE`, `FEATURE`

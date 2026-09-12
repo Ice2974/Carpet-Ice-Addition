@@ -150,5 +150,6 @@
   "carpet.rule.villagerTradingOptimization.desc": "Naming a villager trade trims its AI to the minimum behavior set required by a fixed trading hall",
   "carpet.rule.ironGolemSpawningOptimization.desc": "Naming a villager iron_golem trims its AI to the minimum behavior set required by a scare-based iron farm",
   "carpet.rule.nameTagDuplicateNamingFix.desc": "Prevents a name tag from being consumed when its name is identical to the entity's current custom name",
-  "carpet.rule.enchantedGoldenAppleEffectRollback.desc": "Restores the effects of eating an enchanted golden apple to those from Java Edition 1.8: Regeneration V for 30 seconds, Absorption I for 2 minutes, Resistance I for 5 minutes, and Fire Resistance I for 5 minutes"
+  "carpet.rule.enchantedGoldenAppleEffectRollback.desc": "Restores the effects of eating an enchanted golden apple to those from Java Edition 1.8: Regeneration V for 30 seconds, Absorption I for 2 minutes, Resistance I for 5 minutes, and Fire Resistance I for 5 minutes",
+  "carpet.rule.bedrockTridentPort.desc": "Makes a landed trident deal damage to entities again when it is moved again, like Bedrock Edition"
 }

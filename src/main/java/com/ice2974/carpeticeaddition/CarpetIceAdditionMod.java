@@ -3,6 +3,7 @@ package com.ice2974.carpeticeaddition;
 import carpet.CarpetExtension;
 import carpet.CarpetServer;
 import carpet.utils.CommandHelper;
+import com.ice2974.carpeticeaddition.rules.BedrockTridentPortRuleTracker;
 import com.ice2974.carpeticeaddition.rules.BotTabListNameHelper;
 import com.ice2974.carpeticeaddition.rules.CraftableCoralBlocksDataPackController;
 import com.ice2974.carpeticeaddition.rules.CraftableCoralBlocksState;
@@ -89,6 +90,12 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
                 if (!CarpetIceAdditionSettings.recordWorldEventFix) {
                     DelayedJukeboxStartEventManager.clearAll();
                 }
+                return;
+            }
+            if ("bedrockTridentPort".equals(ruleName)) {
+                // 世代递增隔离不同开启周期授予的重新命中资格：true→false→true 在三叉戟下一次
+                // tick 前完成时，旧资格因世代不匹配立即失效，无需实体遍历。
+                BedrockTridentPortRuleTracker.onRuleChanged();
                 return;
             }
             if ("villagerTradingOptimization".equals(ruleName)) {
