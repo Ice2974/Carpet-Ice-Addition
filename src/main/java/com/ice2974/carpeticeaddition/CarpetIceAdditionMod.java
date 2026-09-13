@@ -3,6 +3,7 @@ package com.ice2974.carpeticeaddition;
 import carpet.CarpetExtension;
 import carpet.CarpetServer;
 import carpet.utils.CommandHelper;
+import com.ice2974.carpeticeaddition.rules.BetterTridentDespawnEpoch;
 import com.ice2974.carpeticeaddition.rules.BotTabListNameHelper;
 import com.ice2974.carpeticeaddition.rules.CraftableCoralBlocksDataPackController;
 import com.ice2974.carpeticeaddition.rules.CraftableCoralBlocksState;
@@ -96,6 +97,12 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
                 // 规则值变化即推进 grounded-rearm 代际：true→false→true 在实体下一
                 // tick 前快速完成时，旧授予的资格不得在重新开启后复活
                 EnhancedTridentRearmEpoch.advance();
+                return;
+            }
+            if ("betterTridentDespawnCondition".equals(ruleName)) {
+                // 规则值变化即推进静止计时代际：规则关闭期间实体可能被移动而未被
+                // 采样，旧累积的静止计时不得在重新开启后复活
+                BetterTridentDespawnEpoch.advance();
                 return;
             }
             if ("villagerTradingOptimization".equals(ruleName)) {

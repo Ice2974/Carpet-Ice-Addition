@@ -13,6 +13,8 @@
     { "name": "BeaconProperToolFixMixin", "side": "common" },
     { "name": "BedrockImpalingPortMixin", "side": "common" },
     { "name": "BehaviorIronGolemOptimizationMixin", "side": "common" },
+    { "name": "BetterTridentDespawnConditionGateMixin", "side": "common" },
+    { "name": "BetterTridentDespawnConditionMixin", "side": "common" },
     { "name": "BlockItemEasyWaterloggedBlockPlacementMixin", "side": "common" },
     { "name": "BookEditScreenDisableIllegalTextCharacterCheckMixin", "side": "client", "maxMc": "1.21.5" },
     { "name": "BrainProviderTradingOptimizationMixin", "side": "common", "minMc": "26.1.2" },

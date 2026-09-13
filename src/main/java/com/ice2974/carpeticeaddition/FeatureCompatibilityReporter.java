@@ -34,6 +34,7 @@ public final class FeatureCompatibilityReporter {
     private static final AtomicBoolean CRAFTABLE_CORAL_BLOCKS_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean VILLAGER_TRADING_OPTIMIZATION_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean BEDROCK_IMPALING_PORT_ERROR_REPORTED = new AtomicBoolean(false);
+    private static final AtomicBoolean BETTER_TRIDENT_DESPAWN_CONDITION_ERROR_REPORTED = new AtomicBoolean(false);
 
     public static void reportFeatureCompatibilityIssue(String featureName, Throwable throwable) {
         AtomicBoolean flag;
@@ -83,6 +84,8 @@ public final class FeatureCompatibilityReporter {
             flag = VILLAGER_TRADING_OPTIMIZATION_ERROR_REPORTED;
         } else if ("bedrockImpalingPort".equals(featureName)) {
             flag = BEDROCK_IMPALING_PORT_ERROR_REPORTED;
+        } else if ("betterTridentDespawnCondition".equals(featureName)) {
+            flag = BETTER_TRIDENT_DESPAWN_CONDITION_ERROR_REPORTED;
         } else {
             LOGGER.warn("[Carpet Ice Addition] Compatibility issue in feature {}: {}", featureName, throwable.toString());
             return;

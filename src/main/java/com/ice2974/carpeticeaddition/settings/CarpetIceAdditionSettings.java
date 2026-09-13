@@ -146,4 +146,7 @@ public final class CarpetIceAdditionSettings {
 
     @Rule(categories = {ICE, FEATURE})
     public static boolean bedrockImpalingPort = false;
+
+    @Rule(categories = {ICE, FEATURE})
+    public static boolean betterTridentDespawnCondition = false;
 }

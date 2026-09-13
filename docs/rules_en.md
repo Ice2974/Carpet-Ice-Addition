@@ -432,3 +432,16 @@ This rule only replaces the check while Impaling keeps its vanilla target-condit
 - Default: `false`
 - Possible values: `false`, `true`
 - Categories: `ICE`, `FEATURE`
+
+### betterTridentDespawnCondition
+
+Tridents can only despawn after being stuck in a block and remaining stationary for 1200 game ticks.
+
+This rule only adds an extra despawn eligibility condition without changing the vanilla despawn timing or the vanilla despawn timer: the `life` counter keeps incrementing every game tick, keeps its vanilla reset and persistence behavior, and the vanilla threshold of 1200 game ticks is untouched. While the rule is enabled, a trident executes the vanilla despawn only after the vanilla despawn condition is already met and the trident has additionally remained stationary for 1200 consecutive server-side grounded game ticks (no numeric coordinate change at all); an undisturbed stuck trident despawns on exactly the same tick as vanilla.
+
+Any actual displacement restarts the stationary time: any numeric coordinate change (for example a piston push or a teleport) counts as movement, being pushed off its support and falling again also resets the timer, and a same-tick push-and-return round trip is caught as well. After the rule value changes, previously accumulated stationary time becomes invalid and accumulation restarts from the next sample; after a chunk unload/reload or a server restart the stationary timer starts over (vanilla `life` persistence is unaffected). Loyalty returns, player pickup, hits, and damage keep their vanilla behavior.
+
+- Type: `boolean`
+- Default: `false`
+- Possible values: `false`, `true`
+- Categories: `ICE`, `FEATURE`
