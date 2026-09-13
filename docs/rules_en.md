@@ -112,7 +112,7 @@ Budding amethyst can be collected by using a suitable tool with the Silk Touch e
 
 ### silkTouchFrostedIce
 
-Frosted ice drops 1 regular ice when broken by a player using any tool with the Silk Touch enchantment.
+Drops 1 regular ice when broken using any tool with the Silk Touch enchantment.
 
 - Type: `boolean`
 - Default: `false`
@@ -121,7 +121,7 @@ Frosted ice drops 1 regular ice when broken by a player using any tool with the 
 
 ### frostedIceProperToolFix
 
-Makes pickaxes the proper tools for breaking frosted ice, so that pickaxe mining speed is applied as if it were ice.
+Makes pickaxes the proper tools for breaking frosted ice.
 
 - Type: `boolean`
 - Default: `false`
@@ -202,7 +202,7 @@ Registers the /killitem command for clearing item entities by radius or globally
 
 ### commandMachineStatus
 
-Registers the /machineStatus command to save the target block state when a technical machine is shut down, and to check which machines are not currently in their saved shutdown state.
+Controls the permission of the /machineStatus command, which saves the target block state when a technical machine is shut down, and checks which machines are not currently in their saved shutdown state.
 
 - Type: `String`
 - Default: `ops`
@@ -243,12 +243,7 @@ Affected mobs include cats, wolves, parrots, nautiluses, zombie nautiluses, hors
 
 ### enhancedTrident
 
-Allows tridents to hit multiple entities during a movement and regain the ability to deal damage when moved again after stopping.\
-One actual movement (a normal flight segment or a non-zero displacement segment produced by a piston push) can resolve a full vanilla hit against each entity on the swept path (damage, enchantments, knockback, hit sound, and the `PROJECTILE_LAND` game event all run per target through vanilla logic, with no target-count limit); entities behind blocks are never hit through walls.\
-A stationary trident (zero displacement) never deals damage; the velocity response of a normal trident hit (deflection and scaling) executes only once per movement, based on the first normally hit target; when a later target triggers a vanilla deflection (such as a shield block), that deflection is kept and the remaining targets of the round are skipped immediately.\
-A trident that has landed and come to rest resumes attacking when it loses support and free-falls again: the fall itself counts as a normal flight segment, and the hit eligibility gained on each lift-off is consumed as soon as any legitimate attack round (a flight round or a piston round) is established, to be regained only after the trident lands and comes to rest again.\
-A small piston displacement is enough to hit again, even if the trident never left the target entity's bounding box; Loyalty's return phase never attacks.\
-Source: inspired by the trident multi-hit behavior in Java Edition snapshot 25w41a and the Bedrock trident killer design; implemented independently, not a port.
+Allows tridents to hit multiple entities during a movement and regain the ability to deal damage when moved again after stopping.
 
 - Type: `boolean`
 - Default: `false`
@@ -266,7 +261,7 @@ Warns players at the start of the night when they reach the vanilla insomnia tim
 
 ### neutralPhantoms
 
-Makes phantoms neutral toward players: they will not attack players first, but will fight back when attacked. After the rule is turned off, retaliation targets and records created by this mod are cleared on the next server AI update; while the rule is off, retaliation records are neither read from nor written to entity data.
+Phantoms will not attack players first, but will fight back when attacked.
 
 - Type: `boolean`
 - Default: `false`
@@ -366,8 +361,7 @@ Skips vanilla text character validation, allowing characters that are normally r
 
 ### waterFluidTickDelay
 
-Customizes the water flow delay in game ticks; the default `vanilla` leaves the vanilla delay untouched, and modifications from vanilla and other mods all take effect. Any positive integer (including 5) forces that delay. Setting it to `freeze` freezes scheduled ticks related to water flow; the keep-alive delay used while frozen is still taken from the vanilla `getTickDelay` call path, so other mods' modifications may affect that period, but they cannot unfreeze the flow.
-
+Customizes the water flow delay in game ticks.
 - Type: `String`
 - Default: `vanilla`
 - Suggested values: `freeze`, `vanilla`
@@ -376,8 +370,7 @@ Customizes the water flow delay in game ticks; the default `vanilla` leaves the 
 
 ### lavaFluidTickDelay
 
-Customizes the lava flow delay in game ticks; the default `vanilla` leaves the vanilla delay untouched, and modifications from vanilla and other mods all take effect. Any positive integer (including 30) forces that delay; in ultrawarm dimensions, the configured delay is divided by three with a minimum value of 1. Setting it to `freeze` freezes lava flow without affecting random ticks; the keep-alive delay used while frozen is still taken from the vanilla `getTickDelay` call path, so other mods' modifications may affect that period, but they cannot unfreeze the flow.
-
+Customizes the lava flow delay in game ticks.
 - Type: `String`
 - Default: `vanilla`
 - Suggested values: `freeze`, `vanilla`
@@ -424,10 +417,6 @@ Restores the effects of eating an enchanted golden apple to those from Java Edit
 
 Makes Impaling behave like Bedrock Edition, dealing additional damage to any target in water or rain.
 
-Impaling's target check is replaced with "the target is in water or being rained on": any entity in water or rain (including non-aquatic entities and players) receives the bonus damage, while vanilla aquatic entities in a dry environment no longer do. Impaling levels, the bonus damage values, and all other enchantment behavior are unchanged, and both trident melee and thrown tridents are covered.
-
-This rule only replaces the check while Impaling keeps its vanilla target-condition structure. If a datapack extends or rewrites Impaling's target condition, adds other requirements, adds other fields to the EntityPredicate, or adds a second `minecraft:damage` effect, the rule does not intervene and the datapack behavior is fully preserved.
-
 - Type: `boolean`
 - Default: `false`
 - Possible values: `false`, `true`
@@ -436,10 +425,6 @@ This rule only replaces the check while Impaling keeps its vanilla target-condit
 ### betterTridentDespawnCondition
 
 Tridents can only despawn after being stuck in a block and remaining stationary for 1200 game ticks.
-
-This rule only adds an extra despawn eligibility condition without changing the vanilla despawn timing or the vanilla despawn timer: the `life` counter keeps incrementing every game tick, keeps its vanilla reset and persistence behavior, and the vanilla threshold of 1200 game ticks is untouched. While the rule is enabled, a trident executes the vanilla despawn only after the vanilla despawn condition is already met and the trident has additionally remained stationary for 1200 consecutive server-side grounded game ticks (no numeric coordinate change at all); an undisturbed stuck trident despawns on exactly the same tick as vanilla.
-
-Any actual displacement restarts the stationary time: any numeric coordinate change (for example a piston push or a teleport) counts as movement, being pushed off its support and falling again also resets the timer, and a same-tick push-and-return round trip is caught as well. After the rule value changes, previously accumulated stationary time becomes invalid and accumulation restarts from the next sample; after a chunk unload/reload or a server restart the stationary timer starts over (vanilla `life` persistence is unaffected). Loyalty returns, player pickup, hits, and damage keep their vanilla behavior.
 
 - Type: `boolean`
 - Default: `false`
