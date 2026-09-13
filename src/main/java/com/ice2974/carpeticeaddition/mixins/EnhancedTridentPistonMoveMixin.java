@@ -31,6 +31,10 @@ import java.util.List;
  * <ul>
  *   <li>只支持 {@code MoverType.PISTON}（SHULKER / SHULKER_BOX 不在本规则范围）；
  *       位移段长不大于 ε（零位移）不建轮、不改速度、不扫描；无候选时不建轮、不写速度。</li>
+ *   <li>非空扫掠建轮时消费 grounded-rearm 资格：活塞把三叉戟推离支撑时，
+ *       {@code original.call} 内的 vanilla {@code startFalling} 刚授予 R1 资格，
+ *       若本次 R2 已命中实体而不消费，下一 tick R1 会对同一推动追加一次攻击；
+ *       本次无候选（未建轮）则资格保留，供后续自由下落由 R1 使用。</li>
  *   <li>不对方块做独立的二次裁剪：{@code Entity.move} 对 PISTON 位移先
  *       limitPistonMovement、再 collide → collideBoundingBox 按实体 AABB 对方块
  *       碰撞做扫掠裁剪后才 setPos（1.21.1 与 26.2 字节码两端核实），移动后的 post
@@ -51,9 +55,10 @@ import java.util.List;
  *       的结果，三叉戟不会凭空获得段方向的持续速度。</li>
  * </ul>
  *
- * <p>R2 完成后不写 {@code dealtDamage}——onHitEntity 链自身在每次命中时置位；下一
- * 个飞行 tick 的 R1 闸门不受影响，重新武装只来自下一次实际位移。规则关闭时不做
- * 任何快照、扫描或状态写入（首行直接透传）。
+ * <p>R2 完成后不写 {@code dealtDamage}——onHitEntity 链自身在每次命中时置位；R2
+ * 门控自身也不要求 grounded-rearm（保持忽略 dealtDamage），只在非空扫掠建轮时消费
+ * 它（见上），下一 tick 的 R1 闸门因此不追加。重新武装只来自下一次实际位移或真正的
+ * 重新离地。规则关闭时不做任何快照、扫描或状态写入（首行直接透传）。
  */
 @Mixin(AbstractArrow.class)
 public abstract class EnhancedTridentPistonMoveMixin {
@@ -90,6 +95,8 @@ public abstract class EnhancedTridentPistonMoveMixin {
                 secondaries.add(hits.get(i));
             }
             EnhancedTridentState state = (EnhancedTridentState) self;
+            // 建轮即消费 grounded-rearm（类 javadoc），无候选路径已提前 return
+            state.carpetIceAddition$consumeGroundedRearm();
             state.carpetIceAddition$setRound(new EnhancedTridentState.EnhancedTridentRound(
                     self.tickCount, head.entity.getId(), secondaries, segment));
             Vec3 velocityBeforeDispatch = self.getDeltaMovement();

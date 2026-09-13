@@ -12,6 +12,9 @@ import java.util.List;
  * 不持久化，建轮与消费发生在同一次实体 tick 的调用栈内；未被消费的轮最迟在下一次
  * 建轮尝试时因 tick 不匹配被清除。{@code dispatching} 防止 secondary 派发经
  * {@code hitTargetOrDeflectSelf → onHit} 重入消费逻辑，必须以 try/finally 恢复。
+ * grounded-rearm 资格同样 @Unique、非持久：在真正离地时授予（见
+ * {@code EnhancedTridentGroundedRearmMixin}），任何非空扫掠建轮时消费，代际校验
+ * 见 {@link EnhancedTridentRearmEpoch}。
  */
 public interface EnhancedTridentState {
 
@@ -22,6 +25,26 @@ public interface EnhancedTridentState {
     boolean carpetIceAddition$isDispatching();
 
     void carpetIceAddition$setDispatching(boolean dispatching);
+
+    /**
+     * grounded-rearm 资格在指定规则代际下是否仍有效（授予代际 == currentGeneration，
+     * 无资格时字段为 -1 永不匹配）。
+     *
+     * @param currentGeneration 当前规则代际（{@link EnhancedTridentRearmEpoch#current()}）
+     */
+    boolean carpetIceAddition$isGroundedRearm(int currentGeneration);
+
+    /**
+     * 授予一次 grounded-rearm 资格并记录授予时的规则代际（幂等：重复授予刷新代际）。
+     */
+    void carpetIceAddition$grantGroundedRearm(int generation);
+
+    /**
+     * 消费 grounded-rearm 资格（置为无资格）。任何非空扫掠建轮（R1 飞行轮或 R2
+     * 活塞轮）时调用——队首普通命中、免伤（hurt=false）、Enderman 或被弹开
+     * （deflection 不经过 onHit）均视为资格已使用。
+     */
+    void carpetIceAddition$consumeGroundedRearm();
 
     /**
      * 本规则多目标扫掠的统一容差（候选盒 inflate 量），全部受支持版本固定为

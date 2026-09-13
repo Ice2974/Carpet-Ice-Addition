@@ -2,6 +2,7 @@ package com.ice2974.carpeticeaddition.mixins;
 
 import com.ice2974.carpeticeaddition.CarpetIceAdditionMod;
 import com.ice2974.carpeticeaddition.rules.EnhancedTridentHelper;
+import com.ice2974.carpeticeaddition.rules.EnhancedTridentRearmEpoch;
 import com.ice2974.carpeticeaddition.rules.EnhancedTridentSweeper;
 import com.ice2974.carpeticeaddition.rules.EnhancedTridentState;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
@@ -28,15 +29,20 @@ import java.util.List;
  * 自身完成 {@code hitTargetOrDeflectSelf(队首)}，由 {@code EnhancedTridentOnHitMixin}
  * 在 {@code Projectile#onHit} 处接管并派发 secondary（每个目标都走完整原版命中链）。
  *
- * <p>R1 门控：仅当 {@code dealtDamage == false} 时建立攻击轮——{@code dealtDamage}
- * 在首次实体命中时即置位（onHitEntity 首段），因此命中后的残余速度段在后续 tick
- * 落入 vanilla 自身的 {@code if (dealtDamage) return null} 闸门，不会跨 tick 重打；
- * 本轮已收集的 secondary 不受首目标置位影响（派发在同一次调用栈内完成）。忠诚
- * 返回段（noPhysics）与客户端侧直接走原版路径；段长不大于 ε 时同样不建轮（静止
- * 绝不伤害）。规则关闭时不做任何额外扫描，完全原版。
+ * <p>R1 门控：仅当 {@code dealtDamage == false}，或存在代际有效的 grounded-rearm
+ * 资格（由 {@code EnhancedTridentGroundedRearmMixin} 在真正离地时授予，代际见
+ * {@link com.ice2974.carpeticeaddition.rules.EnhancedTridentRearmEpoch}）时建立
+ * 攻击轮——{@code dealtDamage} 在首次实体命中时即置位（onHitEntity 首段），因此
+ * 命中后的残余速度段在后续 tick 落入 vanilla 自身的 {@code if (dealtDamage)
+ * return null} 闸门，不会跨 tick 重打；本轮已收集的 secondary 不受首目标置位影响
+ * （派发在同一次调用栈内完成）。任何非空扫掠建轮时立即消费 rearm 资格（队首被弹
+ * 开等不经过 onHit 的路径同样视为已使用）。忠诚返回段（noPhysics）与客户端侧直接
+ * 走原版路径；段长不大于 ε 时同样不建轮（静止绝不伤害）。规则关闭时不做任何额外
+ * 扫描，完全原版。
  *
- * <p>本 Mixin 同时实现 {@link EnhancedTridentState} duck 接口，承载轮状态与
- * dispatching 防重入标志（均 @Unique、非持久、随实体对象生灭）。
+ * <p>本 Mixin 同时实现 {@link EnhancedTridentState} duck 接口，承载轮状态、
+ * dispatching 防重入标志与 grounded-rearm 代际（均 @Unique、非持久、随实体对象
+ * 生灭）。
  */
 @Mixin(ThrownTrident.class)
 public abstract class EnhancedTridentMixin implements EnhancedTridentState {
@@ -49,6 +55,9 @@ public abstract class EnhancedTridentMixin implements EnhancedTridentState {
 
     @Unique
     private boolean carpetIceAddition$dispatching;
+
+    @Unique
+    private int carpetIceAddition$groundedRearmGeneration = -1;
 
     @Override
     public EnhancedTridentState.EnhancedTridentRound carpetIceAddition$getRound() {
@@ -70,13 +79,33 @@ public abstract class EnhancedTridentMixin implements EnhancedTridentState {
         this.carpetIceAddition$dispatching = dispatching;
     }
 
+    @Override
+    public boolean carpetIceAddition$isGroundedRearm(int currentGeneration) {
+        return this.carpetIceAddition$groundedRearmGeneration == currentGeneration;
+    }
+
+    @Override
+    public void carpetIceAddition$grantGroundedRearm(int generation) {
+        this.carpetIceAddition$groundedRearmGeneration = generation;
+    }
+
+    @Override
+    public void carpetIceAddition$consumeGroundedRearm() {
+        this.carpetIceAddition$groundedRearmGeneration = -1;
+    }
+
     @Inject(method = "findHitEntity", at = @At("HEAD"), cancellable = true)
     private void carpetIceAddition$sweepFlight(Vec3 start, Vec3 end, CallbackInfoReturnable<EntityHitResult> cir) {
         if (!CarpetIceAdditionSettings.enhancedTrident) {
             return;
         }
         ThrownTrident self = (ThrownTrident) (Object) this;
-        if (self.level().isClientSide() || self.noPhysics || this.dealtDamage) {
+        if (self.level().isClientSide() || self.noPhysics) {
+            return;
+        }
+        if (!EnhancedTridentHelper.isFlightRoundPermitted(
+                this.dealtDamage,
+                this.carpetIceAddition$isGroundedRearm(EnhancedTridentRearmEpoch.current()))) {
             return;
         }
         Vec3 segment = end.subtract(start);
@@ -98,6 +127,9 @@ public abstract class EnhancedTridentMixin implements EnhancedTridentState {
             for (int i = 1; i < hits.size(); i++) {
                 secondaries.add(hits.get(i));
             }
+            // 建轮即消费 grounded-rearm：队首被弹开等不经过 onHit 的路径同样算已用，
+            // 资格不会被残余速度在后续 tick 复用
+            this.carpetIceAddition$consumeGroundedRearm();
             this.carpetIceAddition$round = new EnhancedTridentState.EnhancedTridentRound(
                     self.tickCount, head.entity.getId(), secondaries, self.getDeltaMovement());
             cir.setReturnValue(new EntityHitResult(head.entity, head.location));

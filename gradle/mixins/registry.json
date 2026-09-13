@@ -30,6 +30,7 @@
     { "name": "EntitySetCustomNameIronGolemOptimizationMixin", "side": "common" },
     { "name": "EntitySetCustomNameTradingOptimizationMixin", "side": "common" },
     { "name": "EnhancedTridentAbstractArrowAccessor", "side": "common" },
+    { "name": "EnhancedTridentGroundedRearmMixin", "side": "common" },
     { "name": "EnhancedTridentMixin", "side": "common" },
     { "name": "EnhancedTridentOnHitMixin", "side": "common" },
     { "name": "EnhancedTridentPistonMoveMixin", "side": "common" },

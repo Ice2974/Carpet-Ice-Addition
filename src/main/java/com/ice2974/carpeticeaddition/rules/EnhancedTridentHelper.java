@@ -35,6 +35,16 @@ public final class EnhancedTridentHelper {
     }
 
     /**
+     * R1 飞行轮门控谓词：未命中过实体（dealtDamage == false）时始终允许建轮；
+     * 已命中过的三叉戟只有持有代际有效的 grounded-rearm 资格时才允许一次
+     * （资格由 {@code EnhancedTridentGroundedRearmMixin} 在真正离地时授予、
+     * 建轮时消费，代际见 {@link EnhancedTridentRearmEpoch}）。
+     */
+    public static boolean isFlightRoundPermitted(boolean dealtDamage, boolean groundedRearmActive) {
+        return !dealtDamage || groundedRearmActive;
+    }
+
+    /**
      * 与 vanilla {@code AABB#contains(double, double, double)} 严格等价的半开区间判定
      * （min 面含、max 面不含：{@code min <= v && v < max}），已对全部受支持版本字节码
      * 核实一致。作为 group-0「start inside」的判定基础；不扩大 vanilla 的边界范围。

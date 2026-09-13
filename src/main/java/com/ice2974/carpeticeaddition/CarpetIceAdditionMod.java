@@ -7,6 +7,7 @@ import com.ice2974.carpeticeaddition.rules.BotTabListNameHelper;
 import com.ice2974.carpeticeaddition.rules.CraftableCoralBlocksDataPackController;
 import com.ice2974.carpeticeaddition.rules.CraftableCoralBlocksState;
 import com.ice2974.carpeticeaddition.rules.DelayedJukeboxStartEventManager;
+import com.ice2974.carpeticeaddition.rules.EnhancedTridentRearmEpoch;
 import com.ice2974.carpeticeaddition.rules.VillagerTradingOptimizationRuleHelper;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionEndPlatformSettings;
 //#if MC>=12111
@@ -89,6 +90,12 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
                 if (!CarpetIceAdditionSettings.recordWorldEventFix) {
                     DelayedJukeboxStartEventManager.clearAll();
                 }
+                return;
+            }
+            if ("enhancedTrident".equals(ruleName)) {
+                // 规则值变化即推进 grounded-rearm 代际：true→false→true 在实体下一
+                // tick 前快速完成时，旧授予的资格不得在重新开启后复活
+                EnhancedTridentRearmEpoch.advance();
                 return;
             }
             if ("villagerTradingOptimization".equals(ruleName)) {
