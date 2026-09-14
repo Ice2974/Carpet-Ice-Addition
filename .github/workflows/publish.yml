@@ -121,7 +121,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          # P12：唯一生产 resolver 随 workflow 携带，checkout 发布 tag 不依赖该树存在新脚本。
+          # 唯一生产 resolver 随 workflow 携带，checkout 发布 tag 不依赖该树存在新脚本。
           # 发布身份来自结构化版本数据。harness 机械提取整个模块。
           resolver_script=$(mktemp)
           cat > "$resolver_script" <<'PUBLISH_RESOLVER_PY'

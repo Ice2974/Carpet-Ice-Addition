@@ -1,22 +1,22 @@
 plugins {
-    // Phase 5（P5-1）：根项目承载 preprocess 版本图（根无 parent → 自动应用 RootPreprocessPlugin）。
+    // 根项目承载 preprocess 版本图（根无 parent → 自动应用 RootPreprocessPlugin）。
     // 插件 id 沿用 ReplayMod 上游命名，经 settings.gradle resolutionStrategy 解析到
     // JitPack com.github.Fallen-Breath:preprocessor（版本 = 根 gradle.properties preprocess_version，全 SHA 锁定）。
     id 'com.replaymod.preprocess' version "${preprocess_version}"
 }
 
-// Phase 11 build-only schema/generator support. Canonical data is deliberately outside every runtime resource tree.
+// Build-only schema/generator support. Canonical data is deliberately outside every runtime resource tree.
 apply from: rootProject.file('gradle/mixin-registry.gradle')
 
-// preprocess 版本图（Phase 5；Phase 8 节点正名）：节点名 = 真实 Gradle project name = 真实 MC 版本号
-// （扁平化后 :1.21.11 等；P8-0 本地探针已实证 Gradle 9.2.1 接受中间点项目名），
+// preprocess 版本图：节点名 = 真实 Gradle project name = 真实 MC 版本号
+// （扁平化后 :1.21.11 等；Gradle 9.2.1 允许中间点项目名，NameValidator 仅禁首尾点与 / \ : < > " ? * |），
 // 版本码整数与节点一一对应（整数驱动 //#if MC 比较，与节点名正交，保持不变）；
 // 主版本（core = versions/mainProject 文件内容 1.21.11，即 root src 的命名基准）无变换直通，其余节点沿链变换。
 // 边约定：link(高版本侧, 低版本侧, file)，mapping 文件内容 = 高版本侧命名 → 低版本侧命名（AMS 同款约定）；
 // 1.21.x remap↔remap 边依赖插件经 loom mappings 的 automatic mapping（named→intermediary→named 自动合成，
-// P5-0 实证的纯 rename 不写条目，文件保持 0 字节）；1.21.11↔26.1.2 为 remap↔plain 边
-// （26.x 无 intermediary，自动链路不存在），显式 legacy mapping 承载 rename（P5-4 已按机械提取+编译复核
-// 定稿：仅 2 条最小 legacy mapping——displayClientMessage→sendSystemMessage、getDayTime→getOverworldClockTime）。
+// 纯 rename 边的 mapping 文件保持 0 字节，无需显式条目）；1.21.11↔26.1.2 为 remap↔plain 边
+// （26.x 无 intermediary，自动链路不存在），显式 legacy mapping 承载 rename
+// （仅 2 条：displayClientMessage→sendSystemMessage、getDayTime→getOverworldClockTime）。
 preprocess {
     strictExtraMappings.set(true)
 
@@ -65,10 +65,10 @@ def platformProjects = versionRegistry.collect { version -> ":${version}" }
 def mixinRegistryFile = file('gradle/mixins/registry.json')
 ext.mixinRegistryFile = mixinRegistryFile
 
-// P8 正名后的版本项目名登记（common.gradle 的 platform-only 三重断言数据源；根项目先于子项目配置，时序安全）
+// 版本项目名登记（common.gradle 的 platform-only 三重断言数据源；根项目先于子项目配置，时序安全）
 ext.versionProjectNames = versionRegistry.collect { it.toString() }
 
-// P9：单元测试归属 core 平台。versions/mainProject 文件内容 = 主源码命名基准 = core 版本项目名，
+// 单元测试归属 core 平台。versions/mainProject 文件内容 = 主源码命名基准 = core 版本项目名，
 // common.gradle 据此为该项目接线 test sourceSet（其余平台 test 保持 NO-SOURCE）。
 // fail closed：内容 trim 后非空，且必须是 settings.json 注册表登记的版本项目。
 def mainProjectNameRaw = file('versions/mainProject').getText('UTF-8').trim()
@@ -77,7 +77,7 @@ assert mainProjectNameRaw in versionRegistry.collect { it.toString() }:
         "versions/mainProject=${mainProjectNameRaw} 必须是 settings.json 版本注册表登记的版本项目"
 ext.mainProjectName = mainProjectNameRaw
 
-// P10-B：珊瑚内置资源包在 jar 内的根路径（verifyCraftableCoralBlocksJars 与碰撞不变式共享，
+// 珊瑚内置资源包在 jar 内的根路径（verifyCraftableCoralBlocksJars 与碰撞不变式共享，
 // 单一来源，不维护第二份字面量）
 def craftableCoralPackRoot = 'resourcepacks/craftable_coral_blocks/'
 
@@ -94,12 +94,12 @@ def craftableCoralRecipePaths = [
         'coral_block_from_dead_horn_coral_fan'
 ]
 
-// P10-B：资源碰撞不变式预期数据（common.gradle 各平台 afterEvaluate 配置期消费，fail closed）。
+// 资源碰撞不变式预期数据（common.gradle 各平台 afterEvaluate 配置期消费，fail closed）。
 // key = 平台项目名，keySet 必须与版本注册表完全一致（common.gradle 有全等断言：
 // 未来新增平台缺键不会被默认当作空集放行）；
 // value = 该平台允许的「生效资源 srcDirs 相对路径碰撞集合」（相对路径统一以 / 规范化）。
-// P10-B（versions/shared / extra_resource_dirs 退出）：10 个 modern 珊瑚配方迁入根 src/main/resources，
-// 1.21.1 保留本地 old-schema 同路径覆盖（平台本地层经 EXCLUDE first-wins 胜出），其预期碰撞集合
+// 根 src/main/resources 承载 10 个 modern 珊瑚配方，1.21.1 另有本地 old-schema 同路径覆盖
+// （平台本地层经 EXCLUDE first-wins 胜出），其预期碰撞集合
 // 恰为 craftableCoralRecipePaths 派生的 10 条内置资源包 recipe 相对路径（单一来源派生，不维护第二份
 // 配方名单）；其余平台无碰撞，预期空集。
 ext.expectedRootResourceCollisions =
@@ -137,7 +137,7 @@ def verifyCraftableCoralBlocksJars = tasks.register('verifyCraftableCoralBlocksJ
                 def entry = zip.getEntry(packMeta)
                 new groovy.json.JsonSlurper().parse(zip.getInputStream(entry))
             }
-            // 期望 pack_format 来自各平台 per-version gradle.properties 的 pack_format 键（原硬编码映射的数据化搬移）
+            // 期望 pack_format 来自各平台 per-version gradle.properties 的 pack_format 键
             assert meta.pack.pack_format == platform.pack_format.toInteger():
                     "Unexpected pack_format in ${jarFile.name}: ${meta.pack.pack_format}"
         }
@@ -172,7 +172,7 @@ def verifyFabricModJson = tasks.register('verifyFabricModJson') {
                 throw new GradleException("Unexpanded template placeholder in fabric.mod.json of ${jarFile.name} (${projectPath})")
             }
 
-            // 项目级一致性防线（Phase 2 新增），锚定 per-version 数据键：
+            // 项目级一致性防线，锚定 per-version 数据键：
             // 1) fabric.mod.json 的 mixins 引用恰为登记的 mixin_config；
             // 2) 该 mixin 配置文件实际存在于 jar；
             // 3) depends.fabricloader == ">=loader_version"。第 3 条是本项目当前数据模型的
@@ -194,8 +194,8 @@ def verifyFabricModJson = tasks.register('verifyFabricModJson') {
     }
 }
 
-// Phase 11 Mixin 配置闭环：canonical registry → per-project generated output → runtime/sources JAR
-// → runtime Mixin classes → fabric.mod.json。entry 数量与 membership signature 均动态推导，不锁死迁移时统计值。
+// Mixin 配置闭环：canonical registry → per-project generated output → runtime/sources JAR
+// → runtime Mixin classes → fabric.mod.json。entry 数量与 membership signature 均动态推导，不锁死统计值。
 def verifyMixinConfigs = tasks.register('verifyMixinConfigs') {
     doLast {
         def registeredMcVersions = versionRegistry.collectEntries { version ->
@@ -300,10 +300,9 @@ def verifyMixinConfigs = tasks.register('verifyMixinConfigs') {
             assert dangling.isEmpty(): "dangling mixin entries (no class in jar) in ${configLabel}: ${dangling.sort()}"
 
             def mixinPkgPath = 'com/ice2974/carpeticeaddition/mixins'
-            // P5-1c：反向枚举对象从「源码集 .java 文件」改为「jar 内 mixins 包实际产物 class」
-            // （top-level，排除 $ 内部类）。理由：preprocess 整文件 guard 的空输出 .java 会留在
-            // 生成目录（全部行为 //$$ 注释，无类型声明、不产 class），按源文件枚举会误报漏注；
-            // 以实际编译/发布产物做双向校验不弱于旧口径（旧体系下源文件与产物一一对应）。
+            // 反向枚举对象为 jar 内 mixins 包实际产物 class（top-level，排除 $ 内部类）：
+            // preprocess 整文件 guard 的空输出 .java 会留在生成目录（全部行为 //$$ 注释，
+            // 无类型声明、不产 class），按源文件枚举会误报漏注。
                         def compiledMixinClasses = jarEntries.findAll { name ->
                 name.startsWith("${mixinPkgPath}/") && name.endsWith('.class') && !name.contains('$')
             }.collect { name ->
@@ -330,7 +329,7 @@ def verifyMixinConfigs = tasks.register('verifyMixinConfigs') {
 }
 
 gradle.projectsEvaluated {
-    // P9 起 :common 子项目已删除，根直接子项目恰为版本注册表项目（与 settings.gradle include 一致）
+    // 根直接子项目恰为版本注册表项目（与 settings.gradle include 一致）
     def includedVersionProjects = gradle.rootProject.allprojects.findAll { it.parent == gradle.rootProject }
     assert platformProjects.toSorted() == includedVersionProjects*.path.toSorted():
             "versionProjects（${platformProjects.toSorted()}）必须与 settings.gradle include 的版本子项目（${includedVersionProjects*.path.toSorted()}）保持一致"

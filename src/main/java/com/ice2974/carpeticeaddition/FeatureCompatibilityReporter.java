@@ -6,8 +6,8 @@ import org.slf4j.LoggerFactory;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * 功能兼容性问题的去重上报（Phase 4 P4-3 从各平台入口类逐字抽取；判断顺序、异常优先级、
- * 日志输出与 fallback 语义与原实现完全一致，不做结构改写）。Logger 名与入口类 MOD_NAME 保持一致。
+ * 功能兼容性问题的去重上报（每类问题仅首个实例上报，避免刷屏）。
+ * Logger 名与入口类 MOD_NAME 保持一致。
  */
 public final class FeatureCompatibilityReporter {
     private static final Logger LOGGER = LoggerFactory.getLogger("Carpet Ice Addition");

@@ -1,7 +1,7 @@
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
 
-// Phase 11: canonical Mixin registry schema, predicate expansion and deterministic ordering.
+// Canonical Mixin registry schema, predicate expansion and deterministic ordering.
 // This file is build logic only; the canonical data lives in gradle/mixins/registry.json.
 def assertExactKeys = { Map value, Set<String> allowed, String label ->
     def unknown = value.keySet().collect { it.toString() } as Set

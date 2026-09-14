@@ -1,15 +1,15 @@
-// common.gradle —— 全部平台共用的构建逻辑（Phase 1 迁移，Fallen-Breath 风格）
+// common.gradle —— 全部平台共用的构建逻辑
 // 由各平台共享 family 构建入口（仓库根 build-remap.gradle / build-plain.gradle）在 plugins 块之后
 // apply from 引入；settings.gradle 按 per-version gradle.properties 的 loom_plugin 完整值经 buildFileName 选中入口。
-// 平台差异全部由 versions/<版本>/gradle.properties 数据驱动（P8 正名后目录名 = 实际 MC 版本号）：
+// 平台差异全部由 versions/<版本>/gradle.properties 数据驱动（目录名 = 实际 MC 版本号）：
 //   必需键：minecraft_version / release_minecraft_range / minecraft_dependency / loader_version /
 //           fabric_version / fabric_dependency / carpet_version / carpet_dependency / carpet_repo /
 //           loom_plugin / jar_task / java_release / pack_format / mixin_config
 //   可选键：java_toolchain（仅 26.x）
-// jar_task=remap：officialMojangMappings 形态（Phase 4 统一），依赖走 modImplementation，产物经 remapJar/remapSourcesJar 命名
+// jar_task=remap：officialMojangMappings 形态，依赖走 modImplementation，产物经 remapJar/remapSourcesJar 命名
 // jar_task=plain：免混淆形态（26.x），依赖走 implementation，产物经 jar/sourcesJar 命名
 
-// platform-only 不变量（Phase 8 正名后三重断言，fail closed；替代旧「名称以 platform- 开头」单一断言）：
+// platform-only 不变量（三重断言，fail closed）：
 //   1) 是根项目直接子项目（preprocess 版本图挂根，嵌套路径不兼容根 src 模型）；
 //   2) 是 settings.json 注册表登记的版本项目（rootProject.ext.versionProjectNames 由根 build.gradle 注入）；
 //   3) projectDir 与 versions/<项目名> 一一对应。
@@ -34,7 +34,7 @@ assert project.jar_task in ['remap', 'plain']: "jar_task 必须为 remap 或 pla
 assert project.carpet_repo in ['masa', 'modrinth']: "carpet_repo 必须为 masa 或 modrinth，当前为 ${project.carpet_repo}"
 def remapFamily = project.jar_task == 'remap'
 
-// Phase 11：每个平台从非 runtime 目录中的唯一 canonical registry 独立生成一个 effective config。
+// 每个平台从非 runtime 目录中的唯一 canonical registry 独立生成一个 effective config。
 // mcVersion 由 preprocess 插件注入；版本符号来自 settings.json 注册表，禁止在这里解析版本字符串。
 def mixinRegistryFile = rootProject.ext.mixinRegistryFile as File
 def registeredMcVersions = providers.provider {
@@ -85,22 +85,18 @@ ext.generatedMixinConfigFile = generatedMixinConfigFile
 def declaredLoomId = project.loom_plugin.substring(0, project.loom_plugin.indexOf(':'))
 assert project.plugins.findPlugin(declaredLoomId) != null:
         "loom_plugin=${project.loom_plugin} 与实际应用的 loom 插件不一致（未找到插件 ${declaredLoomId}）"
-// maven-publish 由共通脚本统一应用（Phase 2 收敛：各平台不再逐份声明）
+// maven-publish 由共通脚本统一应用
 project.pluginManager.apply('maven-publish')
 
 base {
-    // 平台唯一性：archivesName 附带平台名（正名后为实际版本号，如 carpet-ice-addition-1.21.1），
+    // 平台唯一性：archivesName 附带平台名（实际版本号，如 carpet-ice-addition-1.21.1），
     // 保证多平台并行构建时中间产物 / 本地 maven publication 互不覆盖
     archivesName = "${project.archives_base_name}-${platformName}"
 }
 
 dependencies {
-    // P9：implementation project(':common') 已随 common Java 子项目退出删除；
-    // 原 common 27 个 source owner 迁入根 src/main/java，由各平台经 preprocess 变换自行编译。
-
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
-    // Phase 4（P4-2 收尾）：全部 remap 形态平台统一 officialMojangMappings（layered），
-    // 过渡期 yarn_mappings 键及其分支已随最后一个 Yarn 平台切换删除；plain 形态（26.x 免混淆）不配置 mappings。
+    // remap 形态统一 officialMojangMappings（layered）；plain 形态（26.x 免混淆）不配置 mappings。
     if (remapFamily) {
         mappings loom.layered() {
             officialMojangMappings()
@@ -123,13 +119,10 @@ dependencies {
     }
 }
 
-// P10-B：versions/shared 纯资源档与 extra_resource_dirs 数据键已整体退出——珊瑚内置资源包 modern 档
-// 迁入根 src/main/resources，1.21.1 保留本地 old-schema 同路径覆盖（平台本地层优先）。
-
 sourceSets {
     main {
         resources {
-            // P10-B：资源 srcDirs 收敛为 [平台本地, 根]——根承载跨平台共享资源（icon/lang、modern 珊瑚配方），
+            // 资源 srcDirs 为 [平台本地, 根]——根承载跨平台共享资源（icon/lang、modern 珊瑚配方），
             // 平台本地承载 per-version 差异（fabric.mod.json、pack.mcmeta、1.21.1 old-schema 配方）；
             // generated Mixin config 通过 task output 单独接入，不属于 resource srcDirs。
             srcDir rootProject.file('src/main/resources')
@@ -137,32 +130,29 @@ sourceSets {
     }
 }
 
-// Phase 5 preprocess 接入（P5-2 起全部平台无条件启用；Phase 7 移除应急回滚开关——
-// P5-7 删除旧共享 Java 组织后，false 分支 core 平台缺失 Java 主源码、non-core 平台仅剩 override 子集
-// （资源不经插件重写、保持完整），无法形成可用平台产物，从未构成可用回滚路径）：
+// preprocess 接入（全部平台无条件启用）：
 //   1) 应用 com.replaymod.preprocess 插件（版本图在根 build.gradle，节点按 project.name 匹配本平台）；
 //      core（1.21.11）java sourceSet 被插件改写为仅 [根 src/main/java]，本地 src/main/java
 //      不参与编译；非 core 平台为 [本地 src/main/java（overwrite 层）, 生成的 preprocess 输出]，
 //      本地文件按同路径替换、异路径附加，且不经宏处理/不经重映射、直接编译。
-//   2) 插件会 setSrcDirs 重写 resources——Phase 10 restore 在 afterEvaluate 显式恢复最终
+//   2) 插件会 setSrcDirs 重写 resources——下方 afterEvaluate 显式恢复最终
 //      processResources / sourcesJar 读取 [本平台 src/main/resources, 根 src/main/resources]；
-//      Phase 11 Mixin config 独立通过 generator task output 接入，不属于这两个 resource source tree。
-// 时序（restore 晚于插件改写）已经 P5-1b 行为学实验与全仓冷重建实证。
+//      Mixin config 独立通过 generator task output 接入，不属于这两个 resource source tree。
+// 时序约束：restore（afterEvaluate）必须晚于插件对 sourceSet 的改写。
 project.pluginManager.apply('com.replaymod.preprocess')
 afterEvaluate {
-    // P10-A：根 src/main/resources 以平台本地之后的次序接入（同相对路径时平台本地层优先）
+    // 根 src/main/resources 以平台本地之后的次序接入（同相对路径时平台本地层优先）
     def expectedResourceDirs = [new File(project.projectDir, 'src/main/resources'),
                                 rootProject.file('src/main/resources')]
     sourceSets.main.resources.setSrcDirs(expectedResourceDirs)
-    // P9：preprocess 插件会重写全部平台 sourceSet 的 java srcDirs：core 平台的 test 源会被插件
-    // 经版本图变换传播进各平台 build/preprocessed/test 并改写其 test srcDirs（实测
-    // :1.21.1:compileTestJava 由此出现 junit 依赖缺失编译错误）。统一恢复 test sourceSet 为
-    // 本平台本地 src/test/java：core（versions/1.21.11）存在该目录（单元测试归属地，JUnit 依赖
-    // 仅 core 接线），非 core 平台默认无此目录 → test 保持 NO-SOURCE，单元测试仅由
+    // preprocess 插件会重写全部平台 sourceSet 的 java srcDirs：core 平台的 test 源会被插件
+    // 经版本图变换传播进各平台 build/preprocessed/test 并改写其 test srcDirs。统一恢复 test
+    // sourceSet 为本平台本地 src/test/java：core（versions/1.21.11）存在该目录（单元测试归属地，
+    // JUnit 依赖仅 core 接线），非 core 平台默认无此目录 → test 保持 NO-SOURCE，单元测试仅由
     // :<mainProjectName>:test 单一入口承担（与上方 main 资源恢复同时序语义：restore 晚于插件改写）。
     sourceSets.test.java.setSrcDirs([new File(project.projectDir, 'src/test/java')])
 
-    // P10-A 资源碰撞不变式（fail closed，配置期生效——任何 Gradle 调用（build / check / verify* /
+    // 资源碰撞不变式（fail closed，配置期生效——任何 Gradle 调用（build / check / verify* /
     // CI / IDE 同步）都会执行）：对本平台生效资源 srcDirs 求文件相对路径的多所有者交集，
     // 交集必须恰好等于根 build.gradle 注入的 expectedRootResourceCollisions 对本平台登记的预期集合。
     // EXCLUDE 的 first-wins 本身不是 fail-closed（静默忽略后续同路径项），碰撞是否被允许由此不变式裁决；
@@ -191,13 +181,13 @@ afterEvaluate {
     assert actualCollisions == expectedCollisions:
             "平台 ${project.name} 生效资源 srcDirs 的相对路径碰撞集合与预期不一致：" +
             "actual=${(actualCollisions as List).sort()} expected=${(expectedCollisions as List).sort()}"
-    // P10-A 根资源所有权不变式（长期）：根 src/main/resources 不得收编平台/资源包元数据——
+    // 根资源所有权不变式（长期）：根 src/main/resources 不得收编平台/资源包元数据——
     // fabric.mod.json 与 per-version 内置资源包 pack.mcmeta 保持平台本地所有权。
     ['fabric.mod.json', 'resourcepacks/craftable_coral_blocks/pack.mcmeta'].each { ownedPath ->
         assert !rootProject.file("src/main/resources/${ownedPath}".toString()).isFile():
                 "根 src/main/resources 不得包含 ${ownedPath}（平台/资源包元数据所有权不变式）"
     }
-    // Phase 11：手写 Mixin config 不得重新进入任何 runtime resource source dir。
+    // 手写 Mixin config 不得重新进入任何 runtime resource source dir。
     // generated task output 是 runtime *.mixins.json 的唯一 owner；比“EXCLUDE 后 first-wins”更早 fail closed。
     expectedResourceDirs.each { resourceDir ->
         def handwrittenConfigs = resourceDir.isDirectory()
@@ -210,13 +200,12 @@ afterEvaluate {
 }
 
 processResources {
-    // P10-A：多 srcDir 接入根资源后，同相对路径碰撞（P10-B 起 1.21.1 的 old-schema 配方）由
-    // 平台本地层胜出——EXCLUDE 语义为 first-wins、静默忽略后续同路径项（行为经 P10-0a fixture 与
-    // P10-0b 真仓 probe 实证）；碰撞集合本身是否被允许由 afterEvaluate 碰撞不变式 fail-closed 裁决。
+    // 多 srcDir 下同相对路径碰撞（1.21.1 的 old-schema 配方）由平台本地层胜出——EXCLUDE 语义为
+    // first-wins、静默忽略后续同路径项；碰撞集合本身是否被允许由 afterEvaluate 碰撞不变式 fail-closed 裁决。
     // 未显式设置时 Gradle 9.2.1 对重复条目直接构建失败（fail-fast），故必须显式声明。
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     dependsOn generateMixinConfig
-    // Phase 11：显式消费单一 task output；不得将 build/generated 注册为 resource srcDir。
+    // 显式消费单一 task output；不得将 build/generated 注册为 resource srcDir。
     from(generateMixinConfig)
     inputs.property 'version', project.version
     inputs.property 'minecraft_dependency', project.minecraft_dependency
@@ -235,8 +224,8 @@ processResources {
     }
 }
 
-// P10-A：sourcesJar 直接消费 resources srcDirs（不经 processResources 输出），存在碰撞时
-// Gradle 9.2.1 默认 fail-fast（P10-0a 实证），与 processResources 同语义显式 EXCLUDE。
+// sourcesJar 直接消费 resources srcDirs（不经 processResources 输出），存在碰撞时
+// Gradle 9.2.1 默认 fail-fast，与 processResources 同语义显式 EXCLUDE。
 // 惰性匹配：withSourcesJar 注册晚于本脚本位置，不能用 tasks.named。
 tasks.configureEach { task ->
     if (task.name == 'sourcesJar') {
@@ -263,9 +252,9 @@ java {
     }
 }
 
-// P9：单元测试归属 core 平台（versions/mainProject = rootProject.ext.mainProjectName，根 build.gradle
+// 单元测试归属 core 平台（versions/mainProject = rootProject.ext.mainProjectName，根 build.gradle
 // fail-closed 推导：trim 非空且为注册表登记版本项目）。测试源码位于 versions/<core>/src/test/java；
-// 非 core 平台无测试源码，test 任务保持 NO-SOURCE。JUnit / gson 版本与原 :common:test 完全一致（不升级）。
+// 非 core 平台无测试源码，test 任务保持 NO-SOURCE。
 if (project.name == rootProject.ext.mainProjectName) {
     dependencies {
         testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
@@ -277,7 +266,7 @@ if (project.name == rootProject.ext.mainProjectName) {
     }
 }
 
-// 发布 jar 命名：由 release_minecraft_range 推导 label（原各平台 build.gradle 逐字搬移，仅写一份）
+// 发布 jar 命名：由 release_minecraft_range 推导 label（集中单处实现）
 // 规则：区间按 ~ 或 - 拆分升序排序；单值区间 label 为原文；
 //       两端 major.minor 相同且 patch 跨度 >= 2 时 label 为 X.Y.x，否则为 lower-upper
 def releaseMinecraftRange = project.release_minecraft_range.toString().trim()

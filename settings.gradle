@@ -3,7 +3,7 @@ import groovy.json.JsonSlurper
 pluginManagement {
     repositories {
         maven { url = 'https://maven.fabricmc.net/' }
-        // Phase 5：com.replaymod.preprocess 经 JitPack 解析到 Fallen-Breath/preprocessor（commit 全 SHA 锁定，见根 gradle.properties）
+        // com.replaymod.preprocess 经 JitPack 解析到 Fallen-Breath/preprocessor（commit 全 SHA 锁定，见根 gradle.properties）
         maven { url = 'https://jitpack.io' }
         mavenCentral()
         gradlePluginPortal()
@@ -20,22 +20,22 @@ pluginManagement {
 rootProject.name = 'carpet-ice-addition'
 
 // 版本注册表：支持的平台清单的唯一来源。条目 = 平台目录名 = 真实 Minecraft 版本号
-// （Phase 8 正名；Gradle 9.2.1 允许中间点项目名，NameValidator 仅禁首尾点与 / \ : < > " ? * |）
+// （Gradle 9.2.1 允许中间点项目名，NameValidator 仅禁首尾点与 / \ : < > " ? * |）
 def versionRegistryFile = file('settings.json')
 def versionRegistry = new JsonSlurper().parse(versionRegistryFile).versions as List<String>
 
 // 注册表与磁盘目录一致性断言（双向 fail closed），防止新增/删除平台目录后忘记更新注册表（或反之）：
-//   - versions/ 下的目录集合必须恰为注册表条目目录（P10-B 起无 shared 等附加目录）——多余目录与缺失目录都会失败；
+//   - versions/ 下的目录集合必须恰为注册表条目目录（无 shared 等附加目录）——多余目录与缺失目录都会失败；
 //   - 注册表条目（实际版本号，如 1.21.1 / 26.2）必须各对应 versions/<条目> 目录。
 // 注意：注册表声明顺序为版本升序语义序，不是字符串字典序（'1.21.10' < '1.21.9'）；
 // 断言对两侧各自排序后比较；include 顺序跟随注册表声明顺序
 assert !versionRegistry.isEmpty(): 'settings.json versions 不能为空'
-// P8-R2：注册表重复项在 Settings 阶段显式 fail fast——下方目录一致性比较经 Set 化会静默去重，
+// 注册表重复项在 Settings 阶段显式 fail fast——下方目录一致性比较经 Set 化会静默去重，
 // 重复条目不能依赖后续阶段兜底；错误信息直接列出重复的具体条目
 def duplicateVersions = versionRegistry.groupBy { it }.findAll { it.value.size() > 1 }.keySet()
 assert duplicateVersions.isEmpty():
         "settings.json 版本注册表存在重复项：${duplicateVersions.sort()}"
-// P10-B：shared 资源档退出后，versions/ 目录集合恰为注册表条目（双向 fail closed 不变）
+// versions/ 目录集合恰为注册表条目（双向 fail closed）
 def expectedDirNames = versionRegistry.collect { it.toString() } as Set
 def versionsDir = file('versions')
 assert versionsDir.isDirectory(): "缺少 versions 目录: ${versionsDir}"
@@ -44,11 +44,10 @@ def diskDirNames = versionsDir.listFiles().findAll { it.isDirectory() }*.name as
 assert diskDirNames == expectedDirNames:
         "versions/ 目录集合与注册表不一致：disk=${(diskDirNames as List).sort()} expected=${(expectedDirNames as List).sort()}"
 
-// P10-A：common/ 纯资源档已退出——icon/lang 迁入根 src/main/resources（根 src/main/java 为唯一 Java 源码所有者）。
 // common.gradle 对根资源目录按 rootProject 物理路径接入各平台资源 srcDirs。
 
-// Phase 7（P7-B）：共享 family 构建入口选择。per-version gradle.properties 仍是平台构建数据唯一来源
-// （不新建第二套 family 注册表）；Settings 阶段读不到子项目目录的 gradle.properties 普通属性，
+// 共享 family 构建入口选择。per-version gradle.properties 是平台构建数据唯一来源
+// （不另设 family 注册表）；Settings 阶段读不到子项目目录的 gradle.properties 普通属性，
 // 必须显式解析该文件取 loom_plugin，并按完整 id:version 精确匹配选择入口
 // （缺文件 / 缺键 / 重复键 / 解析异常 / 未知值一律 fail closed）：
 //   fabric-loom:1.13.6              -> build-remap.gradle（remap 形态 1.21.x，remapJar/remapSourcesJar）
@@ -82,7 +81,7 @@ def readPlatformLoomPlugin = { File propsFile ->
     return loomPlugin
 }
 
-// Phase 5（P5-1）：平台为根直接子项目 :<版本>（磁盘目录 versions/<版本>/，
+// 平台为根直接子项目 :<版本>（磁盘目录 versions/<版本>/，
 // build 目录跟随 projectDir 不变）；preprocess 插件经 project.parent 取根项目的版本图扩展，
 // 嵌套路径 :versions:<版本> 的 parent 是 :versions，不兼容根 src 模型。
 versionRegistry.each { version ->
@@ -98,7 +97,7 @@ versionRegistry.each { version ->
     project(":${version}").buildFileName = "../../${buildEntry}"
 }
 
-// Phase 7（P7-R1）：Loom 完整坐标防漂移——每份 family 入口 plugins 块实际声明的 id:version
+// Loom 完整坐标防漂移——每份 family 入口 plugins 块实际声明的 id:version
 // 必须与 familyBuildEntry 映射键逐字一致，与上方「per-version loom_plugin 精确匹配选入口」
 // 共同构成 per-version loom_plugin ↔ settings.gradle 映射 ↔ 入口实际声明 的闭环（fail closed）。
 // 静态解析自有入口文件的固定格式 plugins 块（解析失败即断言失败），不依赖运行期 PluginDescriptor。
