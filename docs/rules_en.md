@@ -14,15 +14,15 @@ When locked:
 - `carpet.conf` is not modified;
 - removing the conflicting datapack and running `/reload` releases the lock and restores the previous configured value; online recipe books are synchronized after a successful resource reload.
 
-### Client-category
+### Category definitions
 
-Rules with the `CLIENT` category involve client-side behavior and only take full effect when both Carpet and this mod are fully installed on the client as well. With a server-only installation, these rules only partially take effect.
+`CLIENT`: The rule involves client-side behavior and requires both Carpet and this mod to be fully installed on the client to take full effect; with a server-only installation, these rules only partially take effect.
 
 ## Rules
 
 ### safeScaffoldingBreak
 
-Require holding scaffolding or an empty main hand to break scaffolding.
+Require holding scaffolding or an empty main hand to break scaffolding, preventing accidental dismantling.
 
 - Type: `boolean`
 - Default: `false`
@@ -33,6 +33,8 @@ Require holding scaffolding or an empty main hand to break scaffolding.
 
 Allows players to right-click item frames or glow item frames that already contain an item with a phantom membrane to make them invisible.
 
+> Invisible item frames remain invisible after the rule is disabled
+
 - Type: `boolean`
 - Default: `false`
 - Possible values: `false`, `true`
@@ -41,6 +43,8 @@ Allows players to right-click item frames or glow item frames that already conta
 ### itemFrameFixed
 
 Allows players to right-click item frames or glow item frames that already contain an item with a glass pane to make them fixed; fixed frames can be unfixed by right-clicking them with an axe.
+
+> Fixed item frames remain fixed after the rule is disabled
 
 - Type: `boolean`
 - Default: `false`
@@ -130,7 +134,7 @@ Makes pickaxes the proper tools for breaking frosted ice.
 
 ### beaconProperToolFix
 
-Makes pickaxes an effective tool for mining beacons.
+Makes pickaxes the proper tools for mining beacons.
 
 - Type: `boolean`
 - Default: `false`
@@ -158,6 +162,8 @@ Crimson nylium and warped nylium will not decay into netherrack when covered by 
 ### woolSuppressesSculkSpread
 
 Prevents a sculk catalyst from generating sculk blocks when covered by wool, while preserving its ability to suppress experience drops from nearby mob deaths.
+
+> Wool can only stop the catalyst from initiating new spread events; it cannot freeze spread events that are already in progress
 
 - Type: `boolean`
 - Default: `false`
@@ -211,11 +217,13 @@ Controls the permission of the /machineStatus command, which saves the target bl
 
 ### machineStatusRollbackWarning
 
-Checks saved machine states when a player enters a supported rollback command, and warns that player if any machines are not in their saved shutdown state. This rule does not block or modify rollback commands.
+Checks saved machine states when a player enters a supported rollback command, and warns that player if any machines are not in their saved shutdown state.
 
-Supported backup mod by default: Quick Backup Multi (`/qb`, `/quickbackupmulti`).\
-Supported MCDR plugins by default: Quick Backup Multi (`!!qb`), Prime Backup (`!!pb`), Chunk Backup (`!!cb`).\
-Rollback commands to detect can be configured in the global `config/carpet-ice-addition/machine_status_rollback_warning.json`.
+> Supported backup mod by default: Quick Backup Multi (`/qb`, `/quickbackupmulti`).
+>
+> Supported MCDR plugins by default: Quick Backup Multi (`!!qb`), Prime Backup (`!!pb`), Chunk Backup (`!!cb`).
+>
+> Rollback commands to detect can be configured in the global `config/carpet-ice-addition/machine_status_rollback_warning.json`.
 
 - Type: `boolean`
 - Default: `false`
@@ -233,8 +241,9 @@ Bots will not take reflected damage caused by Thorns when attacking entities or 
 
 ### disablePlayerAttackingTamedMobs
 
-Players cannot damage their own tamed mobs while PVP is enabled, and cannot damage any player-owned tamed mobs while PVP is disabled.\
-Affected mobs include cats, wolves, parrots, nautiluses, zombie nautiluses, horses, donkeys, mules, zombie horses, skeleton horses, llamas, and trader llamas.
+Players cannot damage their own tamed mobs while PVP is enabled, and cannot damage any player-owned tamed mobs while PVP is disabled.
+
+> Affected mobs include cats, wolves, parrots, nautiluses, zombie nautiluses, horses, donkeys, mules, zombie horses, skeleton horses, llamas, and trader llamas.
 
 - Type: `boolean`
 - Default: `false`
@@ -243,8 +252,7 @@ Affected mobs include cats, wolves, parrots, nautiluses, zombie nautiluses, hors
 
 ### enhancedTrident
 
-Allows tridents to hit multiple entities during a movement and regain the ability to deal damage when moved again after stopping.\
-The re-arm eligibility does not survive chunk unload or server restart; the trident must land and start moving again to regain damage capability.
+Allows tridents to hit multiple entities during a movement and regain the ability to deal damage when moved again after stopping.
 
 - Type: `boolean`
 - Default: `false`
@@ -253,7 +261,7 @@ The re-arm eligibility does not survive chunk unload or server restart; the trid
 
 ### phantomSpawnWarning
 
-Warns players at the start of the night when they reach the vanilla insomnia time threshold for phantom spawning.
+Warns players to sleep in time at the start of the night when they reach the vanilla insomnia time threshold for phantom spawning.
 
 - Type: `boolean`
 - Default: `false`
@@ -298,7 +306,7 @@ Prevents players from receiving the mining speed penalty while airborne.
 
 ### customEndPlatformPosition
 
-Allows customizing the center position of the End obsidian platform generated when entities enter the End, while keeping the arrival position in sync.
+Allows customizing the center position of the End obsidian platform generated when entities enter the End through the End portal, while keeping the arrival position in sync.
 
 - Type: `String`
 - Default: `vanilla`
@@ -362,7 +370,11 @@ Skips vanilla text character validation, allowing characters that are normally r
 
 ### waterFluidTickDelay
 
-Customizes the water flow delay in game ticks: an integer (1 to 72000) forces an override; freeze suspends flow scheduling; vanilla leaves the delay to vanilla and other mods.
+Customizes the water flow delay in game ticks.
+
+> `vanilla`: does not take over, leaving the delay to vanilla and other mods\
+> `freeze`: freezes the fluid, stopping its flow
+
 - Type: `String`
 - Default: `vanilla`
 - Suggested values: `freeze`, `vanilla`
@@ -371,8 +383,11 @@ Customizes the water flow delay in game ticks: an integer (1 to 72000) forces an
 
 ### lavaFluidTickDelay
 
-Customizes the lava flow delay in game ticks: an integer (1 to 72000) forces an override; freeze suspends flow scheduling; vanilla leaves the delay to vanilla and other mods.\
-In ultrawarm dimensions (such as the Nether) the delay is one third of the configured value, with a minimum of 1.
+Customizes the lava flow delay in game ticks.
+
+> `vanilla`: does not take over, leaving the delay to vanilla and other mods\
+> `freeze`: freezes the fluid, stopping its flow
+
 - Type: `String`
 - Default: `vanilla`
 - Suggested values: `freeze`, `vanilla`
@@ -382,6 +397,9 @@ In ultrawarm dimensions (such as the Nether) the delay is one third of the confi
 ### villagerTradingOptimization
 
 Naming a villager trade trims its AI to the minimum behavior set required by a fixed trading hall.
+
+> CORE keeps only drowning avoidance, workstation validity checks, and nearby workstation claiming without pathfinding (a workstation is claimed only when it lies within the restock check distance of about 1.73 blocks; once claimed, villagers can still bind the workstation, gain a profession, and reset to unemployed as usual)\
+> WORK keeps only the restocking behavior, with hard restock semantics such as daily restock counts, intervals, and cross-day resets matching vanilla. Villagers never pathfind or move toward workstations, and the task lists of all other activities (meeting, resting, idling, panicking, raiding, playing, etc.) are cleared.
 
 - Type: `boolean`
 - Default: `false`
@@ -400,6 +418,8 @@ Prevents a name tag from being consumed when its name is identical to the entity
 ### ironGolemSpawningOptimization
 
 Naming a villager iron_golem trims its AI to the minimum behavior set required by a scare-based iron farm.
+
+> The IDLE / MEET / PLAY / WORK activity task lists are skipped entirely (including gossip exchanges, following / watching trading players, etc.); villagers no longer run the 48-block POI scans and pathfinding for job sites or meeting points, while bed claiming (HOME) stays vanilla. Named villagers remain stationary during the day, keeping only the priority-99 schedule switching; at night they enter REST sleep according to the schedule, or trigger iron golem spawning through CORE's PANIC.
 
 - Type: `boolean`
 - Default: `false`
@@ -426,8 +446,7 @@ Makes Impaling behave like Bedrock Edition, dealing additional damage to any tar
 
 ### betterTridentDespawnCondition
 
-Tridents can only despawn after being stuck in a block and remaining stationary for 1200 game ticks.\
-The stationary timer restarts after chunk unload, save reload, or server restart.
+Tridents can only despawn after being stuck in a block and remaining stationary for 1200 game ticks.
 
 - Type: `boolean`
 - Default: `false`
