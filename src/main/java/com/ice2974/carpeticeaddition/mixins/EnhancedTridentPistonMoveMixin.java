@@ -60,12 +60,13 @@ import java.util.List;
  * 它（见上），下一 tick 的 R1 闸门因此不追加。重新武装只来自下一次实际位移或真正的
  * 重新离地。规则关闭时不做任何快照、扫描或状态写入（首行直接透传）。
  *
- * <p><strong>异常纪律</strong>：扫掠收集 / 建轮属规则自身逻辑，失败 fail-open（清
- * 残留轮、上报、放行后续 tick）；队首派发经 invoker 调用完整原版命中链，不包
- * {@code catch}——vanilla / 第三方 Mixin 抛出的异常在 {@code finally} 恢复轮 /
- * 速度后原样向上传播（与 R1 队首 {@code original.call} 的传播行为一致），半完成
- * 命中不由本规则静默续跑。{@code finally} 内仅轮字段清除与速度字段的纯读写（引用
- * 同一性判定），不会抛出、不会吞并或覆盖原异常。
+ * <p><strong>异常纪律</strong>：state 取得 / 扫掠收集 / 建轮 / consume 属规则自身
+ * 逻辑，失败 fail-open（清可清理的残留轮、上报、放行后续 tick）；队首派发经
+ * invoker 调用完整原版命中链，不包 {@code catch}——vanilla / 第三方 Mixin 抛出的
+ * 异常在 {@code finally} 恢复轮 / 速度后原样向上传播（与 R1 队首
+ * {@code original.call} 的传播行为一致），半完成命中不由本规则静默续跑。
+ * {@code finally} 内仅轮字段清除与速度字段的纯读写（引用同一性判定），不会抛出、
+ * 不会吞并或覆盖原异常。
  */
 @Mixin(AbstractArrow.class)
 public abstract class EnhancedTridentPistonMoveMixin {
@@ -83,11 +84,12 @@ public abstract class EnhancedTridentPistonMoveMixin {
         Vec3 pre = self.position();
         AABB preBox = self.getBoundingBox();
         original.call(type, movement);
-        EnhancedTridentState state = (EnhancedTridentState) self;
+        EnhancedTridentState state = null;
         Vec3 segment;
         EnhancedTridentSweeper.SweepHit head;
         Vec3 velocityBeforeDispatch;
         try {
+            state = (EnhancedTridentState) self;
             Vec3 post = self.position();
             segment = post.subtract(pre);
             if (!EnhancedTridentHelper.isSignificantSegment(segment.x, segment.y, segment.z)) {
@@ -111,8 +113,12 @@ public abstract class EnhancedTridentPistonMoveMixin {
                     self.tickCount, head.entity.getId(), secondaries, segment));
             velocityBeforeDispatch = self.getDeltaMovement();
         } catch (Throwable throwable) {
-            // 仅规则自身的扫掠 / 建轮逻辑 fail-open：清残留轮、上报后放行后续 tick
-            state.carpetIceAddition$setRound(null);
+            // 仅规则自身的准备（state 取得）/ 扫掠 / 建轮 / consume 逻辑 fail-open：
+            // 清可清理的残留轮（强转失败时 state 为 null、无可清理状态）、上报后放行
+            // 后续 tick
+            if (state != null) {
+                state.carpetIceAddition$setRound(null);
+            }
             CarpetIceAdditionMod.reportFeatureCompatibilityIssue("enhancedTrident", throwable);
             return;
         }
