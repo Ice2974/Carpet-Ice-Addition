@@ -19,9 +19,9 @@
 
 ## 目录边界
 
-- `src/main/java`（仓库根）：主源码树——面向 mainProject（1.21.11）的「main 态」源码 + `//#if MC` 预处理宏，经 preprocess 版本图变换为各平台编译输入（Phase 9 起为唯一 Java main 源码所有者，含原 `common` 的规则定义、翻译、公共配置管理与工具逻辑）；只允许 java，不放 resources。
-- `src/main/resources`（仓库根）：跨平台共享资源目录（Phase 10 起：mod 图标、中英语言文件、珊瑚内置资源包 modern 档配方）；经 `common.gradle` 接入所有平台的资源 srcDirs，次序在平台本地之后（同相对路径时平台本地优先）；不得包含 `fabric.mod.json`、`resourcepacks/craftable_coral_blocks/pack.mcmeta` 或 tracked `*.mixins.json`（资源所有权不变式，配置期断言）。
-- `versions/<MC 版本>`（如 `versions/1.21.1`、`versions/26.2`，Phase 8 正名前为 `versions/platform-*`）：per-version override 源码（同路径整文件替换根 src 变换输出 / 异路径附加）、平台资源（`fabric.mod.json`、内置资源包 `pack.mcmeta`，1.21.1 另有 old-schema 配方同路径覆盖）与 per-version `gradle.properties`；平台 runtime resource source tree 不拥有手写 `*.mixins.json`。
+- `src/main/java`（仓库根）：主源码树——面向 mainProject（1.21.11）的「main 态」源码 + `//#if MC` 预处理宏，经 preprocess 版本图变换为各平台编译输入；是唯一 Java main 共享源码所有者，包含规则定义、翻译、公共配置管理与工具逻辑；只允许 java，不放 resources。
+- `src/main/resources`（仓库根）：跨平台共享资源目录，承载 mod 图标、中英语言文件、珊瑚内置资源包 modern 档配方；经 `common.gradle` 接入所有平台的资源 srcDirs，次序在平台本地之后（同相对路径时平台本地优先）；不得包含 `fabric.mod.json`、`resourcepacks/craftable_coral_blocks/pack.mcmeta` 或 tracked `*.mixins.json`（资源所有权不变式，配置期断言）。
+- `versions/<MC 版本>`（如 `versions/1.21.1`、`versions/26.2`）：per-version override 源码（同路径整文件替换根 src 变换输出 / 异路径附加）、平台资源（`fabric.mod.json`、内置资源包 `pack.mcmeta`，1.21.1 另有 old-schema 配方同路径覆盖）与 per-version `gradle.properties`；平台 runtime resource source tree 不拥有手写 `*.mixins.json`。
 - `gradle/mixins/registry.json`：唯一人工维护的 Mixin registry，登记 membership、版本 predicate 与 precedence；各平台 build-time generator 在 `versions/<MC 版本>/build/generated/mixinConfig/<mixin_config>` 生成 effective config，并以 task output 接入产物。root / platform runtime resource source tree 禁止重新加入 tracked `*.mixins.json`。
 - `docs/`：规则、命令、记录器、开发说明、发布说明等项目资料。
 - `THIRD_PARTY_NOTICES.md`：第三方来源、许可证、致谢、移植 / 参考 / 重写说明的维护文件；不替代 `LICENSE`，也不作为项目功能状态来源。
@@ -54,8 +54,8 @@
 
 ## 根源码树与跨版本规则
 
-- 源码架构（Phase 5 起，Phase 8 起平台目录实名）：根 `src/main/java` 主源码树（mainProject = 1.21.11）+ 根 `build.gradle` preprocess 版本图（插件 `com.replaymod.preprocess` 经 JitPack 全 SHA 锁定解析到 Fallen-Breath/preprocessor）+ `versions/<MC 版本>/src/main/java` per-version override；根 `src/main/resources` 承载跨平台共享资源（Phase 10 起，common/ 与 versions/shared/ 资源档已整体退出）。
-- 单元测试（Phase 9 起）当前归属 core 平台：共享测试源码位于 `versions/<mainProject 版本>/src/test/java`，测试入口为 `:<mainProject 版本>:test`（CI 显式执行）；共享单元测试不得经 preprocess 版本图传播到 non-core 平台（test sourceSet 统一恢复为本平台本地目录）；non-core 平台 test 任务因此默认保持 NO-SOURCE。未来如确需版本专属测试，应作为明确的 per-version 测试需求单独接线和规划，不隐式继承 core tests。
+- 源码架构：根 `src/main/java` 主源码树（mainProject = 1.21.11）+ 根 `build.gradle` preprocess 版本图（插件 `com.replaymod.preprocess` 经 JitPack 全 SHA 锁定解析到 Fallen-Breath/preprocessor）+ `versions/<MC 版本>/src/main/java` per-version override；共享资源仅位于根 `src/main/resources`，不使用 `common/` 或 `versions/shared/` 资源档。
+- 单元测试归属 core 平台：共享测试源码位于 `versions/<mainProject 版本>/src/test/java`，测试入口为 `:<mainProject 版本>:test`（CI 显式执行）；共享单元测试不得经 preprocess 版本图传播到 non-core 平台（test sourceSet 统一恢复为本平台本地目录）；non-core 平台 test 任务因此默认保持 NO-SOURCE。未来如确需版本专属测试，应作为明确的 per-version 测试需求单独接线和规划，不隐式继承 core tests。
 - 根 src 必须保持「main 态」：纯文本可直接按 1.21.11 编译；所有非 1.21.11 内容必须以 `//$$ ` 前缀的注释态出现在条件分支内；预处理指令行（`//#if` / `//#elseif` / `//#else` / `//#endif` / `//#disable-remap` 等）不加 `$$` 前缀。
 - 宏只用于单处 ≤10 行、不改 Mixin 注入 descriptor 的小差异；结构性分叉（注入目标结构 / 方法签名 / AI 拓扑 / `@At` 字符串差异）必须用平台 override 文件表达，不强行塞进宏。
 - override 语义：非 core 平台的本地 `src/main/java` 按同路径整文件替换根 src 变换输出、异路径附加；override 文件直接编译，不参与宏求值与边重映射，内部不使用预处理指令；core（1.21.11）没有 override 层，本地 src 不参与编译。
@@ -67,11 +67,11 @@
 
 ## 版本注册表与构建配置
 
-- `settings.json` 是支持版本清单的唯一来源；`settings.gradle` 据此动态生成平台子项目（根直接子项目 `:<MC 版本>`，如 `:1.21.11`，磁盘目录 `versions/<MC 版本>`），并断言 `versions/` 目录集合恰为注册表条目目录（双向 fail closed；P10-B 起 shared 资源档已退出，无附加目录）。
+- `settings.json` 是支持版本清单的唯一来源；`settings.gradle` 据此动态生成平台子项目（根直接子项目 `:<MC 版本>`，如 `:1.21.11`，磁盘目录 `versions/<MC 版本>`），并断言 `versions/` 目录集合恰为注册表条目目录（双向 fail closed；`versions/` 下无 `shared` 等附加目录）。
 - 新增 Minecraft 平台 = 在 `settings.json` 按版本升序登记 + 新建 `versions/<MC 版本>/`（per-version `gradle.properties`、src）+ 根 `build.gradle` 版本图 `createNode` 登记节点并与相邻版本 `link`（含新建对应 `versions/mapping-*.txt`），不要手写 include 清单；平台不写独立 `build.gradle`，`settings.gradle` 按 per-version `gradle.properties` 的 `loom_plugin` 完整 `id:version` 自动选择共享 family 构建入口（`build-remap.gradle` / `build-plain.gradle`，未知值 fail closed）。
 - 平台版本数据（minecraft、loader、fabric-api、carpet、pack_format 等）放在 `versions/<MC 版本>/gradle.properties`，不要向根 `gradle.properties` 回填平台前缀键。
 - 平台共通构建逻辑在根 `common.gradle`（由共享 family 构建入口在 plugins 块之后 apply from 引入），差异由 per-version 数据键驱动；修改共通逻辑时必须同时验证两种 loom 形态（Mojmap layered remap 与免混淆 plain）。
-- 平台资源 srcDirs 固定为 [平台本地 `src/main/resources`，根 `src/main/resources`]（Phase 10 起；无 common/、versions/shared、extra_resource_dirs 档）。同相对路径资源碰撞由平台本地层胜出（`processResources` / `sourcesJar` 显式 `DuplicatesStrategy.EXCLUDE`；first-wins 本身不是 fail-closed），碰撞是否被允许由配置期碰撞不变式 fail-closed 裁决——任何新增碰撞必须同步登记根 `build.gradle` 的 `expectedRootResourceCollisions`（keySet 与版本注册表全等，缺失键不会默认按空集放行）。
+- 平台资源 srcDirs 固定为 [平台本地 `src/main/resources`，根 `src/main/resources`]；不使用 `common/`、`versions/shared/` 或 `extra_resource_dirs` 档。同相对路径资源碰撞由平台本地层胜出（`processResources` / `sourcesJar` 显式 `DuplicatesStrategy.EXCLUDE`；first-wins 本身不是 fail-closed），碰撞是否被允许由配置期碰撞不变式 fail-closed 裁决——任何新增碰撞必须同步登记根 `build.gradle` 的 `expectedRootResourceCollisions`（keySet 与版本注册表全等，缺失键不会默认按空集放行）。
 - Mixin effective config 由 `gradle/mixins/registry.json` 经每个平台的 `generateMixinConfig` 生成到独立 `build/generated/mixinConfig/`；只允许通过显式 task-output wiring 接入 `processResources` / `sourcesJar`，不得将 generated 目录注册为 resource srcDir，也不得在 root / platform runtime resource source tree 手写 `*.mixins.json`。运行时仍使用各平台既有 `carpet-ice-addition-mcXXXX.mixins.json` 文件名。
 - `mixin_config` 与 `mcXXXX` runtime Mixin 文件名是长期 runtime compatibility identity，不是当前 project/source/preprocess/publish platform identity。当前 actual 版本树的发布资产必须由 `settings.json` + per-version `release_minecraft_range` + 根 `mod_version` 派生精确文件名，并与真实产物校验；不得从 Mixin 引用或拼接版本码识别平台。
 - 发布解析只接受 `settings.json` 实际版本号注册表；历史 `mcXXXX` registry 树 / `versions/platform-mcXXXX/` 布局不再支持补发布，解析遇之 fail closed。修改发布解析时运行 `python scripts/verify_publish_resolver.py`（先 build），harness 必须机械提取并测试 workflow 中 layout 与 asset attribution 的同一份生产逻辑，marker 缺失/重复须失败。
