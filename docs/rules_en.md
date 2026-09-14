@@ -85,7 +85,7 @@ Normal spawners, trial spawners, and ominous trial spawners ignore invisible pla
 
 ### disableKelpNaturalGrowth
 
-Disables kelp natural growth from random ticks.
+Disable kelp natural growth from random ticks.
 
 - Type: `boolean`
 - Default: `false`
@@ -215,7 +215,7 @@ Checks saved machine states when a player enters a supported rollback command, a
 
 Supported backup mod by default: Quick Backup Multi (`/qb`, `/quickbackupmulti`).\
 Supported MCDR plugins by default: Quick Backup Multi (`!!qb`), Prime Backup (`!!pb`), Chunk Backup (`!!cb`).\
-Rollback commands to detect can be configured in `<world>/carpet-ice-addition/machine_status.json`.
+Rollback commands to detect can be configured in the global `config/carpet-ice-addition/machine_status_rollback_warning.json`.
 
 - Type: `boolean`
 - Default: `false`
@@ -233,7 +233,7 @@ Bots will not take reflected damage caused by Thorns when attacking entities or 
 
 ### disablePlayerAttackingTamedMobs
 
-Players cannot damage their own tamed mobs while server PVP is enabled, and cannot damage any player-owned tamed mobs while server PVP is disabled.\
+Players cannot damage their own tamed mobs while PVP is enabled, and cannot damage any player-owned tamed mobs while PVP is disabled.\
 Affected mobs include cats, wolves, parrots, nautiluses, zombie nautiluses, horses, donkeys, mules, zombie horses, skeleton horses, llamas, and trader llamas.
 
 - Type: `boolean`
@@ -243,7 +243,8 @@ Affected mobs include cats, wolves, parrots, nautiluses, zombie nautiluses, hors
 
 ### enhancedTrident
 
-Allows tridents to hit multiple entities during a movement and regain the ability to deal damage when moved again after stopping.
+Allows tridents to hit multiple entities during a movement and regain the ability to deal damage when moved again after stopping.\
+The re-arm eligibility does not survive chunk unload or server restart; the trident must land and start moving again to regain damage capability.
 
 - Type: `boolean`
 - Default: `false`
@@ -261,7 +262,7 @@ Warns players at the start of the night when they reach the vanilla insomnia tim
 
 ### neutralPhantoms
 
-Phantoms will not attack players first, but will fight back when attacked.
+Makes phantoms neutral toward players: they will not attack players first, but will fight back when attacked.
 
 - Type: `boolean`
 - Default: `false`
@@ -361,7 +362,7 @@ Skips vanilla text character validation, allowing characters that are normally r
 
 ### waterFluidTickDelay
 
-Customizes the water flow delay in game ticks.
+Customizes the water flow delay in game ticks: an integer (1 to 72000) forces an override; freeze suspends flow scheduling; vanilla leaves the delay to vanilla and other mods.
 - Type: `String`
 - Default: `vanilla`
 - Suggested values: `freeze`, `vanilla`
@@ -370,7 +371,8 @@ Customizes the water flow delay in game ticks.
 
 ### lavaFluidTickDelay
 
-Customizes the lava flow delay in game ticks.
+Customizes the lava flow delay in game ticks: an integer (1 to 72000) forces an override; freeze suspends flow scheduling; vanilla leaves the delay to vanilla and other mods.\
+In ultrawarm dimensions (such as the Nether) the delay is one third of the configured value, with a minimum of 1.
 - Type: `String`
 - Default: `vanilla`
 - Suggested values: `freeze`, `vanilla`
@@ -424,7 +426,8 @@ Makes Impaling behave like Bedrock Edition, dealing additional damage to any tar
 
 ### betterTridentDespawnCondition
 
-Tridents can only despawn after being stuck in a block and remaining stationary for 1200 game ticks.
+Tridents can only despawn after being stuck in a block and remaining stationary for 1200 game ticks.\
+The stationary timer restarts after chunk unload, save reload, or server restart.
 
 - Type: `boolean`
 - Default: `false`

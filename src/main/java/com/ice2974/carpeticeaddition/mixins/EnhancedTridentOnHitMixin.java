@@ -1,6 +1,5 @@
 package com.ice2974.carpeticeaddition.mixins;
 
-import com.ice2974.carpeticeaddition.CarpetIceAdditionMod;
 import com.ice2974.carpeticeaddition.rules.EnhancedTridentState;
 import com.ice2974.carpeticeaddition.rules.EnhancedTridentSweeper;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
@@ -35,6 +34,12 @@ import org.spongepowered.asm.mixin.Mixin;
  * {@code hitTargetOrDeflectSelf} 走完整原版链，故伤害、附魔、击退、音效与
  * PROJECTILE_LAND 均按原版逐目标结算。dispatching 标志以 try/finally 恢复，
  * secondary 的嵌套 onHit 直通原版。
+ *
+ * <p><strong>异常纪律</strong>：secondary 的 invoker 派发是完整的原版命中链调用，
+ * 不包 {@code catch}——vanilla / 第三方 Mixin 抛出的异常在 {@code finally} 恢复
+ * 注入速度后原样向上传播（与 R1 队首 {@code original.call} 的传播行为一致），
+ * 半完成命中不由本规则静默续跑；{@code finally} 内仅速度字段的纯读写，不会抛出、
+ * 不会吞并或覆盖原异常。
  */
 @Mixin(Projectile.class)
 public abstract class EnhancedTridentOnHitMixin {
@@ -71,20 +76,24 @@ public abstract class EnhancedTridentOnHitMixin {
                 }
                 Entity target = secondary.entity;
                 self.setDeltaMovement(round.incoming);
+                // invoker 是完整的原版命中链调用：vanilla / 第三方 Mixin 抛出的异常在
+                // finally 恢复速度后原样向上传播（与 R1 队首 original.call 一致），不由
+                // 本规则吞掉。条件式恢复：真实 deflection 时保留 vanilla 写入的 deflect
+                // 状态不回滚；invoker 抛异常时标志未置位，同样恢复 afterFirst 后传播。
+                boolean deflected = false;
                 try {
-                    ProjectileDeflection deflection =
-                            ((EnhancedTridentProjectileAccessor) (Object) this)
+                    deflected = ((EnhancedTridentProjectileAccessor) (Object) this)
                                     .carpetIceAddition$hitTargetOrDeflectSelf(
-                                            new EntityHitResult(target, secondary.location));
-                    if (deflection != ProjectileDeflection.NONE) {
-                        return;
+                                            new EntityHitResult(target, secondary.location))
+                            != ProjectileDeflection.NONE;
+                } finally {
+                    if (!deflected) {
+                        self.setDeltaMovement(afterFirst);
                     }
-                } catch (Throwable throwable) {
-                    CarpetIceAdditionMod.reportFeatureCompatibilityIssue("enhancedTrident", throwable);
-                    self.setDeltaMovement(afterFirst);
+                }
+                if (deflected) {
                     return;
                 }
-                self.setDeltaMovement(afterFirst);
             }
         } finally {
             state.carpetIceAddition$setDispatching(false);

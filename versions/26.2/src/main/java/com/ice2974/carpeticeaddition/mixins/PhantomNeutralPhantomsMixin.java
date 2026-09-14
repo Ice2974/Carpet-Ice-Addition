@@ -2,6 +2,7 @@ package com.ice2974.carpeticeaddition.mixins;
 
 import com.ice2974.carpeticeaddition.CarpetIceAdditionMod;
 import com.ice2974.carpeticeaddition.rules.NeutralPhantomsRetaliationTracker;
+import com.ice2974.carpeticeaddition.rules.NeutralPhantomsWatermark;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
 import java.util.UUID;
 import net.minecraft.server.level.ServerLevel;
@@ -27,11 +28,16 @@ public abstract class PhantomNeutralPhantomsMixin implements NeutralPhantomsReta
     @Unique
     private static final String CARPET_ICE_ADDITION$NEUTRAL_PHANTOMS_TARGET_ENTITY_ID_KEY =
             "carpet_ice_addition.neutral_phantoms_target_entity_id";
+    @Unique
+    private static final String CARPET_ICE_ADDITION$NEUTRAL_PHANTOMS_TARGET_WATERMARK_KEY =
+            "carpet_ice_addition.neutral_phantoms_target_watermark";
 
     @Unique
     private UUID carpetIceAddition$neutralPhantomsTargetUuid;
     @Unique
     private int carpetIceAddition$neutralPhantomsTargetEntityId = -1;
+    @Unique
+    private long carpetIceAddition$neutralPhantomsTargetWatermark;
 
     @Shadow
     public abstract LivingEntity getTarget();
@@ -46,6 +52,7 @@ public abstract class PhantomNeutralPhantomsMixin implements NeutralPhantomsReta
     public void carpetIceAddition$recordNeutralPhantomsRetaliationTarget(ServerPlayer player) {
         this.carpetIceAddition$neutralPhantomsTargetUuid = player.getUUID();
         this.carpetIceAddition$neutralPhantomsTargetEntityId = player.getId();
+        this.carpetIceAddition$neutralPhantomsTargetWatermark = NeutralPhantomsWatermark.current();
         this.setTarget(player);
     }
 
@@ -65,6 +72,13 @@ public abstract class PhantomNeutralPhantomsMixin implements NeutralPhantomsReta
                 if (this.getTargetUnchecked() instanceof ServerPlayer) {
                     this.setTarget(null);
                 }
+                return;
+            }
+            // lazy invalidation：水位与当前不符 = 该 retaliation 建立于规则上一次启用段
+            // （false 边界已过，含运行期切换与离线 conf 变更两类来源），按旧状态清理；
+            // 清理逻辑与规则关闭路径共用（仅清 CIA 自己记录的 target，见下方私有方法）
+            if (this.carpetIceAddition$neutralPhantomsTargetWatermark != NeutralPhantomsWatermark.current()) {
+                carpetIceAddition$clearRetaliationOnRuleDisabled();
                 return;
             }
             ServerLevel serverLevel = (ServerLevel) phantom.level();
@@ -148,6 +162,10 @@ public abstract class PhantomNeutralPhantomsMixin implements NeutralPhantomsReta
                 CARPET_ICE_ADDITION$NEUTRAL_PHANTOMS_TARGET_ENTITY_ID_KEY,
                 this.carpetIceAddition$neutralPhantomsTargetEntityId
         );
+        output.putLong(
+                CARPET_ICE_ADDITION$NEUTRAL_PHANTOMS_TARGET_WATERMARK_KEY,
+                this.carpetIceAddition$neutralPhantomsTargetWatermark
+        );
     }
 
     @Inject(method = "readAdditionalSaveData", at = @At("TAIL"))
@@ -166,6 +184,11 @@ public abstract class PhantomNeutralPhantomsMixin implements NeutralPhantomsReta
                 this.carpetIceAddition$neutralPhantomsTargetEntityId = input.getIntOr(
                         CARPET_ICE_ADDITION$NEUTRAL_PHANTOMS_TARGET_ENTITY_ID_KEY,
                         -1
+                );
+                // 旧版本写入的 NBT 无水位键：按 0 读（与首建文件当前规则 true 时的基线水位一致）
+                this.carpetIceAddition$neutralPhantomsTargetWatermark = input.getLongOr(
+                        CARPET_ICE_ADDITION$NEUTRAL_PHANTOMS_TARGET_WATERMARK_KEY,
+                        0L
                 );
             } catch (IllegalArgumentException exception) {
                 this.carpetIceAddition$clearNeutralPhantomsRetaliationTarget();

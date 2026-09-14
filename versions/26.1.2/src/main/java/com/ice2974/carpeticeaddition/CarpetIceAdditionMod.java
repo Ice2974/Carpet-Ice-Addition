@@ -5,10 +5,13 @@ import carpet.CarpetServer;
 import carpet.utils.CommandHelper;
 import com.ice2974.carpeticeaddition.command.KillItemCommand;
 import com.ice2974.carpeticeaddition.command.MachineStatusCommand;
+import com.ice2974.carpeticeaddition.rules.BetterTridentDespawnEpoch;
 import com.ice2974.carpeticeaddition.rules.BotTabListNameHelper;
 import com.ice2974.carpeticeaddition.rules.CraftableCoralBlocksDataPackController;
 import com.ice2974.carpeticeaddition.rules.CraftableCoralBlocksState;
 import com.ice2974.carpeticeaddition.rules.DelayedJukeboxStartEventManager;
+import com.ice2974.carpeticeaddition.rules.EnhancedTridentRearmEpoch;
+import com.ice2974.carpeticeaddition.rules.NeutralPhantomsWatermark;
 import com.ice2974.carpeticeaddition.rules.VillagerTradingOptimizationRuleHelper;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionEndPlatformSettings;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionHighVersionSettings;
@@ -83,6 +86,24 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
                 }
                 return;
             }
+            if ("enhancedTrident".equals(ruleName)) {
+                // 规则值变化即推进 grounded-rearm 代际：true→false→true 在实体下一
+                // tick 前快速完成时，旧授予的资格不得在重新开启后复活
+                EnhancedTridentRearmEpoch.advance();
+                return;
+            }
+            if ("betterTridentDespawnCondition".equals(ruleName)) {
+                // 规则值变化即推进静止计时代际：规则关闭期间实体可能被移动而未被
+                // 采样，旧累积的静止计时不得在重新开启后复活
+                BetterTridentDespawnEpoch.advance();
+                return;
+            }
+            if ("neutralPhantoms".equals(ruleName)) {
+                // 规则值变化交由水位 Manager 维护：进入 false 即推进失效边界
+                // （离线 conf 变更由 initialize reconcile 补上，见该类 javadoc）
+                NeutralPhantomsWatermark.onRuleChanged(CarpetIceAdditionSettings.neutralPhantoms);
+                return;
+            }
             if ("villagerTradingOptimization".equals(ruleName)) {
                 VillagerTradingOptimizationRuleHelper.rebuildMismatchedVillagers(
                         source != null ? source.getServer() : CarpetServer.minecraft_server);
@@ -136,6 +157,9 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
     public void onServerLoaded(MinecraftServer server) {
         KillItemConfigManager.initialize(server.getWorldPath(LevelResource.ROOT));
         MachineStatusConfigManager.initialize(server.getWorldPath(LevelResource.ROOT));
+        // conf 加载早于此钩子：以持久化 lastEnabled 与当前实际规则值 reconcile 离线变更
+        NeutralPhantomsWatermark.initialize(
+                server.getWorldPath(LevelResource.ROOT), CarpetIceAdditionSettings.neutralPhantoms);
         VillagerEventsRuntime.onServerLoaded(server);
     }
 
@@ -162,6 +186,7 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
         VillagerEventsRuntime.onServerClosed(server);
         KillItemConfigManager.shutdown();
         MachineStatusConfigManager.shutdown();
+        NeutralPhantomsWatermark.shutdown();
         try {
             CraftableCoralBlocksDataPackController.onServerClosed(server);
         } catch (Throwable throwable) {

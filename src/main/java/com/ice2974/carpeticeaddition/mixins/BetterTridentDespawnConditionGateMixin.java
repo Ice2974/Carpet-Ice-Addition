@@ -38,8 +38,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * 版本纪元分叉、须以 per-version override 表达（8 份整文件副本），故弃用。
  *
  * <p><strong>扣留语义与组合风险</strong>：静止不足时（且 vanilla 以当前 life 将要
- * 触发 discard 时）本 wrap 不调用 original，改为复刻执行 {@code this.life++}——
- * 计时器照常自增、超过阈值也不暂停，原版阈值 / 重置 / NBT 持久化全部不动。
+ * 触发 discard 时）本 wrap 不调用 original，改为复刻执行饱和的 {@code life++}
+ * （{@link BetterTridentDespawnTracker#detainedLifeAdvance}，恒不超过阈值）——计时器
+ * 照常自增、超过阈值也不暂停且永不越过 NBT {@code (short)} 表示范围，原版阈值 /
+ * 重置 / NBT 持久化全部不动。
  * 「预测直通」（{@code life + 1 < VANILLA_DESPAWN_THRESHOLD} 时原样调用 original）
  * 把跳过窗口收窄到「vanilla 想删而本规则扣留」的 tick：其余 tick 上方法体内其他
  * Mixin 的变换（HEAD/TAIL 注入等）全部照常执行。已知残余风险：扣留 tick 上被跳过
@@ -89,9 +91,10 @@ public abstract class BetterTridentDespawnConditionGateMixin {
         if (passThrough) {
             original.call();
         } else {
-            // 扣留：vanilla 本 tick 将要 discard；复刻 life++ 使计时器照常推进，
-            // 跳过其后的阈值比较与 discard（类 javadoc「扣留语义与组合风险」）
-            this.life++;
+            // 扣留：vanilla 本 tick 将要 discard；复刻 life++ 使计时器照常推进（饱和于阈值，
+            // 见 Tracker#detainedLifeAdvance），跳过其后的阈值比较与 discard
+            // （类 javadoc「扣留语义与组合风险」）
+            this.life = BetterTridentDespawnTracker.detainedLifeAdvance(this.life);
         }
     }
 

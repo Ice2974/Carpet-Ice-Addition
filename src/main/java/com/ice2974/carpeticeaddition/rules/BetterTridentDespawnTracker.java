@@ -38,9 +38,25 @@ public final class BetterTridentDespawnTracker {
         return x == ax && y == ay && z == az;
     }
 
-    /** 以当前 {@code life} 值原样执行 vanilla tickDespawn 是否不会触发 discard（life++ 后仍低于阈值）。 */
+    /**
+     * 以当前 {@code life} 值原样执行 vanilla tickDespawn 是否不会触发 discard（life++ 后仍低于阈值）。
+     * 写作 {@code life < 阈值 - 1} 而非 {@code life + 1 < 阈值}：后者在 {@code life} 接近
+     * {@code Integer.MAX_VALUE} 时自增溢出为负、错误判定直通 vanilla，恰好重开本规则要关闭的
+     * 溢出链；{@code 阈值 - 1} 为编译期常量，任何 int 输入都无溢出路径。
+     */
     public static boolean vanillaWouldNotDiscard(int life) {
-        return life + 1 < VANILLA_DESPAWN_THRESHOLD;
+        return life < VANILLA_DESPAWN_THRESHOLD - 1;
+    }
+
+    /**
+     * 扣留 tick 的 life 推进：饱和于 {@link #VANILLA_DESPAWN_THRESHOLD}。vanilla 生命期内
+     * {@code life} 达到阈值即 discard、永不自增超过 1200，无界增长只能来自本规则的扣留复刻——
+     * 不饱和会把 vanilla 以 {@code (short)} 序列化的该字段推出 NBT 表示范围（超过 32767 后
+     * 保存/重载回绕为负，重载后需约 32768+ tick 才恢复 despawn 资格）。先判断后自增：
+     * {@code Integer.MAX_VALUE} 不执行 {@code + 1} 运算，无 int 溢出。
+     */
+    public static int detainedLifeAdvance(int life) {
+        return life >= VANILLA_DESPAWN_THRESHOLD ? VANILLA_DESPAWN_THRESHOLD : life + 1;
     }
 
     public static boolean isDespawnPermitted(int stationaryTicks) {

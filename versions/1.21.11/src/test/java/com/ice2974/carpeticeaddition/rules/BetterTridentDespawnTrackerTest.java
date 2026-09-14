@@ -183,10 +183,40 @@ class BetterTridentDespawnTrackerTest {
     @Test
     void vanillaWouldNotDiscardTruthTable() {
         assertTrue(BetterTridentDespawnTracker.vanillaWouldNotDiscard(0));
+        assertTrue(BetterTridentDespawnTracker.vanillaWouldNotDiscard(1197));
         assertTrue(BetterTridentDespawnTracker.vanillaWouldNotDiscard(1198));
         assertFalse(BetterTridentDespawnTracker.vanillaWouldNotDiscard(1199));
         assertFalse(BetterTridentDespawnTracker.vanillaWouldNotDiscard(1200));
         assertFalse(BetterTridentDespawnTracker.vanillaWouldNotDiscard(5000));
+        // int 上界：预测判断不得因 life+1 溢出为负而错误直通 vanilla
+        assertFalse(BetterTridentDespawnTracker.vanillaWouldNotDiscard(Integer.MAX_VALUE));
+        // 历史溢出存量（NBT 回绕为负）：vanilla 原样执行不会 discard，直通按原路径自然恢复
+        assertTrue(BetterTridentDespawnTracker.vanillaWouldNotDiscard(-32768));
+    }
+
+    // ---- 扣留 tick 的 life 饱和推进（恒不超过 vanilla despawn 阈值）----
+
+    @Test
+    void detainedLifeAdvanceTruthTable() {
+        assertEquals(1199, BetterTridentDespawnTracker.detainedLifeAdvance(1198));
+        assertEquals(1200, BetterTridentDespawnTracker.detainedLifeAdvance(1199));
+        assertEquals(1200, BetterTridentDespawnTracker.detainedLifeAdvance(1200));
+        assertEquals(1200, BetterTridentDespawnTracker.detainedLifeAdvance(32767));
+        // int 上界：先判断后自增，不得执行 life+1 溢出运算
+        assertEquals(1200, BetterTridentDespawnTracker.detainedLifeAdvance(Integer.MAX_VALUE));
+        // 历史溢出存量：跟随 vanilla 的 +1 语义自然恢复
+        assertEquals(-32767, BetterTridentDespawnTracker.detainedLifeAdvance(-32768));
+    }
+
+    @Test
+    void detainedLifeNeverExceedsThresholdAcrossLongDetention() {
+        int life = 1199;
+        for (int tick = 0; tick < 100_000; tick++) {
+            life = BetterTridentDespawnTracker.detainedLifeAdvance(life);
+        }
+        assertEquals(BetterTridentDespawnTracker.VANILLA_DESPAWN_THRESHOLD, life);
+        // 恢复 vanilla 直通（规则关闭 / 静止已满）后：1200 状态仍按 vanilla 时机 discard
+        assertFalse(BetterTridentDespawnTracker.vanillaWouldNotDiscard(life));
     }
 
     @Test

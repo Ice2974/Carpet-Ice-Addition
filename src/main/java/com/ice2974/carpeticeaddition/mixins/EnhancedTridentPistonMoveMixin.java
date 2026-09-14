@@ -59,6 +59,13 @@ import java.util.List;
  * 门控自身也不要求 grounded-rearm（保持忽略 dealtDamage），只在非空扫掠建轮时消费
  * 它（见上），下一 tick 的 R1 闸门因此不追加。重新武装只来自下一次实际位移或真正的
  * 重新离地。规则关闭时不做任何快照、扫描或状态写入（首行直接透传）。
+ *
+ * <p><strong>异常纪律</strong>：扫掠收集 / 建轮属规则自身逻辑，失败 fail-open（清
+ * 残留轮、上报、放行后续 tick）；队首派发经 invoker 调用完整原版命中链，不包
+ * {@code catch}——vanilla / 第三方 Mixin 抛出的异常在 {@code finally} 恢复轮 /
+ * 速度后原样向上传播（与 R1 队首 {@code original.call} 的传播行为一致），半完成
+ * 命中不由本规则静默续跑。{@code finally} 内仅轮字段清除与速度字段的纯读写（引用
+ * 同一性判定），不会抛出、不会吞并或覆盖原异常。
  */
 @Mixin(AbstractArrow.class)
 public abstract class EnhancedTridentPistonMoveMixin {
@@ -76,9 +83,13 @@ public abstract class EnhancedTridentPistonMoveMixin {
         Vec3 pre = self.position();
         AABB preBox = self.getBoundingBox();
         original.call(type, movement);
+        EnhancedTridentState state = (EnhancedTridentState) self;
+        Vec3 segment;
+        EnhancedTridentSweeper.SweepHit head;
+        Vec3 velocityBeforeDispatch;
         try {
             Vec3 post = self.position();
-            Vec3 segment = post.subtract(pre);
+            segment = post.subtract(pre);
             if (!EnhancedTridentHelper.isSignificantSegment(segment.x, segment.y, segment.z)) {
                 return;
             }
@@ -89,34 +100,36 @@ public abstract class EnhancedTridentPistonMoveMixin {
             if (hits.isEmpty()) {
                 return;
             }
-            EnhancedTridentSweeper.SweepHit head = hits.get(0);
+            head = hits.get(0);
             List<EnhancedTridentSweeper.SweepHit> secondaries = new ArrayList<>(hits.size() - 1);
             for (int i = 1; i < hits.size(); i++) {
                 secondaries.add(hits.get(i));
             }
-            EnhancedTridentState state = (EnhancedTridentState) self;
             // 建轮即消费 grounded-rearm（类 javadoc），无候选路径已提前 return
             state.carpetIceAddition$consumeGroundedRearm();
             state.carpetIceAddition$setRound(new EnhancedTridentState.EnhancedTridentRound(
                     self.tickCount, head.entity.getId(), secondaries, segment));
-            Vec3 velocityBeforeDispatch = self.getDeltaMovement();
-            try {
-                self.setDeltaMovement(segment);
-                ((EnhancedTridentProjectileAccessor) (Object) this).carpetIceAddition$hitTargetOrDeflectSelf(
-                        new EntityHitResult(head.entity, head.location));
-            } finally {
-                // 已消费时轮已被 onHit 包装取走（此处为 no-op）；未消费（队首盾反等
-                // deflection 路径不经过 onHit）时清除残留，速度保持 deflect 的写入
-                state.carpetIceAddition$setRound(null);
-                if (self.getDeltaMovement() == segment) {
-                    self.setDeltaMovement(velocityBeforeDispatch);
-                }
-            }
+            velocityBeforeDispatch = self.getDeltaMovement();
         } catch (Throwable throwable) {
-            if ((Object) this instanceof EnhancedTridentState state) {
-                state.carpetIceAddition$setRound(null);
-            }
+            // 仅规则自身的扫掠 / 建轮逻辑 fail-open：清残留轮、上报后放行后续 tick
+            state.carpetIceAddition$setRound(null);
             CarpetIceAdditionMod.reportFeatureCompatibilityIssue("enhancedTrident", throwable);
+            return;
+        }
+        // 队首派发是完整的原版命中链调用：vanilla / 第三方 Mixin 抛出的异常在 finally
+        // 恢复轮 / 速度后原样向上传播（与 R1 队首 original.call 一致），不由本规则吞掉。
+        // 速度回收沿用引用同一性判定（类 javadoc），天然保留真实 deflection 写入的状态。
+        try {
+            self.setDeltaMovement(segment);
+            ((EnhancedTridentProjectileAccessor) (Object) this).carpetIceAddition$hitTargetOrDeflectSelf(
+                    new EntityHitResult(head.entity, head.location));
+        } finally {
+            // 已消费时轮已被 onHit 包装取走（此处为 no-op）；未消费（队首盾反等
+            // deflection 路径不经过 onHit）时清除残留，速度保持 deflect 的写入
+            state.carpetIceAddition$setRound(null);
+            if (self.getDeltaMovement() == segment) {
+                self.setDeltaMovement(velocityBeforeDispatch);
+            }
         }
     }
 }

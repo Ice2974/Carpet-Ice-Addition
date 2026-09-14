@@ -35,6 +35,8 @@ public final class FeatureCompatibilityReporter {
     private static final AtomicBoolean VILLAGER_TRADING_OPTIMIZATION_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean BEDROCK_IMPALING_PORT_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean BETTER_TRIDENT_DESPAWN_CONDITION_ERROR_REPORTED = new AtomicBoolean(false);
+    private static final AtomicBoolean ENHANCED_TRIDENT_ERROR_REPORTED = new AtomicBoolean(false);
+    private static final AtomicBoolean ENCHANTED_GOLDEN_APPLE_EFFECT_ROLLBACK_ERROR_REPORTED = new AtomicBoolean(false);
 
     public static void reportFeatureCompatibilityIssue(String featureName, Throwable throwable) {
         AtomicBoolean flag;
@@ -86,6 +88,10 @@ public final class FeatureCompatibilityReporter {
             flag = BEDROCK_IMPALING_PORT_ERROR_REPORTED;
         } else if ("betterTridentDespawnCondition".equals(featureName)) {
             flag = BETTER_TRIDENT_DESPAWN_CONDITION_ERROR_REPORTED;
+        } else if ("enhancedTrident".equals(featureName)) {
+            flag = ENHANCED_TRIDENT_ERROR_REPORTED;
+        } else if ("enchantedGoldenAppleEffectRollback".equals(featureName)) {
+            flag = ENCHANTED_GOLDEN_APPLE_EFFECT_ROLLBACK_ERROR_REPORTED;
         } else {
             LOGGER.warn("[Carpet Ice Addition] Compatibility issue in feature {}: {}", featureName, throwable.toString());
             return;
