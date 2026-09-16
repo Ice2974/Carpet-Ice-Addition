@@ -293,7 +293,7 @@ jobs:
             fi
           done < <(jq -r '.platforms[] | [.platform, .platform_dir, .jar, .source] | @tsv' "$resolved_file")
 
-          # Modrinth 发布 metadata 只在此处一次性解析：release 标签集与依赖项目 ID，经 manifest 供 11 个发布 job 共用
+          # Modrinth 发布 metadata 只在此处一次性解析：release 标签集与依赖项目 ID，经 manifest 供 12 个发布 job 共用
           tags_file=$(mktemp)
           curl -fsS --retry 3 --retry-delay 5 --user-agent "$user_agent" "https://api.modrinth.com/v2/tag/game_version" > "$tags_file"
           carpet_project_id=$(curl -fsS --retry 3 --retry-delay 5 --user-agent "$user_agent" "https://api.modrinth.com/v2/project/carpet" | jq -r '.id')

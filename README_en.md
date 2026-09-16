@@ -20,6 +20,7 @@
 | 1.21.x | Maintained |   |
 | 26.1.x | Maintained |   |
 | 26.2 | Maintained |   |
+| 26.3 | Maintained |   |
 
 ## Download
 

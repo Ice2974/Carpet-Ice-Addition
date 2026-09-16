@@ -31,6 +31,7 @@ preprocess {
     def v1_21_11 = createNode('1.21.11', 1_21_11, '')
     def v26_1_2  = createNode('26.1.2', 26_01_02, '')
     def v26_2    = createNode('26.2', 26_02_00, '')
+    def v26_3    = createNode('26.3', 26_03_00, '')
 
     v1_21_3.link(v1_21_1, file('versions/mapping-1.21.3-1.21.1.txt'))
     v1_21_4.link(v1_21_3, file('versions/mapping-1.21.4-1.21.3.txt'))
@@ -42,6 +43,7 @@ preprocess {
     v1_21_11.link(v1_21_10, file('versions/mapping-1.21.11-1.21.10.txt'))
     v1_21_11.link(v26_1_2, file('versions/mapping-1.21.11-26.1.2.txt'))
     v26_2.link(v26_1_2, file('versions/mapping-26.2-26.1.2.txt'))
+    v26_3.link(v26_2, file('versions/mapping-26.3-26.2.txt'))
 }
 
 allprojects {

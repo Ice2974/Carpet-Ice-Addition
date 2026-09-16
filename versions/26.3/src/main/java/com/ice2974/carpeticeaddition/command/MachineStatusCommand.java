@@ -1,0 +1,697 @@
+package com.ice2974.carpeticeaddition.command;
+
+import carpet.utils.CommandHelper;
+import com.ice2974.carpeticeaddition.command.MachineStatusConfigManager.MachineRecord;
+import com.ice2974.carpeticeaddition.command.MachineStatusStateUtil.ParsedState;
+import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
+import com.ice2974.carpeticeaddition.translation.TranslationFormatUtil;
+import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.suggestion.Suggestions;
+import com.mojang.brigadier.suggestion.SuggestionsBuilder;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
+import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
+import net.minecraft.ChatFormatting;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.Commands;
+import net.minecraft.commands.arguments.DimensionArgument;
+import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.network.chat.ClickEvent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.block.state.BlockState;
+
+import java.io.IOException;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
+
+public final class MachineStatusCommand {
+    private static final DynamicCommandExceptionType INVALID_IDENTIFIER = new DynamicCommandExceptionType(
+            value -> tr("command.carpet-ice-addition.machine_status.error.invalid_identifier", value)
+    );
+    private static final DynamicCommandExceptionType MACHINE_EXISTS = new DynamicCommandExceptionType(
+            value -> tr("command.carpet-ice-addition.machine_status.error.name_exists", value)
+    );
+    private static final DynamicCommandExceptionType MACHINE_NOT_FOUND = new DynamicCommandExceptionType(
+            value -> tr("command.carpet-ice-addition.machine_status.error.name_not_found", value)
+    );
+    private static final DynamicCommandExceptionType DIMENSION_NOT_FOUND = new DynamicCommandExceptionType(
+            value -> tr("command.carpet-ice-addition.machine_status.error.dimension_not_found", value)
+    );
+    private static final DynamicCommandExceptionType CHUNK_NOT_LOADED = new DynamicCommandExceptionType(
+            value -> tr("command.carpet-ice-addition.machine_status.error.chunk_not_loaded", value)
+    );
+    private static final SimpleCommandExceptionType CONFIG_SAVE_FAILED = new SimpleCommandExceptionType(
+            tr("command.carpet-ice-addition.machine_status.error.config_save_failed")
+    );
+
+    private MachineStatusCommand() {
+    }
+
+    public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
+        dispatcher.register(Commands.literal("machineStatus")
+                .requires(MachineStatusCommand::canUseMachineStatus)
+                .then(Commands.literal("add")
+                        .then(Commands.argument("dimension", DimensionArgument.dimension())
+                                .then(Commands.argument("pos", BlockPosArgument.blockPos())
+                                        .then(Commands.argument("name", StringArgumentType.string())
+                                                .suggests(MachineStatusCommand::suggestUnusedMachineNames)
+                                                .executes(context -> addMachine(
+                                                        context,
+                                                        context.getArgument("dimension", Identifier.class),
+                                                        BlockPosArgument.getBlockPos(context, "pos"),
+                                                        validateMachineName(StringArgumentType.getString(context, "name"))
+                                                ))))))
+                .then(Commands.literal("remove")
+                        .then(Commands.argument("name", StringArgumentType.string())
+                                .suggests(MachineStatusCommand::suggestMachineNames)
+                                .executes(context -> removeMachine(
+                                        context,
+                                        validateMachineName(StringArgumentType.getString(context, "name"))
+                                ))))
+                .then(Commands.literal("rename")
+                        .then(Commands.argument("name", StringArgumentType.string())
+                                .suggests(MachineStatusCommand::suggestMachineNames)
+                                .then(Commands.argument("newName", StringArgumentType.string())
+                                        .suggests(MachineStatusCommand::suggestUnusedMachineNames)
+                                        .executes(context -> renameMachine(
+                                                context,
+                                                validateMachineName(StringArgumentType.getString(context, "name")),
+                                                validateMachineName(StringArgumentType.getString(context, "newName"))
+                                        )))))
+                .then(Commands.literal("update")
+                        .then(Commands.argument("name", StringArgumentType.string())
+                                .suggests(MachineStatusCommand::suggestMachineNames)
+                                .executes(context -> updateMachine(
+                                        context,
+                                        validateMachineName(StringArgumentType.getString(context, "name"))
+                                ))))
+                .then(Commands.literal("move")
+                        .then(Commands.argument("name", StringArgumentType.string())
+                                .suggests(MachineStatusCommand::suggestMachineNames)
+                                .then(Commands.argument("dimension", DimensionArgument.dimension())
+                                        .then(Commands.argument("pos", BlockPosArgument.blockPos())
+                                                .executes(context -> moveMachine(
+                                                        context,
+                                                        validateMachineName(StringArgumentType.getString(context, "name")),
+                                                        context.getArgument("dimension", Identifier.class),
+                                                        BlockPosArgument.getBlockPos(context, "pos")
+                                                ))))))
+                .then(Commands.literal("list")
+                        .executes(context -> listMachines(context, null))
+                        .then(Commands.literal("running").executes(context -> listMachines(context, MachineStatusKind.RUNNING)))
+                        .then(Commands.literal("stopped").executes(context -> listMachines(context, MachineStatusKind.STOPPED)))
+                        .then(Commands.literal("invalid").executes(context -> listMachines(context, MachineStatusKind.INVALID)))
+                        .then(Commands.literal("unloaded").executes(context -> listMachines(context, MachineStatusKind.UNLOADED))))
+                .then(Commands.literal("info")
+                        .then(Commands.argument("name", StringArgumentType.string())
+                                .suggests(MachineStatusCommand::suggestMachineNames)
+                                .executes(context -> showInfo(
+                                        context,
+                                        validateMachineName(StringArgumentType.getString(context, "name"))
+                                )))));
+    }
+
+    private static int addMachine(
+            CommandContext<CommandSourceStack> context,
+            Identifier dimensionId,
+            BlockPos pos,
+            String name
+    ) throws CommandSyntaxException {
+        ensureMachineDoesNotExist(name);
+        ServerLevel world = getWorld(context.getSource().getServer(), dimensionId);
+        ensureChunkLoaded(world, pos, dimensionId);
+        String shutdownState = serializeBlockState(world.getBlockState(pos));
+
+        try {
+            MachineStatusConfigManager.addMachine(name, dimensionId.toString(), pos.getX(), pos.getY(), pos.getZ(), shutdownState);
+        } catch (IOException exception) {
+            throw CONFIG_SAVE_FAILED.create();
+        }
+
+        context.getSource().sendSuccess(
+                () -> tr(
+                        "command.carpet-ice-addition.machine_status.result.added",
+                        name,
+                        dimensionId.toString(),
+                        formatPos(pos),
+                        shutdownState
+                ),
+                false
+        );
+        return 1;
+    }
+
+    private static int removeMachine(CommandContext<CommandSourceStack> context, String name) throws CommandSyntaxException {
+        ensureMachineExists(name);
+        try {
+            MachineStatusConfigManager.removeMachine(name);
+        } catch (IOException exception) {
+            throw CONFIG_SAVE_FAILED.create();
+        }
+
+        context.getSource().sendSuccess(
+                () -> tr("command.carpet-ice-addition.machine_status.result.removed", name),
+                false
+        );
+        return 1;
+    }
+
+    private static int renameMachine(CommandContext<CommandSourceStack> context, String name, String newName) throws CommandSyntaxException {
+        ensureMachineExists(name);
+        ensureMachineDoesNotExist(newName);
+
+        try {
+            MachineStatusConfigManager.renameMachine(name, newName);
+        } catch (IOException exception) {
+            throw CONFIG_SAVE_FAILED.create();
+        }
+
+        context.getSource().sendSuccess(
+                () -> tr(
+                        "command.carpet-ice-addition.machine_status.result.renamed",
+                        name,
+                        newName
+                ),
+                false
+        );
+        return 1;
+    }
+
+    private static int updateMachine(CommandContext<CommandSourceStack> context, String name) throws CommandSyntaxException {
+        MachineRecord record = getMachineOrThrow(name);
+        Identifier dimensionId = parseIdentifier(record.dimension());
+        ServerLevel world = getWorld(context.getSource().getServer(), dimensionId);
+        BlockPos pos = new BlockPos(record.x(), record.y(), record.z());
+        ensureChunkLoaded(world, pos, dimensionId);
+
+        String oldState = record.shutdownBlockState();
+        String newState = serializeBlockState(world.getBlockState(pos));
+        try {
+            MachineStatusConfigManager.updateMachineState(name, newState);
+        } catch (IOException exception) {
+            throw CONFIG_SAVE_FAILED.create();
+        }
+
+        context.getSource().sendSuccess(
+                () -> tr(
+                        "command.carpet-ice-addition.machine_status.result.updated",
+                        name,
+                        oldState,
+                        newState
+                ),
+                false
+        );
+        return 1;
+    }
+
+    private static int moveMachine(
+            CommandContext<CommandSourceStack> context,
+            String name,
+            Identifier dimensionId,
+            BlockPos pos
+    ) throws CommandSyntaxException {
+        getMachineOrThrow(name);
+        ServerLevel world = getWorld(context.getSource().getServer(), dimensionId);
+        ensureChunkLoaded(world, pos, dimensionId);
+        String shutdownState = serializeBlockState(world.getBlockState(pos));
+
+        try {
+            MachineStatusConfigManager.moveMachine(name, dimensionId.toString(), pos.getX(), pos.getY(), pos.getZ(), shutdownState);
+        } catch (IOException exception) {
+            throw CONFIG_SAVE_FAILED.create();
+        }
+
+        context.getSource().sendSuccess(
+                () -> tr(
+                        "command.carpet-ice-addition.machine_status.result.moved",
+                        name,
+                        dimensionId.toString(),
+                        formatPos(pos),
+                        shutdownState
+                ),
+                false
+        );
+        return 1;
+    }
+
+    private static int listMachines(CommandContext<CommandSourceStack> context, MachineStatusKind filter) {
+        List<MachineWithStatus> machines = collectMachines(context.getSource().getServer(), filter);
+
+        context.getSource().sendSuccess(() -> listHeaderLine(filter), false);
+        if (filter == null) {
+            context.getSource().sendSuccess(() -> summaryLine(machines), false);
+        } else if (!machines.isEmpty()) {
+            context.getSource().sendSuccess(() -> countLine(machines.size()), false);
+        }
+
+        if (machines.isEmpty()) {
+            context.getSource().sendSuccess(
+                    () -> emptyListLine(filter),
+                    false
+            );
+            return 0;
+        }
+
+        for (MachineWithStatus machine : machines) {
+            context.getSource().sendSuccess(() -> formatMachineLine(machine.record, machine.status.kind()), false);
+        }
+        return machines.size();
+    }
+
+    private static int showInfo(CommandContext<CommandSourceStack> context, String name) throws CommandSyntaxException {
+        MachineRecord record = getMachineOrThrow(name);
+        MachineRuntimeStatus status = evaluateStatus(context.getSource().getServer(), record);
+        MachineStatusStateUtil.ParsedState savedState = MachineStatusStateUtil.parse(record.shutdownBlockState());
+        MachineStatusStateUtil.ParsedState currentState = status.currentStateRaw() == null
+                ? null
+                : MachineStatusStateUtil.parse(status.currentStateRaw());
+        String position = formatPos(new BlockPos(record.x(), record.y(), record.z()));
+
+        context.getSource().sendSuccess(MachineStatusCommand::detailHeaderLine, false);
+        context.getSource().sendSuccess(() -> fieldLine("command.carpet-ice-addition.machine_status.info.label.machine", white(record.name())), false);
+        context.getSource().sendSuccess(() -> fieldLine("command.carpet-ice-addition.machine_status.info.label.status", statusTag(status.kind())), false);
+        context.getSource().sendSuccess(() -> fieldLine("command.carpet-ice-addition.machine_status.info.label.dimension", white(record.dimension())), false);
+        context.getSource().sendSuccess(() -> fieldLine("command.carpet-ice-addition.machine_status.info.label.position", white(position)), false);
+
+        switch (status.kind()) {
+            case RUNNING, STOPPED -> {
+                context.getSource().sendSuccess(() -> fieldLine("command.carpet-ice-addition.machine_status.info.label.block", white(blockId(savedState, record.shutdownBlockState()))), false);
+                context.getSource().sendSuccess(() -> fieldLine("command.carpet-ice-addition.machine_status.info.label.saved_state", white(propertiesText(savedState, record.shutdownBlockState()))), false);
+                context.getSource().sendSuccess(() -> fieldLine("command.carpet-ice-addition.machine_status.info.label.current_state", white(propertiesText(currentState, status.currentStateRaw()))), false);
+            }
+            case UNLOADED -> {
+                context.getSource().sendSuccess(() -> fieldLine("command.carpet-ice-addition.machine_status.info.label.saved_block", white(blockId(savedState, record.shutdownBlockState()))), false);
+                context.getSource().sendSuccess(() -> fieldLine("command.carpet-ice-addition.machine_status.info.label.saved_state", white(propertiesText(savedState, record.shutdownBlockState()))), false);
+                context.getSource().sendSuccess(() -> fieldLine("command.carpet-ice-addition.machine_status.info.label.current_state", white(trString("command.carpet-ice-addition.machine_status.current_state.chunk_not_loaded"))), false);
+            }
+            case INVALID -> {
+                switch (status.reason()) {
+                    case DIMENSION_UNAVAILABLE -> {
+                        context.getSource().sendSuccess(() -> fieldLine("command.carpet-ice-addition.machine_status.info.label.current_state", white(trString("command.carpet-ice-addition.machine_status.current_state.dimension_not_found"))), false);
+                        context.getSource().sendSuccess(() -> fieldLine("command.carpet-ice-addition.machine_status.info.label.reason", white(trString("command.carpet-ice-addition.machine_status.info.reason.dimension_unavailable"))), false);
+                    }
+                    case TARGET_BLOCK_MISSING, BLOCK_TYPE_CHANGED -> {
+                        context.getSource().sendSuccess(() -> fieldLine("command.carpet-ice-addition.machine_status.info.label.saved_block", white(blockId(savedState, record.shutdownBlockState()))), false);
+                        context.getSource().sendSuccess(() -> fieldLine("command.carpet-ice-addition.machine_status.info.label.current_block", white(blockId(currentState, status.currentStateRaw()))), false);
+                        context.getSource().sendSuccess(() -> fieldLine("command.carpet-ice-addition.machine_status.info.label.reason", white(trString(status.reason().translationKey()))), false);
+                    }
+                    case INVALID_STATE -> {
+                        context.getSource().sendSuccess(() -> fieldLine("command.carpet-ice-addition.machine_status.info.label.saved_block", white(blockId(savedState, record.shutdownBlockState()))), false);
+                        context.getSource().sendSuccess(() -> fieldLine("command.carpet-ice-addition.machine_status.info.label.saved_state", white(propertiesText(savedState, record.shutdownBlockState()))), false);
+                        context.getSource().sendSuccess(() -> fieldLine("command.carpet-ice-addition.machine_status.info.label.current_state", white(status.currentStateText().getString())), false);
+                        context.getSource().sendSuccess(() -> fieldLine("command.carpet-ice-addition.machine_status.info.label.reason", white(trString("command.carpet-ice-addition.machine_status.info.reason.invalid_state"))), false);
+                    }
+                    case NONE -> {
+                    }
+                }
+            }
+        }
+        return 1;
+    }
+
+    public static List<MachineRecord> getMachineRecordsByStatus(MinecraftServer server, MachineStatusKind filter) {
+        return collectMachines(server, filter).stream()
+                .map(MachineWithStatus::record)
+                .toList();
+    }
+
+    public static Component formatMachineStatusLine(MachineRecord record, MachineStatusKind kind) {
+        return formatMachineLine(record, kind);
+    }
+
+    private static MachineRuntimeStatus evaluateStatus(MinecraftServer server, MachineRecord record) {
+        Identifier dimensionId = Identifier.tryParse(MachineStatusStateUtil.normalizeIdentifier(record.dimension()));
+        if (dimensionId == null) {
+            return new MachineRuntimeStatus(
+                    MachineStatusKind.INVALID,
+                    tr("command.carpet-ice-addition.machine_status.current_state.dimension_not_found"),
+                    null,
+                    MachineStatusIssueReason.DIMENSION_UNAVAILABLE
+            );
+        }
+
+        ServerLevel world = server.getLevel(ResourceKey.create(Registries.DIMENSION, dimensionId));
+        if (world == null) {
+            return new MachineRuntimeStatus(
+                    MachineStatusKind.INVALID,
+                    tr("command.carpet-ice-addition.machine_status.current_state.dimension_not_found"),
+                    null,
+                    MachineStatusIssueReason.DIMENSION_UNAVAILABLE
+            );
+        }
+
+        BlockPos pos = new BlockPos(record.x(), record.y(), record.z());
+        if (!isChunkLoaded(world, pos)) {
+            return new MachineRuntimeStatus(
+                    MachineStatusKind.UNLOADED,
+                    tr("command.carpet-ice-addition.machine_status.current_state.chunk_not_loaded"),
+                    null,
+                    MachineStatusIssueReason.NONE
+            );
+        }
+
+        String currentStateString = serializeBlockState(world.getBlockState(pos));
+        ParsedState savedState = MachineStatusStateUtil.parse(record.shutdownBlockState());
+        ParsedState currentState = MachineStatusStateUtil.parse(currentStateString);
+        if (savedState == null || currentState == null) {
+            return new MachineRuntimeStatus(MachineStatusKind.INVALID, Component.literal(currentStateString), currentStateString, MachineStatusIssueReason.INVALID_STATE);
+        }
+
+        if (!savedState.blockId().equals(currentState.blockId())) {
+            MachineStatusIssueReason reason = currentState.blockId().equals("minecraft:air") && !savedState.blockId().equals("minecraft:air")
+                    ? MachineStatusIssueReason.TARGET_BLOCK_MISSING
+                    : MachineStatusIssueReason.BLOCK_TYPE_CHANGED;
+            return new MachineRuntimeStatus(MachineStatusKind.INVALID, Component.literal(currentStateString), currentStateString, reason);
+        }
+
+        if (savedState.properties().equals(currentState.properties())) {
+            return new MachineRuntimeStatus(MachineStatusKind.STOPPED, Component.literal(currentStateString), currentStateString, MachineStatusIssueReason.NONE);
+        }
+        return new MachineRuntimeStatus(MachineStatusKind.RUNNING, Component.literal(currentStateString), currentStateString, MachineStatusIssueReason.NONE);
+    }
+
+    private static MachineRecord getMachineOrThrow(String name) throws CommandSyntaxException {
+        MachineRecord record = MachineStatusConfigManager.getMachine(name);
+        if (record == null) {
+            throw MACHINE_NOT_FOUND.create(name);
+        }
+        return record;
+    }
+
+    private static void ensureMachineExists(String name) throws CommandSyntaxException {
+        if (!MachineStatusConfigManager.containsMachine(name)) {
+            throw MACHINE_NOT_FOUND.create(name);
+        }
+    }
+
+    private static void ensureMachineDoesNotExist(String name) throws CommandSyntaxException {
+        if (MachineStatusConfigManager.containsMachine(name)) {
+            throw MACHINE_EXISTS.create(name);
+        }
+    }
+
+    private static Identifier parseIdentifier(String rawIdentifier) throws CommandSyntaxException {
+        Identifier identifier = Identifier.tryParse(MachineStatusStateUtil.normalizeIdentifier(rawIdentifier));
+        if (identifier == null) {
+            throw INVALID_IDENTIFIER.create(rawIdentifier);
+        }
+        return identifier;
+    }
+
+    private static String validateMachineName(String rawName) throws CommandSyntaxException {
+        if (rawName == null || rawName.isBlank()) {
+            throw INVALID_IDENTIFIER.create(rawName);
+        }
+        return rawName;
+    }
+
+    private static ServerLevel getWorld(MinecraftServer server, Identifier dimensionId) throws CommandSyntaxException {
+        ServerLevel world = server.getLevel(ResourceKey.create(Registries.DIMENSION, dimensionId));
+        if (world == null) {
+            throw DIMENSION_NOT_FOUND.create(dimensionId);
+        }
+        return world;
+    }
+
+    private static void ensureChunkLoaded(ServerLevel world, BlockPos pos, Identifier dimensionId) throws CommandSyntaxException {
+        if (!isChunkLoaded(world, pos)) {
+            throw CHUNK_NOT_LOADED.create(formatChunkTarget(dimensionId, pos));
+        }
+    }
+
+    private static boolean isChunkLoaded(ServerLevel world, BlockPos pos) {
+        return world.getChunkSource().hasChunk(pos.getX() >> 4, pos.getZ() >> 4);
+    }
+
+    private static CompletableFuture<Suggestions> suggestUnusedMachineNames(CommandContext<CommandSourceStack> context, SuggestionsBuilder builder) {
+        return suggestMachineNames(context, builder);
+    }
+
+    private static CompletableFuture<Suggestions> suggestMachineNames(CommandContext<CommandSourceStack> context, SuggestionsBuilder builder) {
+        String remaining = builder.getRemaining();
+        String lowerRemaining = remaining.toLowerCase(Locale.ROOT);
+        String unquotedRemaining = lowerRemaining.startsWith("\"") ? lowerRemaining.substring(1) : lowerRemaining;
+        for (String name : machineNames()) {
+            String suggestion = quoteMachineName(name);
+            String lowerSuggestion = suggestion.toLowerCase(Locale.ROOT);
+            String lowerName = name.toLowerCase(Locale.ROOT);
+            if (lowerSuggestion.startsWith(lowerRemaining) || lowerName.startsWith(unquotedRemaining)) {
+                builder.suggest(suggestion);
+            }
+        }
+        return builder.buildFuture();
+    }
+
+    private static List<MachineWithStatus> collectMachines(MinecraftServer server, MachineStatusKind filter) {
+        return MachineStatusConfigManager.snapshot().stream()
+                .map(record -> new MachineWithStatus(record, evaluateStatus(server, record)))
+                .filter(machine -> filter == null || machine.status.kind() == filter)
+                .sorted(Comparator
+                        .comparingInt((MachineWithStatus machine) -> machine.status.kind().sortOrder())
+                        .thenComparing(machine -> machine.record.name(), String.CASE_INSENSITIVE_ORDER)
+                        .thenComparing(machine -> machine.record.name()))
+                .toList();
+    }
+
+    private static Component listHeaderLine(MachineStatusKind filter) {
+        return titleLine(filter == null
+                ? "command.carpet-ice-addition.machine_status.title.list"
+                : switch (filter) {
+                    case RUNNING -> "command.carpet-ice-addition.machine_status.title.list.running";
+                    case INVALID -> "command.carpet-ice-addition.machine_status.title.list.invalid";
+                    case STOPPED -> "command.carpet-ice-addition.machine_status.title.list.stopped";
+                    case UNLOADED -> "command.carpet-ice-addition.machine_status.title.list.unloaded";
+                });
+    }
+
+    private static Component detailHeaderLine() {
+        return titleLine("command.carpet-ice-addition.machine_status.title.info");
+    }
+
+    private static Component titleLine(String key) {
+        String title = trString(key);
+        int titleVisualWidth = visualWidth(title);
+        int totalWidth = Math.max(38, titleVisualWidth + 12);
+        int leftWidth = Math.max(4, (totalWidth - titleVisualWidth - 2) / 2);
+        int rightWidth = Math.max(4, totalWidth - titleVisualWidth - 2 - leftWidth);
+
+        MutableComponent line = Component.literal(repeat('=', leftWidth) + " ").withStyle(ChatFormatting.GOLD);
+        line.append(Component.literal(title).withStyle(ChatFormatting.YELLOW));
+        line.append(Component.literal(" " + repeat('=', rightWidth)).withStyle(ChatFormatting.GOLD));
+        return line;
+    }
+
+    private static String serializeBlockState(BlockState state) {
+        String blockId = BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString();
+        String properties = state.getValues()
+                .sorted(Comparator.comparing(value -> value.property().getName()))
+                .map(value -> value.property().getName() + "=" + value.valueName())
+                .collect(Collectors.joining(","));
+        return properties.isEmpty() ? blockId : blockId + "[" + properties + "]";
+    }
+
+    private static Component formatMachineLine(MachineRecord record, MachineStatusKind kind) {
+        MutableComponent line = Component.empty();
+        line.append(statusTag(kind));
+        line.append(Component.literal(" ").withStyle(ChatFormatting.GRAY));
+        line.append(Component.literal(record.name()).withStyle(ChatFormatting.WHITE));
+        line.append(Component.literal(" - " + record.dimension() + " " + record.x() + " " + record.y() + " " + record.z() + " ").withStyle(ChatFormatting.GRAY));
+        line.append(infoButton(record.name()));
+        return line;
+    }
+
+    private static Component statusTag(MachineStatusKind kind) {
+        MutableComponent tag = Component.literal("[");
+        tag.append(tr(kind.translationKey()));
+        tag.append("]");
+        return tag.withStyle(statusFormatting(kind));
+    }
+
+    private static Component infoButton(String name) {
+        Style style = Style.EMPTY
+                .withColor(ChatFormatting.AQUA)
+                .withClickEvent(new ClickEvent.RunCommand("/machineStatus info " + quoteMachineName(name)))
+                .withHoverEvent(new HoverEvent.ShowText(
+                        tr("command.carpet-ice-addition.machine_status.info.hover")
+                ));
+        return Component.literal("[i]").setStyle(style);
+    }
+
+    private static Component summaryLine(List<MachineWithStatus> machines) {
+        long running = machines.stream().filter(machine -> machine.status.kind() == MachineStatusKind.RUNNING).count();
+        long invalid = machines.stream().filter(machine -> machine.status.kind() == MachineStatusKind.INVALID).count();
+        long stopped = machines.stream().filter(machine -> machine.status.kind() == MachineStatusKind.STOPPED).count();
+        long unloaded = machines.stream().filter(machine -> machine.status.kind() == MachineStatusKind.UNLOADED).count();
+
+        MutableComponent line = Component.empty();
+        appendSummarySegment(line, "command.carpet-ice-addition.machine_status.summary.total", machines.size(), false);
+        appendSummarySegment(line, "command.carpet-ice-addition.machine_status.summary.running", running, true);
+        appendSummarySegment(line, "command.carpet-ice-addition.machine_status.summary.invalid", invalid, true);
+        appendSummarySegment(line, "command.carpet-ice-addition.machine_status.summary.stopped", stopped, true);
+        appendSummarySegment(line, "command.carpet-ice-addition.machine_status.summary.unloaded", unloaded, true);
+        return line;
+    }
+
+    private static void appendSummarySegment(MutableComponent line, String labelKey, long value, boolean withSeparator) {
+        if (withSeparator) {
+            line.append(Component.literal(" | ").withStyle(ChatFormatting.DARK_GRAY));
+        }
+        line.append(Component.literal(trString(labelKey)).withStyle(ChatFormatting.GRAY));
+        line.append(Component.literal(Long.toString(value)).withStyle(ChatFormatting.WHITE));
+    }
+
+    private static Component countLine(int count) {
+        return Component.literal(trString("command.carpet-ice-addition.machine_status.list.count", count)).withStyle(ChatFormatting.GRAY);
+    }
+
+    private static Component emptyListLine(MachineStatusKind filter) {
+        String key = filter == null
+                ? "command.carpet-ice-addition.machine_status.list.empty"
+                : switch (filter) {
+                    case RUNNING -> "command.carpet-ice-addition.machine_status.list.empty.running";
+                    case INVALID -> "command.carpet-ice-addition.machine_status.list.empty.invalid";
+                    case STOPPED -> "command.carpet-ice-addition.machine_status.list.empty.stopped";
+                    case UNLOADED -> "command.carpet-ice-addition.machine_status.list.empty.unloaded";
+                };
+        return Component.literal(trString(key)).withStyle(ChatFormatting.GRAY);
+    }
+
+    private static Component fieldLine(String labelKey, Component value) {
+        MutableComponent line = Component.literal(trString(labelKey)).withStyle(ChatFormatting.GRAY);
+        line.append(value);
+        return line;
+    }
+
+    private static Component white(String value) {
+        return Component.literal(value).withStyle(ChatFormatting.WHITE);
+    }
+
+    private static String blockId(MachineStatusStateUtil.ParsedState state, String rawState) {
+        if (state != null) {
+            return state.blockId();
+        }
+        if (rawState == null) {
+            return trString("command.carpet-ice-addition.machine_status.state_properties.none");
+        }
+        int bracketIndex = rawState.indexOf('[');
+        return bracketIndex >= 0 ? rawState.substring(0, bracketIndex).trim() : rawState.trim();
+    }
+
+    private static String propertiesText(MachineStatusStateUtil.ParsedState state, String rawState) {
+        if (state != null) {
+            if (state.properties().isEmpty()) {
+                return trString("command.carpet-ice-addition.machine_status.state_properties.none");
+            }
+            return state.properties().entrySet().stream()
+                    .map(entry -> entry.getKey() + "=" + entry.getValue())
+                    .collect(Collectors.joining(", "));
+        }
+        if (rawState == null || rawState.isBlank()) {
+            return trString("command.carpet-ice-addition.machine_status.state_properties.none");
+        }
+        int start = rawState.indexOf('[');
+        int end = rawState.lastIndexOf(']');
+        if (start >= 0 && end > start) {
+            String properties = rawState.substring(start + 1, end).trim();
+            return properties.isEmpty()
+                    ? trString("command.carpet-ice-addition.machine_status.state_properties.none")
+                    : properties.replace(",", ", ");
+        }
+        return trString("command.carpet-ice-addition.machine_status.state_properties.none");
+    }
+
+    private static MutableComponent tr(String key, Object... args) {
+        return Component.literal(TranslationFormatUtil.translate(key, args));
+    }
+
+    private static String trString(String key, Object... args) {
+        return TranslationFormatUtil.translate(key, args);
+    }
+
+    private static ChatFormatting statusFormatting(MachineStatusKind kind) {
+        return switch (kind) {
+            case INVALID -> ChatFormatting.RED;
+            case RUNNING -> ChatFormatting.YELLOW;
+            case STOPPED -> ChatFormatting.GREEN;
+            case UNLOADED -> ChatFormatting.GRAY;
+        };
+    }
+
+    private static List<String> machineNames() {
+        return MachineStatusConfigManager.snapshot().stream()
+                .map(MachineRecord::name)
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .toList();
+    }
+
+    private static String formatPos(BlockPos pos) {
+        return String.format(Locale.ROOT, "%d %d %d", pos.getX(), pos.getY(), pos.getZ());
+    }
+
+    private static String formatChunkTarget(Identifier dimensionId, BlockPos pos) {
+        return dimensionId + " " + pos.getX() + " " + pos.getY() + " " + pos.getZ();
+    }
+
+    private static String quoteMachineName(String name) {
+        if (name.chars().allMatch(character -> character < 128 && com.mojang.brigadier.StringReader.isAllowedInUnquotedString((char) character))) {
+            return name;
+        }
+        return StringArgumentType.escapeIfRequired(name);
+    }
+
+    private static int visualWidth(String text) {
+        int width = 0;
+        for (int i = 0; i < text.length(); i++) {
+            width += text.charAt(i) <= 0x7F ? 1 : 2;
+        }
+        return width;
+    }
+
+    private static String repeat(char ch, int count) {
+        return String.valueOf(ch).repeat(Math.max(0, count));
+    }
+
+    private static boolean canUseMachineStatus(CommandSourceStack source) {
+        return CommandHelper.canUseCommand(source, CarpetIceAdditionSettings.commandMachineStatus);
+    }
+
+    private enum MachineStatusIssueReason {
+        NONE(null),
+        DIMENSION_UNAVAILABLE("command.carpet-ice-addition.machine_status.info.reason.dimension_unavailable"),
+        BLOCK_TYPE_CHANGED("command.carpet-ice-addition.machine_status.info.reason.block_type_changed"),
+        TARGET_BLOCK_MISSING("command.carpet-ice-addition.machine_status.info.reason.block_missing"),
+        INVALID_STATE("command.carpet-ice-addition.machine_status.info.reason.invalid_state");
+
+        private final String translationKey;
+
+        MachineStatusIssueReason(String translationKey) {
+            this.translationKey = translationKey;
+        }
+
+        public String translationKey() {
+            return this.translationKey;
+        }
+    }
+
+    private record MachineRuntimeStatus(MachineStatusKind kind, Component currentStateText, String currentStateRaw, MachineStatusIssueReason reason) {
+    }
+
+    private record MachineWithStatus(MachineRecord record, MachineRuntimeStatus status) {
+    }
+
+}

@@ -6,6 +6,9 @@ import com.google.gson.JsonPrimitive;
 import com.ice2974.carpeticeaddition.CarpetIceAdditionMod;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
 import com.mojang.serialization.JsonOps;
+//#if MC>=260300
+//$$import net.minecraft.core.Holder;
+//#endif
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.RegistryOps;
@@ -167,6 +170,16 @@ public final class BedrockImpalingPortHelper {
      * HolderSetCodec 要求 {@code RegistryOps}，裸 {@code JsonOps} 会直接编码失败。
      */
     private static boolean isVanillaImpalingTargetCondition(ConditionalEffect<?> effect, ServerLevel level) {
+        // 26.3 起 ConditionalEffect.requirements() 返回 Optional<Holder<LootItemCondition>>，需经 Holder.value() 解包
+//#if MC>=260300
+//$$        Optional<Holder<LootItemCondition>> requirements = effect.requirements();
+//$$        if (requirements.isEmpty()) {
+//$$            return false;
+//$$        }
+//$$        if (!(requirements.get().value() instanceof LootItemEntityPropertyCondition condition)) {
+//$$            return false;
+//$$        }
+//#else
         Optional<LootItemCondition> requirements = effect.requirements();
         if (requirements.isEmpty()) {
             return false;
@@ -174,6 +187,7 @@ public final class BedrockImpalingPortHelper {
         if (!(requirements.get() instanceof LootItemEntityPropertyCondition condition)) {
             return false;
         }
+//#endif
         if (condition.entityTarget() != LootContext.EntityTarget.THIS) {
             return false;
         }
