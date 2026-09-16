@@ -5,9 +5,13 @@ import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
 import com.ice2974.carpeticeaddition.translation.TranslationFormatUtil;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.minecraft.ChatFormatting;
+//#if MC>=12111
 import net.minecraft.network.chat.ClickEvent;
+//#endif
 import net.minecraft.network.chat.Component;
+//#if MC>=12111
 import net.minecraft.network.chat.HoverEvent;
+//#endif
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.server.MinecraftServer;

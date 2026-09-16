@@ -222,13 +222,13 @@ class BetterTridentDespawnTrackerTest {
     @Test
     void gateHoldsOnlyWhenVanillaWouldDiscardAndStationaryInsufficient() {
         // stationary=1199 且 life+1>=1200：唯一扣留组合
-        assertFalse(1199 >= BetterTridentDespawnTracker.STATIONARY_TICKS_REQUIRED
+        assertFalse(BetterTridentDespawnTracker.isDespawnPermitted(1199)
                 || BetterTridentDespawnTracker.vanillaWouldNotDiscard(1199));
         // 静止已满：放行（vanilla 原样执行）
-        assertTrue(BetterTridentDespawnTracker.STATIONARY_TICKS_REQUIRED >= BetterTridentDespawnTracker.STATIONARY_TICKS_REQUIRED
+        assertTrue(BetterTridentDespawnTracker.isDespawnPermitted(BetterTridentDespawnTracker.STATIONARY_TICKS_REQUIRED)
                 || BetterTridentDespawnTracker.vanillaWouldNotDiscard(5000));
         // vanilla 本就不会 discard：直通
-        assertTrue(1 >= BetterTridentDespawnTracker.STATIONARY_TICKS_REQUIRED
+        assertTrue(BetterTridentDespawnTracker.isDespawnPermitted(1)
                 || BetterTridentDespawnTracker.vanillaWouldNotDiscard(100));
     }
 

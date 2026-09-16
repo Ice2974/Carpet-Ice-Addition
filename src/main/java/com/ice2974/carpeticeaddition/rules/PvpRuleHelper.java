@@ -2,7 +2,9 @@
 package com.ice2974.carpeticeaddition.rules;
 
 import net.minecraft.server.level.ServerLevel;
+//#if MC>=12109
 import net.minecraft.world.level.gamerules.GameRules;
+//#endif
 
 public final class PvpRuleHelper {
     private PvpRuleHelper() {

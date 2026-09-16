@@ -21,9 +21,13 @@ import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
+//#if MC>=12111
 import net.minecraft.network.chat.ClickEvent;
+//#endif
 import net.minecraft.network.chat.Component;
+//#if MC>=12111
 import net.minecraft.network.chat.HoverEvent;
+//#endif
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.resources.Identifier;
