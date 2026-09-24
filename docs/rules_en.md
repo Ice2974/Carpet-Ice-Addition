@@ -286,6 +286,15 @@ Allows players holding a water bucket in the offhand to directly place waterlogg
 - Possible values: `false`, `true`
 - Categories: `ICE`, `FEATURE`
 
+### easyCopperOxidation
+
+Using a water bottle on an unwaxed copper block, or dispensing a water bottle at it, advances its oxidation by one stage and turns the water bottle into an empty glass bottle.
+
+- Type: `boolean`
+- Default: `false`
+- Possible values: `false`, `true`
+- Categories: `ICE`, `FEATURE`
+
 ### portableInfiniteWater
 
 Prevents water from being consumed when using a vanilla water bucket while holding one in both hands.

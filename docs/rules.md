@@ -286,6 +286,15 @@
 - 可选值: `false`, `true`
 - 分类: `ICE`, `FEATURE`
 
+### 轻松铜类氧化 (easyCopperOxidation)
+
+用水瓶右键未涂蜡的铜块，或通过发射器向其发射水瓶，可以使铜块的氧化阶段推进一级，并将水瓶变为空玻璃瓶。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`
+
 ### 便携无限水 (portableInfiniteWater)
 
 当玩家主手和副手均持有原版水桶时，使用水桶不会消耗其中的水。
