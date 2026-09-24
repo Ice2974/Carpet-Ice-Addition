@@ -14,6 +14,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.alchemy.PotionContents;
 import net.minecraft.world.item.alchemy.Potions;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.ChestBlock;
 import net.minecraft.world.level.block.DoorBlock;
@@ -39,10 +40,18 @@ public final class EasyCopperOxidationHelper {
         return WeatheringCopper.getNext(state.getBlock()).map(block -> block.withPropertiesOf(state));
     }
 
-    public static boolean tryOxidize(ServerLevel level, BlockPos pos, Entity actor) {
+    public static Optional<BlockState> eligibleNextState(BlockGetter level, BlockPos pos) {
         BlockState state = level.getBlockState(pos);
         Optional<BlockState> next = nextState(state);
         if (next.isEmpty() || !hasValidPartner(level, pos, state)) {
+            return Optional.empty();
+        }
+        return next;
+    }
+
+    public static boolean tryOxidize(ServerLevel level, BlockPos pos, Entity actor) {
+        Optional<BlockState> next = eligibleNextState(level, pos);
+        if (next.isEmpty()) {
             return false;
         }
 
@@ -59,7 +68,7 @@ public final class EasyCopperOxidationHelper {
         return true;
     }
 
-    private static boolean hasValidPartner(ServerLevel level, BlockPos pos, BlockState state) {
+    private static boolean hasValidPartner(BlockGetter level, BlockPos pos, BlockState state) {
         if (state.getBlock() instanceof DoorBlock) {
             DoubleBlockHalf half = state.getValue(DoorBlock.HALF);
             BlockState other = level.getBlockState(half == DoubleBlockHalf.LOWER ? pos.above() : pos.below());

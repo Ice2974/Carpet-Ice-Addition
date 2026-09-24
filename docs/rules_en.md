@@ -293,7 +293,7 @@ Using a water bottle on an unwaxed copper block, or dispensing a water bottle at
 - Type: `boolean`
 - Default: `false`
 - Possible values: `false`, `true`
-- Categories: `ICE`, `FEATURE`
+- Categories: `ICE`, `FEATURE`, `CLIENT`
 
 ### portableInfiniteWater
 

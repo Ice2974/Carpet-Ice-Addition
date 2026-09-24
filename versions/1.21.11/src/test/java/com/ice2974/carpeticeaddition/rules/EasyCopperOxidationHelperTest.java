@@ -2,6 +2,7 @@ package com.ice2974.carpeticeaddition.rules;
 
 import net.minecraft.SharedConstants;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.dispenser.BlockSource;
 import net.minecraft.server.Bootstrap;
 import net.minecraft.core.component.DataComponents;
@@ -12,12 +13,19 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.alchemy.PotionContents;
 import net.minecraft.world.item.alchemy.Potions;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.ChestBlock;
+import net.minecraft.world.level.block.DoorBlock;
 import net.minecraft.world.level.block.WeatheringCopper;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.DispenserBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.ChestType;
+import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
 import net.minecraft.world.level.block.state.properties.Property;
+import net.minecraft.world.level.material.FluidState;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -64,6 +72,52 @@ class EasyCopperOxidationHelperTest {
                 assertFalse(EasyCopperOxidationHelper.nextState(previous.defaultBlockState()).isPresent());
             }
         }
+    }
+
+    @Test
+    void eligibilityRequiresMatchingDoorAndDoubleChestPartners() {
+        BlockPos pos = BlockPos.ZERO;
+        BlockState doorLower = Blocks.COPPER_DOOR.defaultBlockState().setValue(DoorBlock.HALF, DoubleBlockHalf.LOWER);
+        BlockState doorUpper = doorLower.setValue(DoorBlock.HALF, DoubleBlockHalf.UPPER);
+        assertTrue(EasyCopperOxidationHelper.eligibleNextState(
+                blocks(Map.of(pos, doorLower, pos.above(), doorUpper)), pos).isPresent());
+        assertFalse(EasyCopperOxidationHelper.eligibleNextState(blocks(Map.of(pos, doorLower)), pos).isPresent());
+
+        BlockState chestLeft = Blocks.COPPER_CHEST.defaultBlockState().setValue(ChestBlock.TYPE, ChestType.LEFT);
+        BlockState chestRight = chestLeft.setValue(ChestBlock.TYPE, ChestType.RIGHT);
+        Direction partnerDirection = ChestBlock.getConnectedDirection(chestLeft);
+        assertTrue(EasyCopperOxidationHelper.eligibleNextState(
+                blocks(Map.of(pos, chestLeft, pos.relative(partnerDirection), chestRight)), pos).isPresent());
+        assertFalse(EasyCopperOxidationHelper.eligibleNextState(blocks(Map.of(pos, chestLeft)), pos).isPresent());
+    }
+
+    private static BlockGetter blocks(Map<BlockPos, BlockState> states) {
+        return new BlockGetter() {
+            @Override
+            public BlockEntity getBlockEntity(BlockPos pos) {
+                return null;
+            }
+
+            @Override
+            public BlockState getBlockState(BlockPos pos) {
+                return states.getOrDefault(pos, Blocks.AIR.defaultBlockState());
+            }
+
+            @Override
+            public FluidState getFluidState(BlockPos pos) {
+                return getBlockState(pos).getFluidState();
+            }
+
+            @Override
+            public int getHeight() {
+                return 256;
+            }
+
+            @Override
+            public int getMinY() {
+                return 0;
+            }
+        };
     }
 
     @Test

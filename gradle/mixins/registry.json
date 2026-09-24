@@ -53,6 +53,7 @@
     { "name": "LivingEntityNeutralPhantomsMixin", "side": "common" },
     { "name": "MobSpawnerLogicMixin", "side": "common" },
     { "name": "MobVillagerConversionMixin", "side": "common" },
+    { "name": "MultiPlayerGameModeEasyCopperOxidationMixin", "side": "client" },
     { "name": "NameTagItemDuplicateNamingFixMixin", "side": "common" },
     { "name": "NyliumDecayMixin", "side": "common" },
     { "name": "OneShotIronGolemOptimizationMixin", "side": "common" },
