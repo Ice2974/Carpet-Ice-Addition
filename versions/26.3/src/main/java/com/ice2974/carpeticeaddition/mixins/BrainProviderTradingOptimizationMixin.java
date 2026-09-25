@@ -1,17 +1,24 @@
 package com.ice2974.carpeticeaddition.mixins;
 
+import com.google.common.collect.ImmutableList;
 import com.ice2974.carpeticeaddition.CarpetIceAdditionMod;
 import com.ice2974.carpeticeaddition.rules.VillagerTradingOptimizationAccess;
 import com.ice2974.carpeticeaddition.rules.VillagerTradingOptimizationTasks;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.ActivityData;
 import net.minecraft.world.entity.ai.Brain;
+import net.minecraft.world.entity.ai.memory.MemoryMap;
+import net.minecraft.world.entity.ai.memory.MemoryModuleType;
+import net.minecraft.world.entity.ai.sensing.Sensor;
+import net.minecraft.world.entity.ai.sensing.SensorType;
 import net.minecraft.world.entity.npc.villager.Villager;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -49,5 +56,31 @@ public abstract class BrainProviderTradingOptimizationMixin {
             access.carpetIceAddition$markTradingOptimizationBaked(false);
             return original.call(supplier, entity);
         }
+    }
+
+    @WrapOperation(
+            method = "makeBrain",
+            at = @At(
+                    value = "NEW",
+                    target = "net/minecraft/world/entity/ai/Brain"
+            ),
+            require = 1
+    )
+    private Brain<Villager> carpetIceAddition$preserveVillagerMemories(
+            Collection<? extends MemoryModuleType<?>> memoryTypes,
+            Collection<? extends SensorType<? extends Sensor<? super Villager>>> sensorTypes,
+            List<ActivityData<Villager>> activities, MemoryMap memories, RandomSource random,
+            Operation<Brain<Villager>> original, LivingEntity entity, Brain.Packed packed) {
+        if (!(entity instanceof VillagerTradingOptimizationAccess access)
+                || !access.carpetIceAddition$isTradingOptimizationBaked()) {
+            return original.call(memoryTypes, sensorTypes, activities, memories, random);
+        }
+        // These memories are accessed by Villager itself, outside the trimmed activity packages.
+        Collection<? extends MemoryModuleType<?>> preserved = ImmutableList.<MemoryModuleType<?>>builder()
+                .addAll(memoryTypes)
+                .add(MemoryModuleType.LAST_SLEPT, MemoryModuleType.LAST_WOKEN,
+                        MemoryModuleType.HOME, MemoryModuleType.MEETING_POINT)
+                .build();
+        return original.call(preserved, sensorTypes, activities, memories, random);
     }
 }
