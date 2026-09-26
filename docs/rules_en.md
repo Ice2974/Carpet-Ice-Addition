@@ -301,12 +301,12 @@ Allows players holding a water bucket in the offhand to directly place waterlogg
 
 ### easyCopperOxidation
 
-Using a water bottle on an unwaxed copper block, or dispensing a water bottle at it, advances its oxidation by one stage and turns the water bottle into an empty glass bottle.
+When a dispenser fires a water bottle at an unwaxed copper block that can oxidize further, the block advances one oxidation stage and the bottle becomes an empty glass bottle.
 
 - Type: `boolean`
 - Default: `false`
 - Possible values: `false`, `true`
-- Categories: `ICE`, `FEATURE`, `CLIENT`
+- Categories: `ICE`, `FEATURE`
 
 ### portableInfiniteWater
 

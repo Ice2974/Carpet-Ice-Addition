@@ -77,7 +77,7 @@ public final class CarpetIceAdditionSettings {
     @Rule(categories = {ICE, FEATURE})
     public static boolean easyWaterloggedBlockPlacement = false;
 
-    @Rule(categories = {ICE, FEATURE, CLIENT})
+    @Rule(categories = {ICE, FEATURE})
     public static boolean easyCopperOxidation = false;
 
     @Rule(categories = {ICE, FEATURE, SURVIVAL})

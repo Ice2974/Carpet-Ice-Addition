@@ -9,7 +9,6 @@ import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.alchemy.PotionContents;
@@ -49,7 +48,7 @@ public final class EasyCopperOxidationHelper {
         return next;
     }
 
-    public static boolean tryOxidize(ServerLevel level, BlockPos pos, Entity actor) {
+    public static boolean tryOxidize(ServerLevel level, BlockPos pos) {
         Optional<BlockState> next = eligibleNextState(level, pos);
         if (next.isEmpty()) {
             return false;
@@ -64,7 +63,7 @@ public final class EasyCopperOxidationHelper {
         level.playSound(null, pos, SoundEvents.BOTTLE_EMPTY, SoundSource.BLOCKS, 1.0F, 1.0F);
         level.sendParticles(ParticleTypes.SPLASH, pos.getX() + 0.5, pos.getY() + 1.0, pos.getZ() + 0.5,
                 5, 0.4, 0.0, 0.4, 0.1);
-        level.gameEvent(GameEvent.BLOCK_CHANGE, Vec3.atCenterOf(pos), GameEvent.Context.of(actor, nextState));
+        level.gameEvent(GameEvent.BLOCK_CHANGE, Vec3.atCenterOf(pos), GameEvent.Context.of(nextState));
         return true;
     }
 

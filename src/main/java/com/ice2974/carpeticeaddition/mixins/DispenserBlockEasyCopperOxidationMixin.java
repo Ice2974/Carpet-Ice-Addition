@@ -26,7 +26,7 @@ public abstract class DispenserBlockEasyCopperOxidationMixin {
             if (CarpetIceAdditionSettings.easyCopperOxidation
                     && EasyCopperOxidationHelper.isWaterBottle(selectedStack)) {
                 BlockPos target = source.pos().relative(source.state().getValue(DispenserBlock.FACING));
-                if (EasyCopperOxidationHelper.tryOxidize(source.level(), target, null)) {
+                if (EasyCopperOxidationHelper.tryOxidize(source.level(), target)) {
                     return EasyCopperOxidationHelper.BottleRemainderBehavior.INSTANCE.dispense(source, selectedStack);
                 }
             }
