@@ -33,6 +33,9 @@ public final class CarpetIceAdditionSettings {
     public static boolean spawnersIgnoreInvisiblePlayers = false;
 
     @Rule(categories = {ICE, FEATURE})
+    public static boolean drownedSpawningInOceanRuins = false;
+
+    @Rule(categories = {ICE, FEATURE})
     public static boolean disableKelpNaturalGrowth = false;
 
     @Rule(categories = {ICE, FEATURE})

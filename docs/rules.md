@@ -87,6 +87,19 @@
 - 可选值: `false`, `true`
 - 分类: `ICE`, `FEATURE`
 
+### 海底废墟溺尸重生 (drownedSpawningInOceanRuins)
+
+允许溺尸在海底废墟中持续生成。
+
+规则开启时，冷、暖海底废墟的结构片段内以每组 1 只溺尸作为怪物刷怪覆盖，仍遵循原版自然刷怪条件与怪物数量上限；规则关闭时停用本规则的覆盖，不会在击杀后立即补怪。
+
+> 行为设计参考 Fabric Carpet 的 `shulkerSpawningInEndCities`；实现调用其 `SpawnOverrides.addOverride` 方法，未复制 Fabric Carpet 源码。该方法不属于承诺稳定的 Carpet Extension API。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`
+
 ### 禁用海带自然生长 (disableKelpNaturalGrowth)
 
 禁用海带由随机刻触发的自然生长。

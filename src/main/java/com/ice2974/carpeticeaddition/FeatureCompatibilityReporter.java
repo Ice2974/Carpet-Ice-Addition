@@ -16,6 +16,7 @@ public final class FeatureCompatibilityReporter {
     private static final AtomicBoolean CRAFTER_OUTPUT_RULE_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean RECORD_WORLD_EVENT_FIX_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean SPAWNERS_IGNORE_INVISIBLE_PLAYERS_ERROR_REPORTED = new AtomicBoolean(false);
+    private static final AtomicBoolean DROWNED_SPAWNING_IN_OCEAN_RUINS_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean DISABLE_KELP_NATURAL_GROWTH_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean DISABLE_AMETHYST_GROWTH_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean CAN_MINE_BUDDING_AMETHYST_ERROR_REPORTED = new AtomicBoolean(false);
@@ -48,6 +49,8 @@ public final class FeatureCompatibilityReporter {
             flag = RECORD_WORLD_EVENT_FIX_ERROR_REPORTED;
         } else if ("spawnersIgnoreInvisiblePlayers".equals(featureName)) {
             flag = SPAWNERS_IGNORE_INVISIBLE_PLAYERS_ERROR_REPORTED;
+        } else if ("drownedSpawningInOceanRuins".equals(featureName)) {
+            flag = DROWNED_SPAWNING_IN_OCEAN_RUINS_ERROR_REPORTED;
         } else if ("disableKelpNaturalGrowth".equals(featureName)) {
             flag = DISABLE_KELP_NATURAL_GROWTH_ERROR_REPORTED;
         } else if ("disableAmethystGrowth".equals(featureName)) {

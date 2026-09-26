@@ -25,6 +25,13 @@ The license of Carpet Ice Addition's own code is described in [LICENSE](LICENSE)
 
 The following projects inspired feature designs, rule behaviors, or architecture ideas in Carpet Ice Addition. The corresponding implementations were written independently for Carpet Ice Addition and do not incorporate source code from those projects. Upstream licenses are recorded as information about those projects, not as the license of Carpet Ice Addition's implementations.
 
+### Fabric Carpet
+
+- Related rule `drownedSpawningInOceanRuins`
+- Upstream project Fabric Carpet, https://github.com/gnembon/fabric-carpet
+- Original project license: MIT (Copyright (c) 2020 gnembon)
+- Notes The behavior design refers to Fabric Carpet's `shulkerSpawningInEndCities`. Carpet Ice Addition registers its own cold and warm ocean ruin entries by calling Fabric Carpet's public `SpawnOverrides.addOverride` method; no Fabric Carpet implementation source code was copied. This method is not a guaranteed stable Carpet Extension API.
+
 ### Carpet-Fixes
 
 - Related rule `recordWorldEventFix`

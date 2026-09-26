@@ -10,6 +10,7 @@ import com.ice2974.carpeticeaddition.rules.BotTabListNameHelper;
 import com.ice2974.carpeticeaddition.rules.CraftableCoralBlocksDataPackController;
 import com.ice2974.carpeticeaddition.rules.CraftableCoralBlocksState;
 import com.ice2974.carpeticeaddition.rules.DelayedJukeboxStartEventManager;
+import com.ice2974.carpeticeaddition.rules.DrownedOceanRuinSpawns;
 import com.ice2974.carpeticeaddition.rules.EnhancedTridentRearmEpoch;
 import com.ice2974.carpeticeaddition.rules.NeutralPhantomsWatermark;
 import com.ice2974.carpeticeaddition.rules.VillagerTradingOptimizationRuleHelper;
@@ -60,6 +61,11 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
         CarpetServer.settingsManager.parseSettingsClass(CarpetIceAdditionHighVersionSettings.class);
         CarpetServer.settingsManager.parseSettingsClass(CraftableCoralBlocksSettings.class);
         CarpetServer.settingsManager.parseSettingsClass(CarpetIceAdditionFluidSettings.class);
+        try {
+            DrownedOceanRuinSpawns.register();
+        } catch (LinkageError | RuntimeException error) {
+            reportFeatureCompatibilityIssue("drownedSpawningInOceanRuins", error);
+        }
         CarpetServer.settingsManager.registerRuleObserver((source, rule, userInput) -> {
             String ruleName = rule.name();
             if ("commandKillItem".equals(ruleName) || "commandMachineStatus".equals(ruleName)) {
