@@ -24,6 +24,7 @@
     { "name": "CrafterBlockMixin", "side": "common" },
     { "name": "CraftingMenuCraftableCoralBlocksMixin", "side": "common" },
     { "name": "DisableAirborneMiningPenaltyMixin", "side": "common" },
+    { "name": "DisableFallingBlockDuplicationDimensionCheckMixin", "side": "common" },
     { "name": "DisableIllegalTextCharacterCheckClipboardMixin", "side": "client" },
     { "name": "DisableIllegalTextCharacterCheckMixin", "side": "common" },
     { "name": "DisableNetherPortalDimensionCheckMixin", "side": "common" },

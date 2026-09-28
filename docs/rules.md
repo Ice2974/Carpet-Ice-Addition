@@ -118,6 +118,15 @@
 - 可选值: `false`, `true`
 - 分类: `ICE`, `FEATURE`
 
+### 禁用重力方块复制维度检查 (disableFallingBlockDuplicationDimensionCheck)
+
+允许重力方块在跨越任意维度传送时触发原版复制行为，不再要求传送涉及末地。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`
+
 ### 禁用紫水晶生长 (disableAmethystGrowth)
 
 紫水晶母岩不会再通过随机刻生成紫水晶芽，或推进紫水晶芽生长。

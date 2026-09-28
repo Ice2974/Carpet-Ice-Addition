@@ -118,6 +118,15 @@ Disables the dimension check for Nether portal activation, allowing portals to b
 - Possible values: `false`, `true`
 - Categories: `ICE`, `FEATURE`
 
+### disableFallingBlockDuplicationDimensionCheck
+
+Allows falling blocks to trigger the vanilla duplication behavior when teleporting between any dimensions, instead of requiring the End to be involved.
+
+- Type: `boolean`
+- Default: `false`
+- Possible values: `false`, `true`
+- Categories: `ICE`, `FEATURE`
+
 ### disableAmethystGrowth
 
 Budding amethyst blocks will no longer generate amethyst buds or advance the growth of amethyst buds during random ticks.
