@@ -109,6 +109,15 @@ Disable kelp natural growth from random ticks.
 - Possible values: `false`, `true`
 - Categories: `ICE`, `FEATURE`
 
+### disableNetherPortalDimensionCheck
+
+Disables the dimension check for Nether portal activation, allowing portals to be activated in any dimension.
+
+- Type: `boolean`
+- Default: `false`
+- Possible values: `false`, `true`
+- Categories: `ICE`, `FEATURE`
+
 ### disableAmethystGrowth
 
 Budding amethyst blocks will no longer generate amethyst buds or advance the growth of amethyst buds during random ticks.

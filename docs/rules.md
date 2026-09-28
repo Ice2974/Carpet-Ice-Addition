@@ -109,6 +109,15 @@
 - 可选值: `false`, `true`
 - 分类: `ICE`, `FEATURE`
 
+### 禁用下界门激活维度检查 (disableNetherPortalDimensionCheck)
+
+禁用下界门激活时的维度检查，使其可以在任意维度激活。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`
+
 ### 禁用紫水晶生长 (disableAmethystGrowth)
 
 紫水晶母岩不会再通过随机刻生成紫水晶芽，或推进紫水晶芽生长。

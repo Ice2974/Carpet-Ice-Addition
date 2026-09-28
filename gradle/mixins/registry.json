@@ -26,6 +26,7 @@
     { "name": "DisableAirborneMiningPenaltyMixin", "side": "common" },
     { "name": "DisableIllegalTextCharacterCheckClipboardMixin", "side": "client" },
     { "name": "DisableIllegalTextCharacterCheckMixin", "side": "common" },
+    { "name": "DisableNetherPortalDimensionCheckMixin", "side": "common" },
     { "name": "DisablePlayerAttackingTamedMobsMixin", "side": "common" },
     { "name": "DispenserBlockEasyCopperOxidationMixin", "side": "common" },
     { "name": "EnchantedGoldenAppleEffectRollbackMixin", "side": "common" },

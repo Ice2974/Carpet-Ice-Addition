@@ -10,6 +10,7 @@
   "carpet.rule.spawnersIgnoreInvisiblePlayers.desc": "Normal spawners, trial spawners, and ominous trial spawners ignore invisible players when checking nearby players",
   "carpet.rule.drownedSpawningInOceanRuins.desc": "Allows drowned to continuously spawn in ocean ruins",
   "carpet.rule.disableKelpNaturalGrowth.desc": "Disable kelp natural growth from random ticks",
+  "carpet.rule.disableNetherPortalDimensionCheck.desc": "Disables the dimension check for Nether portal activation, allowing portals to be activated in any dimension.",
   "carpet.rule.disableAmethystGrowth.desc": "Budding amethyst blocks will no longer generate amethyst buds or advance the growth of amethyst buds during random ticks",
   "carpet.rule.silkTouchBuddingAmethyst.desc": "Budding amethyst can be collected by using a suitable tool with the Silk Touch enchantment",
   "carpet.rule.silkTouchFrostedIce.desc": "Drops 1 regular ice when broken using any tool with the Silk Touch enchantment",
