@@ -91,10 +91,6 @@ Normal spawners, trial spawners, and ominous trial spawners ignore invisible pla
 
 Allows drowned to continuously spawn in ocean ruins.
 
-When enabled, cold and warm ocean ruin pieces use a monster spawn override containing one drowned per group. Vanilla natural spawning conditions and mob caps still apply. Disabling the rule deactivates this override; killing a drowned does not trigger an immediate replacement.
-
-> The behavior design refers to Fabric Carpet's `shulkerSpawningInEndCities`. This implementation calls its `SpawnOverrides.addOverride` method and does not copy Fabric Carpet source code. The method is not a guaranteed stable Carpet Extension API.
-
 - Type: `boolean`
 - Default: `false`
 - Possible values: `false`, `true`
