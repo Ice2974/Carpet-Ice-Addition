@@ -342,7 +342,7 @@ Prevents players from receiving the mining speed penalty while airborne.
 
 ### customEndPlatformPosition
 
-Allows customizing the center position of the End obsidian platform generated when entities enter the End through the End portal, while keeping the arrival position in sync.
+Allows customizing the center position of the End obsidian platform generated when entities enter the End through the End portal, and keeps the arrival position in sync, including matched End return gateways.
 
 - Type: `String`
 - Default: `vanilla`
