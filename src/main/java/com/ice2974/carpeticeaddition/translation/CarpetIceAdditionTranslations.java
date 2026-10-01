@@ -241,7 +241,7 @@ public final class CarpetIceAdditionTranslations {
                 Map.entry("carpet.rule.spawnersIgnoreInvisiblePlayers.desc", "Normal spawners, trial spawners, and ominous trial spawners ignore invisible players when checking nearby players"),
                 Map.entry("carpet.rule.drownedSpawningInOceanRuins.desc", "Allows drowned to continuously spawn in ocean ruins"),
                 Map.entry("carpet.rule.disableKelpNaturalGrowth.desc", "Disable kelp natural growth from random ticks"),
-                Map.entry("carpet.rule.disableNetherPortalDimensionCheck.desc", "Disables the dimension check for Nether portal activation, allowing portals to be activated in any dimension."),
+                Map.entry("carpet.rule.disableNetherPortalDimensionCheck.desc", "Disables the dimension check for Nether portal activation, allowing portals to be activated in any dimension"),
                 Map.entry("carpet.rule.disableFallingBlockDuplicationDimensionCheck.desc", "Allows falling blocks to trigger the vanilla duplication behavior when teleporting between any dimensions, instead of requiring the End to be involved"),
                 Map.entry("carpet.rule.disableAmethystGrowth.desc", "Budding amethyst blocks will no longer generate amethyst buds or advance the growth of amethyst buds during random ticks"),
                 Map.entry("carpet.rule.silkTouchBuddingAmethyst.desc", "Budding amethyst can be collected by using a suitable tool with the Silk Touch enchantment"),
