@@ -50,11 +50,11 @@ assert diskDirNames == expectedDirNames:
 // （不另设 family 注册表）；Settings 阶段读不到子项目目录的 gradle.properties 普通属性，
 // 必须显式解析该文件取 loom_plugin，并按完整 id:version 精确匹配选择入口
 // （缺文件 / 缺键 / 重复键 / 解析异常 / 未知值一律 fail closed）：
-//   fabric-loom:1.13.6              -> build-remap.gradle（remap 形态 1.21.x，remapJar/remapSourcesJar）
-//   net.fabricmc.fabric-loom:1.15.1 -> build-plain.gradle（plain 形态 26.x，jar/sourcesJar）
+//   net.fabricmc.fabric-loom-remap:1.15.1 -> build-remap.gradle（remap 形态 1.21.x，remapJar/remapSourcesJar）
+//   net.fabricmc.fabric-loom:1.15.1      -> build-plain.gradle（plain 形态 26.x，jar/sourcesJar）
 def familyBuildEntry = [
-        'fabric-loom:1.13.6'             : 'build-remap.gradle',
-        'net.fabricmc.fabric-loom:1.15.1': 'build-plain.gradle',
+        'net.fabricmc.fabric-loom-remap:1.15.1': 'build-remap.gradle',
+        'net.fabricmc.fabric-loom:1.15.1'      : 'build-plain.gradle',
 ]
 
 def readPlatformLoomPlugin = { File propsFile ->
