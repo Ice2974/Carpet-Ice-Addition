@@ -46,16 +46,13 @@ assert diskDirNames == expectedDirNames:
 
 // common.gradle 对根资源目录按 rootProject 物理路径接入各平台资源 srcDirs。
 
-// 共享 family 构建入口选择。per-version gradle.properties 是平台构建数据唯一来源
-// （不另设 family 注册表）；Settings 阶段读不到子项目目录的 gradle.properties 普通属性，
-// 必须显式解析该文件取 loom_plugin，并按完整 id:version 精确匹配选择入口
-// （缺文件 / 缺键 / 重复键 / 解析异常 / 未知值一律 fail closed）：
-//   net.fabricmc.fabric-loom-remap:1.15.1 -> build-remap.gradle（remap 形态 1.21.x，remapJar/remapSourcesJar）
-//   net.fabricmc.fabric-loom:1.15.1      -> build-plain.gradle（plain 形态 26.x，jar/sourcesJar）
-def familyBuildEntry = [
-        'net.fabricmc.fabric-loom-remap:1.15.1': 'build-remap.gradle',
-        'net.fabricmc.fabric-loom:1.15.1'      : 'build-plain.gradle',
-]
+// 统一构建入口：全部平台项目的 buildFileName 直接指向根 common.gradle，
+// 由其在脚本顶部按 per-version gradle.properties 的 loom_plugin 完整值动态应用对应 Loom 插件。
+// per-version gradle.properties 是平台构建数据唯一来源（不另设 family 注册表）；
+// Settings 阶段读不到子项目目录的 gradle.properties 普通属性，必须显式解析该文件取
+// loom_plugin（缺文件 / 缺键 / 重复键 / 解析异常一律 fail closed），用于：
+//   1) 汇总全部平台使用的 loom 插件坐标集合；
+//   2) 与根 build.gradle plugins 块实际声明的 loom 坐标做双向全等防漂移（见文末扫描器）。
 
 def readPlatformLoomPlugin = { File propsFile ->
     assert propsFile.isFile(): "缺少平台构建数据文件: ${propsFile}"
@@ -84,40 +81,155 @@ def readPlatformLoomPlugin = { File propsFile ->
 // 平台为根直接子项目 :<版本>（磁盘目录 versions/<版本>/，
 // build 目录跟随 projectDir 不变）；preprocess 插件经 project.parent 取根项目的版本图扩展，
 // 嵌套路径 :versions:<版本> 的 parent 是 :versions，不兼容根 src 模型。
+def usedLoomCoordinates = [] as Set
 versionRegistry.each { version ->
     include ":${version}"
     def platformDir = file("versions/${version}")
     project(":${version}").projectDir = platformDir
-
-    def loomPlugin = readPlatformLoomPlugin(new File(platformDir, 'gradle.properties'))
-    def buildEntry = familyBuildEntry[loomPlugin]
-    assert buildEntry != null: "versions/${version}/gradle.properties loom_plugin=${loomPlugin} 不在允许的 family 清单 ${familyBuildEntry.keySet().sort()} 内"
-    assert file(buildEntry).isFile(): "共享 family 构建入口不存在: ${file(buildEntry)}"
+    usedLoomCoordinates << readPlatformLoomPlugin(new File(platformDir, 'gradle.properties'))
     // buildFileName 按 ProjectDescriptor 语义相对 projectDir 解析（versions/<版本>/ -> 仓库根）
-    project(":${version}").buildFileName = "../../${buildEntry}"
+    project(":${version}").buildFileName = "../../common.gradle"
 }
+assert file('common.gradle').isFile(): "共享构建入口不存在: ${file('common.gradle')}"
 
-// Loom 完整坐标防漂移——每份 family 入口 plugins 块实际声明的 id:version
-// 必须与 familyBuildEntry 映射键逐字一致，与上方「per-version loom_plugin 精确匹配选入口」
-// 共同构成 per-version loom_plugin ↔ settings.gradle 映射 ↔ 入口实际声明 的闭环（fail closed）。
-// 静态解析自有入口文件的固定格式 plugins 块（解析失败即断言失败），不依赖运行期 PluginDescriptor。
-def readFamilyEntryLoomCoordinate = { File entryFile ->
-    assert entryFile.isFile(): "共享 family 构建入口不存在: ${entryFile}"
-    def text = entryFile.getText('UTF-8')
-    def pluginsBlock = text =~ /(?s)\bplugins\s*\{(.*?)\}/
-    assert pluginsBlock.find(): "${entryFile.name} 缺少 plugins 块"
-    def declarations = []
-    def declaration = pluginsBlock.group(1) =~ /(?m)\bid\s+'([^']+)'\s+version\s+'([^']+)'/
-    while (declaration.find()) {
-        declarations << "${declaration.group(1)}:${declaration.group(2)}"
+// 根 build.gradle loom 声明防漂移 —— 限定语法扫描器（fail closed，承接原 family 入口坐标静态解析）。
+// 规则：
+//   1) 结构识别用「有效文本」：逐字符状态机把行/块注释与单双三引号字符串（含 ${...} GString 插值）
+//      的内容以空格消除（保留长度与换行），顶层 plugins 块的花括号配对只在有效文本上进行；
+//      跨行普通字符串、GString 插值内引号、未闭合注释/字符串等无法归类的结构直接断言失败
+//      （不支持语法即拒绝，不静默跳过）；
+//   2) 块内 loom 家族声明只接受整行字面形态 id '<id>' version '<版本>' apply false
+//      （GString / 双引号版本 / 行尾注释 / 缺 apply false / 重复声明一律拒绝）；
+//   3) 全文件规则：loom 家族 id 的每一处出现都必须位于某条已接受的声明行内——
+//      整块注释声明、字符串内伪声明、块外声明、形态不符均 fail closed；
+//   4) 已接受坐标集合与上方全部平台 loom_plugin 去重集合双向全等
+//      （多声明 / 漏声明 / 版本漂移均失败）。
+def LOOM_PLUGIN_FAMILY_IDS = ['net.fabricmc.fabric-loom-remap', 'net.fabricmc.fabric-loom', 'fabric-loom'] as Set
+def loomIdTokenPattern = /net\.fabricmc\.fabric-loom-remap|net\.fabricmc\.fabric-loom|(?<![\w.])fabric-loom/
+def rootBuildFile = file('build.gradle')
+assert rootBuildFile.isFile(): "缺少根构建脚本: ${rootBuildFile}"
+def rootRawLines = rootBuildFile.readLines('UTF-8')
+
+// 有效文本逐行产出；scanState 跨行保持（blockComment / tsq / tdq）
+def effectiveLines = []
+def scanState = 'code'
+rootRawLines.eachWithIndex { rawLine, lineIdx ->
+    StringBuilder out = new StringBuilder(rawLine.length())
+    int i = 0
+    int n = rawLine.length()
+    while (i < n) {
+        String ch = rawLine.substring(i, i + 1)
+        String nx = i + 1 < n ? rawLine.substring(i + 1, i + 2) : ''
+        if (scanState == 'blockComment') {
+            if (ch == '*' && nx == '/') { scanState = 'code'; out.append('  '); i += 2 }
+            else { out.append(ch == '\t' ? '\t' : ' '); i += 1 }
+        } else if (scanState == 'tsq' || scanState == 'tdq') {
+            String fence = scanState == 'tsq' ? "'''" : '"""'
+            if (rawLine.startsWith(fence, i)) { scanState = 'code'; out.append('   '); i += 3 }
+            else { out.append(ch == '\t' ? '\t' : ' '); i += 1 }
+        } else if (ch == '/' && nx == '/') {
+            break
+        } else if (ch == '/' && nx == '*') {
+            scanState = 'blockComment'; out.append('  '); i += 2
+        } else if (rawLine.startsWith("'''", i)) { scanState = 'tsq'; out.append('   '); i += 3 }
+        else if (rawLine.startsWith('"""', i)) { scanState = 'tdq'; out.append('   '); i += 3 }
+        else if (ch == "'") {
+            out.append(' '); i += 1
+            boolean closed = false
+            while (i < n) {
+                String d = rawLine.substring(i, i + 1)
+                if (d == '\\') { out.append('  '); i += 2 }
+                else if (d == "'") { out.append(' '); i += 1; closed = true; break }
+                else { out.append(d == '\t' ? '\t' : ' '); i += 1 }
+            }
+            assert closed: "根 build.gradle 第 ${lineIdx + 1} 行存在跨行单引号字符串（不支持语法，fail closed）"
+        } else if (ch == '"') {
+            out.append(' '); i += 1
+            boolean closed = false
+            while (i < n) {
+                String d = rawLine.substring(i, i + 1)
+                if (d == '\\') { out.append('  '); i += 2 }
+                else if (d == '$' && i + 1 < n && rawLine.substring(i + 1, i + 2) == '{') {
+                    out.append('  '); i += 2
+                    int depth = 1
+                    boolean interpClosed = false
+                    while (i < n && depth > 0) {
+                        String e = rawLine.substring(i, i + 1)
+                        if (e == '{') { depth += 1; out.append(' '); i += 1 }
+                        else if (e == '}') { depth -= 1; out.append(' '); i += 1; if (depth == 0) interpClosed = true }
+                        else {
+                            assert !(e == '"' || e == "'"):
+                                    "根 build.gradle 第 ${lineIdx + 1} 行 GString 插值包含引号（不支持语法，fail closed）"
+                            out.append(e == '\t' ? '\t' : ' '); i += 1
+                        }
+                    }
+                    assert interpClosed: "根 build.gradle 第 ${lineIdx + 1} 行 GString 插值跨行（不支持语法，fail closed）"
+                }
+                else if (d == '"') { out.append(' '); i += 1; closed = true; break }
+                else { out.append(d == '\t' ? '\t' : ' '); i += 1 }
+            }
+            assert closed: "根 build.gradle 第 ${lineIdx + 1} 行存在跨行双引号字符串（不支持语法，fail closed）"
+        } else {
+            out.append(ch); i += 1
+        }
     }
-    assert declarations.size() == 1:
-            "${entryFile.name} plugins 块必须恰好声明一个 loom 插件坐标，实际: ${declarations}"
-    return declarations[0]
+    effectiveLines << out.toString()
+}
+assert scanState == 'code': '根 build.gradle 存在未闭合的块注释或三引号字符串（不支持语法，fail closed）'
+
+// 顶层 plugins 块定位（固定起始行形态 "plugins {"；有效文本中字符串/注释的花括号已被消除）
+int pluginsLine = -1
+effectiveLines.eachWithIndex { line, idx ->
+    if (pluginsLine < 0 && line.trim() == 'plugins {') { pluginsLine = idx }
+}
+assert pluginsLine >= 0: '根 build.gradle 缺少顶层 plugins 块起始行（限定形态 "plugins {"）'
+assert effectiveLines.findAll { it.trim() == 'plugins {' }.size() == 1:
+        '根 build.gradle 必须恰好有一个 plugins 块起始行（限定语法，fail closed）'
+int braceDepth = 0
+int blockEndLine = -1
+for (int idx = pluginsLine; idx < effectiveLines.size() && blockEndLine < 0; idx++) {
+    int lineLen = effectiveLines[idx].length()
+    for (int k = 0; k < lineLen; k++) {
+        String ch = effectiveLines[idx].substring(k, k + 1)
+        if (ch == '{') { braceDepth += 1 }
+        else if (ch == '}') {
+            braceDepth -= 1
+            if (braceDepth == 0) { blockEndLine = idx; break }
+        }
+    }
+}
+assert blockEndLine >= 0: '根 build.gradle plugins 块未闭合（有效文本花括号配对失败）'
+
+// 块内 loom 家族声明：按原始行整行匹配（声明中的 id/版本是单引号字面量）；
+// 处于块注释/三引号字符串内的行不可能构成有效声明（其原始行即使形态相符也会被下方
+// 全文件规则 + 有效文本块边界双重约束排除在错误方向之外，此处再以行级状态复核）
+def acceptedCoordinateByLine = [:]
+def rootDeclarationPattern = /^\s*id\s+'([^']+)'\s+version\s+'([^']+)'\s+apply\s+false\s*$/
+rootRawLines.eachWithIndex { rawLine, idx ->
+    if (idx < pluginsLine || idx > blockEndLine) return
+    def matcher = rawLine =~ rootDeclarationPattern
+    if (matcher.matches()) {
+        def pluginId = matcher.group(1)
+        if (pluginId in LOOM_PLUGIN_FAMILY_IDS) {
+            acceptedCoordinateByLine[idx] = "${pluginId}:${matcher.group(2)}".toString()
+        }
+    }
+}
+def acceptedCoordinates = acceptedCoordinateByLine.values() as List
+def duplicateAccepted = acceptedCoordinates.groupBy { it }.findAll { it.value.size() > 1 }.keySet()
+assert duplicateAccepted.isEmpty(): "根 build.gradle plugins 块存在重复 loom 声明: ${duplicateAccepted.sort()}"
+
+// 全文件规则：loom 家族 id 的每一处出现必须位于某条已接受声明行内
+rootRawLines.eachWithIndex { rawLine, idx ->
+    def matcher = rawLine =~ loomIdTokenPattern
+    while (matcher.find()) {
+        assert acceptedCoordinateByLine.containsKey(idx):
+                "根 build.gradle 第 ${idx + 1} 行出现 loom 家族 id（${matcher.group()}），但该行不是 plugins 块内已接受的字面声明（注释/字符串/块外/形态不符均 fail closed）: ${rawLine.trim()}"
+    }
 }
 
-familyBuildEntry.each { coordinate, entryName ->
-    def declared = readFamilyEntryLoomCoordinate(file(entryName))
-    assert declared == coordinate:
-            "family 入口 ${entryName} 实际声明 loom 坐标 ${declared}，与映射键 ${coordinate} 不一致（Loom 完整坐标防漂移 fail closed）"
-}
+// 双向全等：根声明坐标集合 == 全部平台 loom_plugin 使用坐标集合
+def declaredLoomCoordinates = acceptedCoordinates as Set
+assert declaredLoomCoordinates == usedLoomCoordinates:
+        "根 build.gradle plugins 块 loom 坐标声明与平台 loom_plugin 使用集合不一致：" +
+        "declared=${declaredLoomCoordinates.sort()} used=${usedLoomCoordinates.sort()}（多声明/漏声明/版本漂移均 fail closed）"

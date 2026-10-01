@@ -3,6 +3,12 @@ plugins {
     // 插件 id 沿用 ReplayMod 上游命名，经 settings.gradle resolutionStrategy 解析到
     // JitPack com.github.Fallen-Breath:preprocessor（版本 = 根 gradle.properties preprocess_version，全 SHA 锁定）。
     id 'com.replaymod.preprocess' version "${preprocess_version}"
+
+    // 两个 loom 插件只在各版本平台项目内经 common.gradle 按 per-version loom_plugin 动态应用
+    // （根项目本身不应用 loom）。必须以 apply false + 单引号字面版本声明：settings.gradle 的
+    // loom 坐标防漂移扫描器按整行字面形态校验（GString / 双引号版本会被拒绝）。
+    id 'net.fabricmc.fabric-loom-remap' version '1.15.1' apply false
+    id 'net.fabricmc.fabric-loom' version '1.15.1' apply false
 }
 
 // Build-only schema/generator support. Canonical data is deliberately outside every runtime resource tree.
