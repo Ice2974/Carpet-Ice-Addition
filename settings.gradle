@@ -95,9 +95,11 @@ assert file('common.gradle').isFile(): "共享构建入口不存在: ${file('com
 // 根 build.gradle loom 声明防漂移 —— 限定语法扫描器（fail closed，承接原 family 入口坐标静态解析）。
 // 规则：
 //   1) 结构识别用「有效文本」：逐字符状态机把行/块注释与单双三引号字符串（含 ${...} GString 插值）
-//      的内容以空格消除（保留长度与换行），顶层 plugins 块的花括号配对只在有效文本上进行；
+//      内容以空格消除（保留长度与换行），plugins 块的花括号配对只在有效文本上进行；
 //      跨行普通字符串、GString 插值内引号、未闭合注释/字符串等无法归类的结构直接断言失败
-//      （不支持语法即拒绝，不静默跳过）；
+//      （不支持语法即拒绝，不静默跳过）；三引号字符串内的转义序列（含 \''' / \"" 转义分隔符
+//      形态——正确区分需按前导反斜杠奇偶性判定）、代码态孤立斜杠（slashy 字符串 /.../ 可跨行，
+//      无法与除法/正则字面量在字符级可靠区分）与 dollar-slashy 起始（$/）同样 fail closed；
 //   2) 块内 loom 家族声明只接受整行字面形态 id '<id>' version '<版本>' apply false
 //      （GString / 双引号版本 / 行尾注释 / 缺 apply false / 重复声明一律拒绝）；接受前按
 //      有效文本复核声明结构与词法状态——行首处于块注释/三引号字符串内的行、有效文本中
@@ -133,11 +135,26 @@ rootRawLines.eachWithIndex { rawLine, lineIdx ->
         } else if (scanState == 'tsq' || scanState == 'tdq') {
             String fence = scanState == 'tsq' ? "'''" : '"""'
             if (rawLine.startsWith(fence, i)) { scanState = 'code'; out.append(fence); i += 3 }
+            else if (ch == '\\') {
+                // 三引号字符串内的转义序列不在限定语法内：区分「转义引号」与「未转义的结束分隔符」
+                // 需按前导反斜杠连续个数的奇偶性判定，此处 fail closed 直接拒绝，
+                // 绝不能把转义分隔符（如 \''' / \"""）误判为字符串结束而切回 code 状态
+                assert false: "根 build.gradle 第 ${lineIdx + 1} 行三引号字符串包含转义序列（不支持语法，fail closed）"
+            }
             else { out.append(ch == '\t' ? '\t' : ' '); i += 1 }
-        } else if (ch == '/' && nx == '/') {
-            break
-        } else if (ch == '/' && nx == '*') {
-            scanState = 'blockComment'; out.append('  '); i += 2
+        } else if (ch == '/') {
+            // 代码态斜杠仅支持 // 与 /* 注释形态：slashy 字符串（/.../，可跨行）无法与除法 /
+            // 正则字面量在字符级可靠区分，按限定语法 fail closed（字符串内的斜杠已在字符串分支消除）
+            if (nx == '/') {
+                break
+            } else if (nx == '*') {
+                scanState = 'blockComment'; out.append('  '); i += 2
+            } else {
+                assert false: "根 build.gradle 第 ${lineIdx + 1} 行代码态 '/' 后跟 '${nx.isEmpty() ? '行尾' : nx}'，仅支持 // 与 /* 注释形态（slashy 字符串/除法等不支持语法，fail closed）"
+            }
+        } else if (ch == '$' && nx == '/') {
+            // dollar-slashy 字符串起始（$/.../$）：与 slashy 同理按限定语法拒绝
+            assert false: "根 build.gradle 第 ${lineIdx + 1} 行出现 dollar-slashy 字符串起始（dollar 符号后紧跟斜杠，不支持语法，fail closed）"
         } else if (rawLine.startsWith("'''", i)) { scanState = 'tsq'; out.append("'''"); i += 3 }
         else if (rawLine.startsWith('"""', i)) { scanState = 'tdq'; out.append('"""'); i += 3 }
         else if (ch == "'") {
