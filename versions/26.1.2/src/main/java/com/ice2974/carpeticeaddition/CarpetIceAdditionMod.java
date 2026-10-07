@@ -137,6 +137,7 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
         } catch (Throwable throwable) {
             reportFeatureCompatibilityIssue("craftableCoralBlocks", throwable);
         }
+        DeltaruneEasterEggs.onPlayerLoggedIn(player);
     }
 
     @Override
@@ -157,6 +158,7 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
         KillItemConfigManager.initialize(server.getWorldPath(LevelResource.ROOT));
         MachineStatusConfigManager.initialize(server.getWorldPath(LevelResource.ROOT));
         VillagerEventsRuntime.onServerLoaded(server);
+        DeltaruneEasterEggs.onServerLoaded();
     }
 
     @Override
@@ -182,6 +184,7 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
         VillagerEventsRuntime.onServerClosed(server);
         KillItemConfigManager.shutdown();
         MachineStatusConfigManager.shutdown();
+        DeltaruneEasterEggs.onServerClosed();
         try {
             CraftableCoralBlocksDataPackController.onServerClosed(server);
         } catch (Throwable throwable) {
