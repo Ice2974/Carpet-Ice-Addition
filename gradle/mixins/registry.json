@@ -66,6 +66,7 @@
     { "name": "ResetProfessionIronGolemOptimizationMixin", "side": "common" },
     { "name": "SafeScaffoldingBreakMixin", "side": "common" },
     { "name": "ScreenHandlerCtrlQStonecuttingFixMixin", "side": "common", "onlyMc": "1.21.1" },
+    { "name": "SculkCatalystBlockEntityMixin", "side": "common" },
     { "name": "SculkCatalystListenerMixin", "side": "common" },
     { "name": "SensorTradingOptimizationMixin", "side": "common" },
     { "name": "ServerCommonNetworkHandlerAccessor", "side": "common", "maxMc": "1.21.11" },

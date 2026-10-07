@@ -19,7 +19,7 @@
   "carpet.rule.beaconProperToolFix.desc": "Makes pickaxes the proper tools for mining beacons",
   "carpet.rule.iceLikeMagmaBlocks.desc": "When players break magma blocks with tools without Silk Touch, the magma block does not drop, and a lava source is generated using ice-like support checks when the block below provides valid solid support or liquid support",
   "carpet.rule.disableNyliumDecay.desc": "Crimson nylium and warped nylium will not decay into netherrack when covered by a block above",
-  "carpet.rule.woolSuppressesSculkSpread.desc": "Prevents a sculk catalyst from generating sculk blocks when covered by wool, while preserving its ability to suppress experience drops from nearby mob deaths",
+  "carpet.rule.woolSuppressesSculkSpread.desc": "Prevents a sculk catalyst covered by wool from generating new sculk blocks, cancels any spread already in progress, and preserves its ability to suppress experience drops from nearby mob deaths",
   "carpet.rule.wardenNotHostileToPlayers.desc": "Prevents wardens from becoming hostile toward players or targeting them for attack without preventing them from detecting player-caused vibrations",
   "carpet.rule.fakePlayerIgnoreThornsDamage.desc": "Bots will not take reflected damage caused by Thorns when attacking entities or players equipped with Thorns",
   "carpet.rule.itemFrameInvisible.desc": "Allows players to right-click item frames or glow item frames that already contain an item with a phantom membrane to make them invisible",
