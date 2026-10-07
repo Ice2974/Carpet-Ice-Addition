@@ -18,7 +18,6 @@
     { "name": "BlockItemEasyWaterloggedBlockPlacementMixin", "side": "common" },
     { "name": "BookEditScreenDisableIllegalTextCharacterCheckMixin", "side": "client", "maxMc": "1.21.5" },
     { "name": "BrainProviderTradingOptimizationMixin", "side": "common", "minMc": "26.1.2" },
-    { "name": "CanMineBuddingAmethystMixin", "side": "common" },
     { "name": "CanMineFrostedIceMixin", "side": "common" },
     { "name": "CarpetServerOnServerClosedNullFixMixin", "side": "common", "onlyMc": "1.21.1" },
     { "name": "CrafterBlockMixin", "side": "common" },
@@ -97,7 +96,6 @@
     { "before": "VillagerTradingOptimizationMixin", "after": "VillagerIronGolemOptimizationMixin" },
     { "before": "ServerWorldAccessVillagerEventsMixin", "after": "ServerWorldPhantomSpawnWarningMixin" },
     { "before": "ServerWorldPhantomSpawnWarningMixin", "after": "ServerWorldRecordWorldEventMixin" },
-    { "before": "CanMineBuddingAmethystMixin", "after": "CanMineFrostedIceMixin" },
     {
       "before": "ServerGamePacketListenerImplDisableIllegalTextCharacterCheckMixin",
       "after": "ServerGamePacketListenerImplMachineStatusRollbackWarningMixin"

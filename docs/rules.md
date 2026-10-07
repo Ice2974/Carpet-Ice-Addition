@@ -132,15 +132,6 @@
 - 可选值: `false`, `true`
 - 分类: `ICE`, `FEATURE`
 
-### 可采集紫水晶母岩 (silkTouchBuddingAmethyst)
-
-紫水晶母岩可通过使用带有精准采集附魔的合适工具采集。
-
-- 类型: `boolean`
-- 默认值: `false`
-- 可选值: `false`, `true`
-- 分类: `ICE`, `FEATURE`, `SURVIVAL`
-
 ### 可采集霜冰 (silkTouchFrostedIce)
 
 使用任意带有精准采集附魔的工具破坏霜冰时，会掉落 1 个普通冰。

@@ -48,9 +48,6 @@ public final class CarpetIceAdditionSettings {
     public static boolean disableAmethystGrowth = false;
 
     @Rule(categories = {ICE, FEATURE, SURVIVAL})
-    public static boolean silkTouchBuddingAmethyst = false;
-
-    @Rule(categories = {ICE, FEATURE, SURVIVAL})
     public static boolean silkTouchFrostedIce = false;
 
     @Rule(categories = {ICE, BUGFIX, SURVIVAL, CLIENT})

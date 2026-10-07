@@ -132,15 +132,6 @@ Budding amethyst blocks will no longer generate amethyst buds or advance the gro
 - Possible values: `false`, `true`
 - Categories: `ICE`, `FEATURE`
 
-### silkTouchBuddingAmethyst
-
-Budding amethyst can be collected by using a suitable tool with the Silk Touch enchantment.
-
-- Type: `boolean`
-- Default: `false`
-- Possible values: `false`, `true`
-- Categories: `ICE`, `FEATURE`, `SURVIVAL`
-
 ### silkTouchFrostedIce
 
 Drops 1 regular ice when broken using any tool with the Silk Touch enchantment.

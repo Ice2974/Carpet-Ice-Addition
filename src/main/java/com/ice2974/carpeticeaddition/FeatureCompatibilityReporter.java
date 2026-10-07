@@ -19,7 +19,6 @@ public final class FeatureCompatibilityReporter {
     private static final AtomicBoolean DROWNED_SPAWNING_IN_OCEAN_RUINS_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean DISABLE_KELP_NATURAL_GROWTH_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean DISABLE_AMETHYST_GROWTH_ERROR_REPORTED = new AtomicBoolean(false);
-    private static final AtomicBoolean CAN_MINE_BUDDING_AMETHYST_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean CAN_MINE_FROSTED_ICE_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean FROSTED_ICE_PROPER_TOOL_FIX_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean BEACON_PROPER_TOOL_FIX_ERROR_REPORTED = new AtomicBoolean(false);
@@ -54,8 +53,6 @@ public final class FeatureCompatibilityReporter {
             flag = DISABLE_KELP_NATURAL_GROWTH_ERROR_REPORTED;
         } else if ("disableAmethystGrowth".equals(featureName)) {
             flag = DISABLE_AMETHYST_GROWTH_ERROR_REPORTED;
-        } else if ("silkTouchBuddingAmethyst".equals(featureName)) {
-            flag = CAN_MINE_BUDDING_AMETHYST_ERROR_REPORTED;
         } else if ("silkTouchFrostedIce".equals(featureName)) {
             flag = CAN_MINE_FROSTED_ICE_ERROR_REPORTED;
         } else if ("frostedIceProperToolFix".equals(featureName)) {
