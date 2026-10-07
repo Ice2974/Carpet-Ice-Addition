@@ -295,15 +295,6 @@ Warns players to sleep in time at the start of the night when they reach the van
 - Possible values: `false`, `true`
 - Categories: `ICE`, `SURVIVAL`
 
-### neutralPhantoms
-
-Makes phantoms neutral toward players: they will not attack players first, but will fight back when attacked.
-
-- Type: `boolean`
-- Default: `false`
-- Possible values: `false`, `true`
-- Categories: `ICE`, `FEATURE`, `SURVIVAL`
-
 ### easyWaterloggedBlockPlacement
 
 Allows players holding a water bucket in the offhand to directly place waterloggable blocks in a waterlogged state, except in dimensions where water evaporates.

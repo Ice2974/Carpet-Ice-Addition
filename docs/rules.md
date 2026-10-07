@@ -295,15 +295,6 @@
 - 可选值: `false`, `true`
 - 分类: `ICE`, `SURVIVAL`
 
-### 中立幻翼 (neutralPhantoms)
-
-幻翼不会主动攻击玩家，但在被玩家攻击后会进行反击。
-
-- 类型: `boolean`
-- 默认值: `false`
-- 可选值: `false`, `true`
-- 分类: `ICE`, `FEATURE`, `SURVIVAL`
-
 ### 轻松含水放置 (easyWaterloggedBlockPlacement)
 
 允许玩家在副手持有水桶时，将支持含水状态的方块直接放置为含水状态（水会蒸发的维度除外）。

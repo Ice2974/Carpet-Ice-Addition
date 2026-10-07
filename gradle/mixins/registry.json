@@ -53,14 +53,11 @@
     { "name": "JukeboxManagerRecordWorldEventMixin", "side": "common" },
     { "name": "KelpNaturalGrowthMixin", "side": "common" },
     { "name": "LavaFluidTickDelayMixin", "side": "common" },
-    { "name": "LivingEntityNeutralPhantomsMixin", "side": "common" },
     { "name": "MobSpawnerLogicMixin", "side": "common" },
     { "name": "MobVillagerConversionMixin", "side": "common" },
     { "name": "NameTagItemDuplicateNamingFixMixin", "side": "common" },
     { "name": "NyliumDecayMixin", "side": "common" },
     { "name": "OneShotIronGolemOptimizationMixin", "side": "common" },
-    { "name": "PhantomAttackPlayerTargetGoalNeutralPhantomsMixin", "side": "common" },
-    { "name": "PhantomNeutralPhantomsMixin", "side": "common" },
     { "name": "PiglinMobsSpawnWithoutSpearsMixin", "side": "common", "minMc": "1.21.11" },
     { "name": "PlayerBreakIceLikeMagmaBlocksMixin", "side": "common" },
     { "name": "PlayerListEntryTabListNameMixin", "side": "common" },
@@ -99,11 +96,6 @@
     { "before": "VillagerTradingOptimizationMixin", "after": "VillagerIronGolemOptimizationMixin" },
     { "before": "ServerWorldAccessVillagerEventsMixin", "after": "ServerWorldPhantomSpawnWarningMixin" },
     { "before": "ServerWorldPhantomSpawnWarningMixin", "after": "ServerWorldRecordWorldEventMixin" },
-    {
-      "before": "MobVillagerConversionMixin",
-      "after": "PhantomNeutralPhantomsMixin",
-      "auditedOverrides": ["1.21.10"]
-    },
     { "before": "CanMineBuddingAmethystMixin", "after": "CanMineFrostedIceMixin" },
     {
       "before": "ServerGamePacketListenerImplDisableIllegalTextCharacterCheckMixin",
@@ -113,14 +105,7 @@
     { "before": "FakePlayerIgnoreThornsDamageMixin", "after": "DisableAirborneMiningPenaltyMixin" },
     { "before": "DisablePlayerAttackingTamedMobsMixin", "after": "EntitySetCustomNameTradingOptimizationMixin" },
     { "before": "EntitySetCustomNameTradingOptimizationMixin", "after": "EntitySetCustomNameIronGolemOptimizationMixin" },
-    { "before": "LivingEntityNeutralPhantomsMixin", "after": "DisablePlayerAttackingTamedMobsMixin" },
     { "before": "ZombieVillagerEventsMixin", "after": "ZombieMobsSpawnWithoutSpearsMixin" }
   ],
-  "orderOverrides": [
-    {
-      "version": "1.21.10",
-      "before": "PhantomNeutralPhantomsMixin",
-      "after": "MobVillagerConversionMixin"
-    }
-  ]
+  "orderOverrides": []
 }

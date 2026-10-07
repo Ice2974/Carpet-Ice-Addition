@@ -30,7 +30,6 @@ public final class FeatureCompatibilityReporter {
     private static final AtomicBoolean FAKE_PLAYER_IGNORE_THORNS_DAMAGE_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean EASY_WATERLOGGED_BLOCK_PLACEMENT_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean PHANTOM_SPAWN_WARNING_ERROR_REPORTED = new AtomicBoolean(false);
-    private static final AtomicBoolean NEUTRAL_PHANTOMS_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean KILLITEM_TEXT_EVENTS_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean CRAFTABLE_CORAL_BLOCKS_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean VILLAGER_TRADING_OPTIMIZATION_ERROR_REPORTED = new AtomicBoolean(false);
@@ -79,8 +78,6 @@ public final class FeatureCompatibilityReporter {
             flag = EASY_WATERLOGGED_BLOCK_PLACEMENT_ERROR_REPORTED;
         } else if ("phantomSpawnWarning".equals(featureName)) {
             flag = PHANTOM_SPAWN_WARNING_ERROR_REPORTED;
-        } else if ("neutralPhantoms".equals(featureName)) {
-            flag = NEUTRAL_PHANTOMS_ERROR_REPORTED;
         } else if ("killitemTextEvents".equals(featureName)) {
             flag = KILLITEM_TEXT_EVENTS_ERROR_REPORTED;
         } else if ("craftableCoralBlocks".equals(featureName)) {
