@@ -39,19 +39,22 @@ final class DeltaruneEasterEggs {
             return;
         }
         try {
-            boolean krisOnline = false;
-            boolean susieOnline = false;
-            for (ServerPlayer online : CarpetServer.minecraft_server.getPlayerList().getPlayers()) {
-                String name = online.getScoreboardName();
-                if (KRIS.equalsIgnoreCase(name)) {
-                    krisOnline = true;
-                } else if (SUSIE.equalsIgnoreCase(name)) {
-                    susieOnline = true;
-                }
+            String joiningName = player.getScoreboardName();
+            // 只有 Kris / Susie 本人加入才可能首次凑齐两人；其余登录（含高频 relog 假人）无需扫描
+            String otherName;
+            if (KRIS.equalsIgnoreCase(joiningName)) {
+                otherName = SUSIE;
+            } else if (SUSIE.equalsIgnoreCase(joiningName)) {
+                otherName = KRIS;
+            } else {
+                return;
             }
-            if (krisOnline && susieOnline) {
-                krisAndSusieTriggered = true;
-                CarpetServer.minecraft_server.getPlayerList().broadcastSystemMessage(SUSIE_LINE, false);
+            for (ServerPlayer online : CarpetServer.minecraft_server.getPlayerList().getPlayers()) {
+                if (otherName.equalsIgnoreCase(online.getScoreboardName())) {
+                    krisAndSusieTriggered = true;
+                    CarpetServer.minecraft_server.getPlayerList().broadcastSystemMessage(SUSIE_LINE, false);
+                    return;
+                }
             }
         } catch (Exception exception) {
             LOGGER.debug("[Carpet Ice Addition] Deltarune easter egg check skipped", exception);
