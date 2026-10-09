@@ -89,4 +89,23 @@ class RecipePackReconcilerTest {
                 .equals(RecipePackReconciler.targetKey(List.of("vanilla", CORAL))),
                 "选中顺序即数据包优先级，键必须顺序敏感");
     }
+
+    @Test
+    void packConvergedRequiresSelectionToMatchDesire() {
+        LinkedHashSet<String> selected = new LinkedHashSet<>(List.of("vanilla", CORAL));
+
+        assertTrue(RecipePackReconciler.packConverged(selected, CORAL, true));
+        assertTrue(RecipePackReconciler.packConverged(selected, CALCITE, false));
+        assertFalse(RecipePackReconciler.packConverged(selected, CORAL, false), "选中但期望关闭 ⇒ 未收敛");
+        assertFalse(RecipePackReconciler.packConverged(selected, CALCITE, true), "未选中但期望开启 ⇒ 未收敛");
+    }
+
+    @Test
+    void packConvergedIsFalseForMissingInputs() {
+        LinkedHashSet<String> selected = new LinkedHashSet<>(List.of(CORAL));
+
+        assertFalse(RecipePackReconciler.packConverged(null, CORAL, true));
+        assertFalse(RecipePackReconciler.packConverged(selected, null, true));
+        assertFalse(RecipePackReconciler.packConverged(selected, "", true));
+    }
 }

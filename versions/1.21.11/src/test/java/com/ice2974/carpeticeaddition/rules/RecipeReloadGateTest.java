@@ -69,6 +69,9 @@ class RecipeReloadGateTest {
         assertEquals(1, gate.failureCount(), "同一次失败只允许结算一次（不得重复消耗重试预算）");
         assertTrue(gate.isRetryRequested());
         assertFalse(gate.isDegraded());
+        assertEquals(1, gate.inFlightCount(),
+                "该次 reload 的 END 尚未到达：已结算后的 settleSyncThrow 不得吃掉它的在飞名额");
+        assertEquals(1, gate.unmatchedSyncThrowCount(), "已结算后的重复结算只计数、不改状态");
     }
 
     @Test
@@ -105,6 +108,98 @@ class RecipeReloadGateTest {
         assertEquals(0, gate.inFlightCount(), "异常 END 不得把计数压成负数");
     }
 
+    /**
+     * 合法补偿路径不得被身份守卫破坏，且重复调用不再触碰全局状态。
+     */
+    @Test
+    void syncThrowCompensationStillHappensExactlyOnce() {
+        RecipeReloadGate gate = boundGate();
+        gate.markRequestStarted("a", gate.epoch(), true);
+        gate.onReloadStart(gate.epoch());
+        assertEquals(1, gate.inFlightCount());
+
+        gate.settleSyncThrow(gate.epoch());
+        assertEquals(0, gate.inFlightCount(), "有 START 无 END：合法补偿恰好递减一次");
+        assertEquals(RecipeReloadGate.Outcome.FAILURE, gate.ownOutcome());
+        assertEquals(1, gate.failureCount());
+        assertEquals(0, gate.unmatchedSyncThrowCount(), "合法结算不得计入无归属计数");
+
+        gate.settleSyncThrow(gate.epoch());
+        assertEquals(0, gate.inFlightCount(), "重复结算不得把计数压成负数");
+        assertEquals(1, gate.failureCount(), "同一次失败只结算一次");
+        assertEquals(1, gate.unmatchedSyncThrowCount());
+    }
+
+    /**
+     * 已结算后，若出现与本模组无关的 reload，多余的 settleSyncThrow 不得吃掉它的在飞名额。
+     */
+    @Test
+    void repeatedSyncThrowLeavesForeignInflightCountUntouched() {
+        RecipeReloadGate gate = boundGate();
+        gate.markRequestStarted("a", gate.epoch(), true);
+        gate.settleSyncThrow(gate.epoch());     // 合法：START 未投递 ⇒ 不递减
+        assertEquals(RecipeReloadGate.Outcome.FAILURE, gate.ownOutcome());
+        assertEquals(1, gate.failureCount());
+        assertTrue(gate.isRetryRequested());
+
+        assertEquals(RecipeReloadGate.StartKind.FOREIGN, gate.onReloadStart(gate.epoch()));
+        assertEquals(1, gate.inFlightCount());
+
+        gate.settleSyncThrow(gate.epoch());
+
+        assertEquals(1, gate.inFlightCount(), "重复结算不得递减其它 reload 的在飞计数");
+        assertFalse(gate.isQuiet(gate.epoch()), "外部 reload 仍在进行时不得被误判为静默点");
+        assertEquals(1, gate.failureCount(), "重复结算不得再次消耗失败预算");
+        assertTrue(gate.isRetryRequested(), "重复结算不得改动重试请求");
+        assertEquals(RecipeReloadGate.Outcome.FAILURE, gate.ownOutcome());
+        assertEquals(1, gate.unmatchedSyncThrowCount());
+
+        assertEquals(RecipeReloadGate.EndKind.NORMAL, gate.onReloadEnd(gate.epoch(), true),
+                "外部 reload 的 END 仍必须能正常配对（未被误减成异常 END）");
+        assertEquals(0, gate.inFlightCount());
+    }
+
+    /**
+     * 无效的重复结算不得消费 {@code ownStartPending}：否则后续真正的 START 会被误判为外部 reload。
+     *
+     * <p>为让该一次性标志可观测，本用例从一个刻意构造的入口状态出发（已结算但标志尚未被消费）：
+     * 断言的是「守卫分支不得改动任何全局重载状态」这一契约，而不是该入口状态本身的可达性。
+     */
+    @Test
+    void straySyncThrowDoesNotConsumeOwnStartFlag() {
+        RecipeReloadGate gate = boundGate();
+        gate.markRequestStarted("a", gate.epoch(), true);
+        gate.settleReturnedFuture(gate.epoch(), true, true);
+        assertEquals(RecipeReloadGate.Outcome.FAILURE, gate.ownOutcome());
+
+        gate.settleSyncThrow(gate.epoch());
+
+        assertEquals(1, gate.unmatchedSyncThrowCount());
+        assertEquals(RecipeReloadGate.StartKind.OWN, gate.onReloadStart(gate.epoch()),
+                "重复结算不得消费 ownStartPending（否则真正的 START 会被误判为外部）");
+        assertEquals(1, gate.inFlightCount());
+    }
+
+    /**
+     * 从未建立自有请求时，结算调用不得凭空修改全局状态。
+     */
+    @Test
+    void syncThrowWithoutOwnRequestNeverDecrements() {
+        RecipeReloadGate gate = boundGate();
+        assertEquals(RecipeReloadGate.StartKind.FOREIGN, gate.onReloadStart(gate.epoch()));
+        assertEquals(1, gate.inFlightCount());
+
+        gate.settleSyncThrow(gate.epoch());
+
+        assertNull(gate.ownOp(), "无自有请求时不得凭空建立请求账");
+        assertEquals(1, gate.inFlightCount(), "无归属的结算调用不得递减全局计数");
+        assertEquals(0, gate.failureCount());
+        assertFalse(gate.isDegraded());
+        assertFalse(gate.isRetryRequested());
+        assertEquals(1, gate.unmatchedSyncThrowCount());
+        assertFalse(gate.isQuiet(gate.epoch()), "外部 reload 仍在进行时不得被误判为静默点");
+    }
+
     // ---------------------------------------------------------------- 迟到 / 异常事件
 
     @Test
@@ -125,6 +220,7 @@ class RecipeReloadGateTest {
         gate.settleSyncThrow(oldEpoch);
         assertEquals(0, gate.inFlightCount(), "迟到回调不得改变任何状态（尤其不得递减）");
         assertEquals(0, gate.failureCount(), "迟到回调不得消耗重试预算");
+        assertEquals(0, gate.unmatchedSyncThrowCount(), "迟到回调计入 stale 诊断，不计入无归属结算");
         assertTrue(gate.staleEventCount() >= 4);
         assertTrue(newEpoch > oldEpoch);
     }

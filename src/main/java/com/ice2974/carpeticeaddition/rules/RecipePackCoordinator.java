@@ -38,7 +38,9 @@ import java.util.function.Consumer;
  *   <li>自有请求结局只由本次 {@code reloadResources(...)} 的动作结算；</li>
  *   <li>冲突重算与菜单/配方书同步**只允许在静默点**执行；</li>
  *   <li>重试只由静默点单一路径启动；</li>
- *   <li>{@code reloadResources} 只在服务器线程调用，非服务器线程请求不建立请求账。</li>
+ *   <li>{@code reloadResources} 只在服务器线程调用，非服务器线程请求不建立请求账；</li>
+ *   <li>玩家登录的逐包同步**按包独立判定**（{@link #shouldSyncPackOnJoin}），不使用全局
+ *       {@link RecipeReloadGate#isReady()}：一条规则的失败 / 迁移不得压制另一条未出错规则的登录同步。</li>
  * </ul>
  *
  * <p>全部状态由服务器主线程持有；每个钩子独立 try/catch，保证规则间异常隔离。
@@ -150,12 +152,32 @@ public final class RecipePackCoordinator {
                 player.sendSystemMessage(Component.literal(TranslationFormatUtil.translate(pack.lockedMessageKey())));
             }
         }
-        if (!GATE.isReady()) {
-            return;
-        }
         for (ManagedPack pack : PACKS) {
-            safeRun(pack.ruleName(), () -> pack.onPlayerJoin().accept(server, player));
+            // 逐包判定：本包未收敛时不同步，其它规则的失败 / 迁移与本包无关。
+            if (shouldSyncPackOnJoin(server, pack)) {
+                safeRun(pack.ruleName(), () -> pack.onPlayerJoin().accept(server, player));
+            }
         }
+    }
+
+    /**
+     * 逐包登录同步门：只取决于「本包自身的选中状态是否已收敛到期望」。
+     *
+     * <p>刻意不使用全局 {@link RecipeReloadGate#isReady()}：该标志要求两条规则的钩子全成功且目标集合
+     * 全部收敛，任一条规则的菜单同步失败或规则迁移都会让它为 false，从而误压制另一条未出错规则的
+     * 登录同步（重构前的旧控制器使用单规则 {@code ready}，不存在这种跨规则耦合）。
+     *
+     * <p>安全性：选中集合与 {@code RecipeManager} 在服务器线程的同一处一起切换，故「已收敛」蕴含
+     * 「管理器已反映本包」；本包未收敛（迁移窗口 / reload 失败 / 冲突锁定）时一律不同步。
+     * 各规则的 join 钩子自身还带守卫（例如珊瑚在配方缺失时 {@code findCurrentRecipes} 返回空列表直接返回）。
+     */
+    private static boolean shouldSyncPackOnJoin(MinecraftServer server, ManagedPack pack) {
+        if (!GATE.isWorldsLoaded()) {
+            return false;
+        }
+        boolean desired = safeBool(pack.ruleName(), pack.desired());
+        return RecipePackReconciler.packConverged(
+                server.getPackRepository().getSelectedIds(), pack.packIdString(), desired);
     }
 
     public static void onServerClosed(MinecraftServer server) {

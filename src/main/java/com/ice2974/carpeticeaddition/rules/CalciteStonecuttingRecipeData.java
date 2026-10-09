@@ -52,7 +52,11 @@ public final class CalciteStonecuttingRecipeData {
     }
 
     public static boolean isOwnRecipe(String namespace, String path) {
-        return NAMESPACE.equals(namespace) && RECIPE_PATHS.contains(path);
+        if (!NAMESPACE.equals(namespace)) {
+            return false;
+        }
+        // RECIPE_PATHS 是不可变列表，contains(null) 会抛 NPE：显式守卫，使该判定对 null 全定义。
+        return path != null && RECIPE_PATHS.contains(path);
     }
 
     /**

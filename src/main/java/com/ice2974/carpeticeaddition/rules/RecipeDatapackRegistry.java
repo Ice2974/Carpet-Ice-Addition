@@ -48,7 +48,7 @@ public final class RecipeDatapackRegistry {
         return RecipePackCoordinator.onRuleChanged(ruleName, server);
     }
 
-    /** 玩家登录：锁定期提示 + （ready 时）逐规则同步。 */
+    /** 玩家登录：锁定期提示 + （本包已收敛时）逐包同步。 */
     public static void onPlayerLoggedIn(ServerPlayer player) {
         RecipePackCoordinator.onPlayerLoggedIn(player);
     }

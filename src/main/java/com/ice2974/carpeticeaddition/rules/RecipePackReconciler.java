@@ -43,6 +43,21 @@ public final class RecipePackReconciler {
         return String.join("\u0000", ids);
     }
 
+    /**
+     * 单包收敛判定：该包的选中状态是否已与期望一致。
+     *
+     * <p>选中集合与 {@code RecipeManager} 在同一处（服务器线程的资源切换回调 $4）一起更新，因此
+     * 「已收敛」蕴含「配方管理器已反映该包的选中状态」——这是逐包登录同步判据成立的前提。
+     *
+     * <p>刻意不并入 {@link #plan} 的变化判定：规划器已由既有测试覆盖，此处只提供单包只读判定。
+     */
+    public static boolean packConverged(Collection<String> selectedIds, String packId, boolean desired) {
+        if (selectedIds == null || packId == null || packId.isEmpty()) {
+            return false;
+        }
+        return selectedIds.contains(packId) == desired;
+    }
+
     public static Plan plan(Collection<String> selectedIds, List<PackDesire> desires) {
         LinkedHashSet<String> next = new LinkedHashSet<>(selectedIds);
         List<String> disabled = new ArrayList<>();

@@ -51,11 +51,42 @@ class RecipePackSimulationTest {
         boolean nextReloadThrowsBeforeStart;
         boolean nextReloadThrowsAfterStart;
         boolean nextPassFails;
+        /** 定向让「某条规则」的下一次 pass 钩子失败（复刻 runPass 的 allOk &= safeRun(rule) 组合）。 */
+        String failNextPassForRule;
+        final List<String> failedRules = new ArrayList<>();
+        /** true 时把选中集合切换推迟到 END（复刻 $4 之前的异步窗口，默认 false 保持既有轨迹不变）。 */
+        boolean holdSelectionUntilEnd;
+        private LinkedHashSet<String> pendingSelection;
 
         void boot() {
             gate.bindServer();
             gate.markWorldsLoaded();
             orchestrate();
+        }
+
+        /**
+         * 复刻协调器的逐包登录同步门：真实 gate 的 worldsLoaded + 真实
+         * {@link RecipePackReconciler#packConverged}，仅组合方式与
+         * {@code RecipePackCoordinator#shouldSyncPackOnJoin} 一致。
+         */
+        boolean joinSyncAllowed(String packId) {
+            if (!gate.isWorldsLoaded()) {
+                return false;
+            }
+            return RecipePackReconciler.packConverged(selected, packId, desireOf(packId));
+        }
+
+        private boolean desireOf(String packId) {
+            for (RecipePackReconciler.PackDesire desire : desires) {
+                if (desire.packId().equals(packId)) {
+                    return desire.desired();
+                }
+            }
+            throw new IllegalArgumentException("unknown pack " + packId);
+        }
+
+        void failNextPassFor(String ruleName) {
+            failNextPassForRule = ruleName;
         }
 
         void setDesired(String packId, boolean value) {
@@ -91,12 +122,18 @@ class RecipePackSimulationTest {
         private boolean runPass() {
             passCount++;
             eventLog.add("pass");
+            boolean allOk = true;
             if (nextPassFails) {
                 nextPassFails = false;
                 passFailureCount++;
-                return false;
+                allOk = false;
             }
-            return true;
+            if (failNextPassForRule != null) {
+                failedRules.add(failNextPassForRule);
+                failNextPassForRule = null;
+                allOk = false;
+            }
+            return allOk;
         }
 
         private void scheduleNext() {
@@ -162,9 +199,11 @@ class RecipePackSimulationTest {
             boolean fails = alwaysFailReloads || nextReloadFails;
             nextReloadFails = false;
             if (!fails) {
-                eventLog.add("select");
-                selected.clear();
-                selected.addAll(plan.next());       // $4：换 resources + setSelected（阻塞内完成）
+                if (holdSelectionUntilEnd) {
+                    pendingSelection = new LinkedHashSet<>(plan.next());   // $4 尚未执行
+                } else {
+                    applySelection(plan.next());                           // $4：换 resources + setSelected（阻塞内完成）
+                }
             }
             gate.settleReturnedFuture(epoch, true, fails);
             countAfterSettle.add(gate.inFlightCount());
@@ -173,8 +212,18 @@ class RecipePackSimulationTest {
             orchestrate();
         }
 
+        private void applySelection(LinkedHashSet<String> next) {
+            eventLog.add("select");
+            selected.clear();
+            selected.addAll(next);
+        }
+
         void deliverEnd(boolean success) {
             pendingEnds.poll();
+            if (pendingSelection != null) {
+                applySelection(pendingSelection);   // $4 先于 END 执行
+                pendingSelection = null;
+            }
             gate.onReloadEnd(gate.epoch(), success);
             orchestrate();
         }
@@ -343,6 +392,36 @@ class RecipePackSimulationTest {
         assertTrue(h.gate.isReady());
     }
 
+    /**
+     * 已结算后的多余 {@code settleSyncThrow} 不得吃掉外部 reload 的在飞名额：
+     * 否则系统会被误判为静默点，在外部 reload 进行中执行冲突重算 / 菜单同步。
+     */
+    @Test
+    void straySyncThrowAfterSettlementDoesNotStealForeignInflightCount() {
+        Harness h = new Harness();
+        h.boot();
+        h.setDesired(CORAL, true);
+        h.deliverOurs();
+        assertTrue(h.gate.isReady());
+
+        h.foreignStart();
+        int passes = h.passCount;
+        int reloads = h.reloadCount;
+        int failures = h.gate.failureCount();
+
+        h.gate.settleSyncThrow(h.gate.epoch());   // 迟到 / 重复结算
+
+        assertEquals(1, h.gate.inFlightCount(), "外部 reload 仍在进行：计数不得被误减");
+        assertEquals(passes, h.passCount, "不得在外部 reload 进行中执行静默点 pass");
+        assertEquals(reloads, h.reloadCount, "不得因此发起新 reload");
+        assertEquals(failures, h.gate.failureCount(), "不得消耗失败预算");
+        assertEquals(1, h.gate.unmatchedSyncThrowCount(), "只允许诊断计数");
+
+        h.deliverEnd(true);
+        assertEquals(0, h.gate.inFlightCount());
+        assertEquals(passes + 1, h.passCount, "外部 reload 结束后必须消费静默点");
+    }
+
     // ---------------------------------------------------------------- T8 pass 失败
 
     @Test
@@ -444,6 +523,57 @@ class RecipePackSimulationTest {
         assertTrue(h.gate.isReady());
         assertTrue(h.selected.contains(CORAL));
         assertTrue(h.selected.contains(CALCITE));
+    }
+
+    // ---------------------------------------------------------------- 逐包登录同步门
+
+    /**
+     * 登录同步门逐包独立判定：本包未收敛（$4 之前的异步窗口）时不同步；
+     * 另一条规则迁移不得压制已收敛规则的登录同步（不使用全局 ready）。
+     */
+    @Test
+    void joinGateFollowsOwnPackConvergenceNotGlobalReady() {
+        Harness h = new Harness();
+        h.boot();
+        assertTrue(h.joinSyncAllowed(CORAL));
+        assertTrue(h.joinSyncAllowed(CALCITE));
+
+        h.holdSelectionUntilEnd = true;         // 模拟 $4 之前的异步窗口
+        h.setDesired(CORAL, true);
+
+        assertFalse(h.gate.isReady(), "目标集合未收敛：全局健康标志为 false");
+        assertFalse(h.joinSyncAllowed(CORAL), "本包尚未收敛时不得登录同步");
+        assertTrue(h.joinSyncAllowed(CALCITE), "另一条规则迁移不得压制已收敛规则的登录同步");
+
+        h.deliverOurs();                        // $4 执行 + END + 静默点 pass
+
+        assertTrue(h.gate.isReady());
+        assertTrue(h.joinSyncAllowed(CORAL));
+        assertTrue(h.joinSyncAllowed(CALCITE));
+    }
+
+    /**
+     * 问题 1 + 问题 4 的联合回归：切石规则的单玩家菜单同步失败必须入账到 gate
+     * （重新欠 pass、不得报告 ready），但不得压制已收敛的珊瑚规则登录同步。
+     */
+    @Test
+    void calciteOnlyPassFailureDoesNotSuppressCoralJoinSync() {
+        Harness h = new Harness();
+        h.boot();
+        h.setDesired(CORAL, true);
+        h.deliverOurs();
+        assertTrue(h.gate.isReady());
+        assertTrue(h.joinSyncAllowed(CORAL));
+
+        h.failNextPassFor(CALCITE);             // 仅切石规则的钩子失败
+        h.setDesired(CALCITE, true);
+        h.deliverOurs();                        // END 触发静默点 pass
+
+        assertEquals(List.of(CALCITE), h.failedRules, "定向失败必须真的发生在 pass 中");
+        assertFalse(h.gate.isReady(), "任一条规则钩子失败都必须让全局健康标志为 false（诊断语义不变）");
+        assertTrue(h.gate.isPendingSyncPass(), "同步失败必须重新欠一次 pass 以便修复");
+        assertTrue(h.joinSyncAllowed(CORAL), "切石失败不得压制已收敛的珊瑚规则登录同步");
+        assertTrue(h.joinSyncAllowed(CALCITE));
     }
 
     // ---------------------------------------------------------------- 边界约束

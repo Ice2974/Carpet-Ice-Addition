@@ -14,6 +14,12 @@ package com.ice2974.carpeticeaddition.rules;
  *       保证同一次失败只结算一次。</li>
  * </ul>
  *
+ * <p><b>操作身份校验</b>：任何对全局计数的补偿都要求「当前 epoch 下存在尚未结算的自有请求」，
+ * 该判定由 {@link #hasUnsettledOwnRequest(long)} 单点给出。没有待结算自有请求的结算调用
+ * （重复结算、迟到结算、从未建立请求）只计数诊断（{@link #unmatchedSyncThrowCount()}），
+ * <b>绝不</b>修改 {@code inFlightCount} 或 {@code ownStartPending}——否则会吃掉其它 reload 的在飞名额，
+ * 让系统在外部 reload 仍在进行时误判为静默点。
+ *
  * <p>静默点（quiescence）判定：{@code epoch} 匹配 ∧ {@code worldsLoaded} ∧ {@code inFlightCount == 0}。
  * 冲突重算与菜单同步只允许在静默点执行；重试的启动也只在静默点由 {@link #consumeRetryRequest()} 单一路径消费。
  *
@@ -89,6 +95,7 @@ public final class RecipeReloadGate {
     private int anomalousEndCount;
     private int staleEventCount;
     private int refusedOffThreadRequestCount;
+    private int unmatchedSyncThrowCount;
 
     // ------------------------------------------------------------------ 生命周期
 
@@ -125,6 +132,7 @@ public final class RecipeReloadGate {
         anomalousEndCount = 0;
         staleEventCount = 0;
         refusedOffThreadRequestCount = 0;
+        unmatchedSyncThrowCount = 0;
     }
 
     public long epoch() {
@@ -247,12 +255,20 @@ public final class RecipeReloadGate {
     /**
      * 结算「{@code reloadResources} 同步抛异常」。
      *
-     * <p>{@code ownStartPending} 仍为 true ⇒ START 未投递（既无 START 也无 END，不递减）；
-     * 否则 ⇒ START 已投递但 TAIL 未执行（有 START 无 END，补偿递减一次）。
+     * <p>操作身份优先：先确认当前 epoch 下存在尚未结算的自有请求，才允许触碰全局状态。
+     * 重复 / 迟到 / 无归属的结算调用只做诊断计数，不改变任何全局 reload 状态。
+     *
+     * <p>补偿判定（仅在身份成立后执行）：{@code ownStartPending} 仍为 true ⇒ START 未投递
+     * （既无 START 也无 END，不递减）；否则 ⇒ START 已投递但 TAIL 未执行（有 START 无 END，补偿递减一次）。
      */
     public void settleSyncThrow(long epoch) {
         if (epoch != serverEpoch) {
             staleEventCount++;
+            return;
+        }
+        if (!hasUnsettledOwnRequest(epoch)) {
+            // 没有待结算的自有请求：不得消费 ownStartPending，也不得借用全局在飞名额。
+            unmatchedSyncThrowCount++;
             return;
         }
         if (ownStartPending) {
@@ -263,16 +279,21 @@ public final class RecipeReloadGate {
         settle(epoch, Outcome.FAILURE);
     }
 
+    /** 当前 epoch 下是否存在尚未结算的自有请求：全部结算路径的唯一身份判定。 */
+    private boolean hasUnsettledOwnRequest(long epoch) {
+        OwnOp op = ownOp;
+        return op != null && !op.settled() && op.epoch() == epoch;
+    }
+
     private void settle(long epoch, Outcome outcome) {
         if (epoch != serverEpoch) {
             staleEventCount++;
             return;
         }
-        OwnOp op = ownOp;
-        if (op == null || op.settled() || op.epoch() != epoch) {
+        if (!hasUnsettledOwnRequest(epoch)) {
             return;
         }
-        ownOp = op.settledAs(outcome);
+        ownOp = ownOp.settledAs(outcome);
         if (outcome == Outcome.FAILURE) {
             handleFailure();
         }
@@ -389,6 +410,13 @@ public final class RecipeReloadGate {
         return pendingSyncPass;
     }
 
+    /**
+     * 全局健康标志（诊断用）：pass 钩子全成功 ∧ 未 degraded ∧ 目标集合已收敛。
+     *
+     * <p><b>不作为玩家登录同步的门</b>：登录同步按包独立判定（见
+     * {@code RecipePackCoordinator#shouldSyncPackOnJoin}），否则任一条规则的失败 / 迁移都会
+     * 误压制另一条未出错规则的同步。
+     */
     public boolean isReady() {
         return ready;
     }
@@ -439,5 +467,13 @@ public final class RecipeReloadGate {
 
     public int refusedOffThreadRequestCount() {
         return refusedOffThreadRequestCount;
+    }
+
+    /**
+     * 诊断计数：没有待结算自有请求时到达的 {@link #settleSyncThrow(long)} 调用次数
+     * （重复结算 / 迟到结算 / 从未建立请求）。只计数，不参与任何状态判定。
+     */
+    public int unmatchedSyncThrowCount() {
+        return unmatchedSyncThrowCount;
     }
 }
