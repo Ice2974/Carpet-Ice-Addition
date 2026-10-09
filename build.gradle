@@ -85,9 +85,9 @@ assert mainProjectNameRaw in versionRegistry.collect { it.toString() }:
         "versions/mainProject=${mainProjectNameRaw} 必须是 settings.json 版本注册表登记的版本项目"
 ext.mainProjectName = mainProjectNameRaw
 
-// 珊瑚内置资源包在 jar 内的根路径（verifyCraftableCoralBlocksJars 与碰撞不变式共享，
-// 单一来源，不维护第二份字面量）
+// 内置配方资源包在 jar 内的根路径（jar 校验任务与碰撞不变式共享，单一来源，不维护第二份字面量）
 def craftableCoralPackRoot = 'resourcepacks/craftable_coral_blocks/'
+def calciteStonecuttingPackRoot = 'resourcepacks/calcite_stonecutting/'
 
 def craftableCoralRecipePaths = [
         'coral_block_from_tube_coral_fan',
@@ -102,55 +102,129 @@ def craftableCoralRecipePaths = [
         'coral_block_from_dead_horn_coral_fan'
 ]
 
+def calciteStonecuttingRecipePaths = [
+        'calcite_from_dripstone_block_stonecutting'
+]
+
+// 每个内置配方数据包的校验规格：唯一数据源，碰撞不变式与 jar 校验任务都从这里派生。
+// schemaCheck 机械校验「生效配方」的资源格式分叉（1.21.1 old schema vs 1.21.3+ modern）。
+def recipePackSpecs = [
+        [
+                taskName   : 'verifyCraftableCoralBlocksJars',
+                packRoot   : craftableCoralPackRoot,
+                recipePaths: craftableCoralRecipePaths,
+                legacyPrefix: 'coral_block_',
+                schemaCheck: { Map recipeJson, boolean legacySchema ->
+                    assert recipeJson.type == 'minecraft:crafting_shaped':
+                            "unexpected coral recipe type: ${recipeJson.type}"
+                    def key = recipeJson.key?.get('#')
+                    if (legacySchema) {
+                        assert key instanceof Map && key.item != null:
+                                "1.21.1 coral recipe must use the old ingredient schema"
+                    } else {
+                        assert key instanceof String:
+                                "1.21.3+ coral recipe must use the modern ingredient schema"
+                    }
+                }
+        ],
+        [
+                taskName   : 'verifyCalciteStonecuttingRecipeJars',
+                packRoot   : calciteStonecuttingPackRoot,
+                recipePaths: calciteStonecuttingRecipePaths,
+                legacyPrefix: 'calcite_',
+                schemaCheck: { Map recipeJson, boolean legacySchema ->
+                    assert recipeJson.type == 'minecraft:stonecutting':
+                            "unexpected calcite recipe type: ${recipeJson.type}"
+                    if (legacySchema) {
+                        assert recipeJson.ingredient instanceof Map
+                                && recipeJson.ingredient.item == 'minecraft:dripstone_block':
+                                "1.21.1 calcite recipe must use the old ingredient schema"
+                    } else {
+                        assert recipeJson.ingredient == 'minecraft:dripstone_block':
+                                "1.21.3+ calcite recipe must use the modern ingredient schema"
+                    }
+                    assert recipeJson.result?.id == 'minecraft:calcite':
+                            "calcite recipe result must be minecraft:calcite"
+                    assert recipeJson.result?.count == 1:
+                            "calcite recipe result count must be 1"
+                }
+        ]
+]
+
 // 资源碰撞不变式预期数据（common.gradle 各平台 afterEvaluate 配置期消费，fail closed）。
 // key = 平台项目名，keySet 必须与版本注册表完全一致（common.gradle 有全等断言：
 // 未来新增平台缺键不会被默认当作空集放行）；
 // value = 该平台允许的「生效资源 srcDirs 相对路径碰撞集合」（相对路径统一以 / 规范化）。
-// 根 src/main/resources 承载 10 个 modern 珊瑚配方，1.21.1 另有本地 old-schema 同路径覆盖
-// （平台本地层经 EXCLUDE first-wins 胜出），其预期碰撞集合
-// 恰为 craftableCoralRecipePaths 派生的 10 条内置资源包 recipe 相对路径（单一来源派生，不维护第二份
-// 配方名单）；其余平台无碰撞，预期空集。
+// 根 src/main/resources 承载 modern 配方，1.21.1 另有本地 old-schema 同路径覆盖
+// （平台本地层经 EXCLUDE first-wins 胜出），其预期碰撞集合恰为全部内置资源包 recipe 相对路径
+// （单一来源派生，不维护第二份配方名单）；其余平台无碰撞，预期空集。
+def recipePackRelativePaths = { String packRoot, List<String> recipes ->
+    recipes.collect { recipe -> "${packRoot}data/carpet-ice-addition/recipe/${recipe}.json".toString() }
+}
 ext.expectedRootResourceCollisions =
         versionRegistry.collect { it.toString() }.findAll { it != '1.21.1' }.collectEntries { version ->
             [(version): new LinkedHashSet<String>()]
         } + [('1.21.1'): new LinkedHashSet<String>(
-                craftableCoralRecipePaths.collect { recipe ->
-                    "${craftableCoralPackRoot}data/carpet-ice-addition/recipe/${recipe}.json".toString()
-                })]
+                recipePackRelativePaths(craftableCoralPackRoot, craftableCoralRecipePaths)
+                        + recipePackRelativePaths(calciteStonecuttingPackRoot, calciteStonecuttingRecipePaths))]
 
-def verifyCraftableCoralBlocksJars = tasks.register('verifyCraftableCoralBlocksJars') {
-    doLast {
-        platformProjects.each { projectPath ->
-            def platform = project(projectPath)
-            def outputTask = platform.tasks.findByName('remapJar') ?: platform.tasks.named('jar').get()
-            def jarFile = outputTask.archiveFile.get().asFile
-            assert jarFile.isFile(): "Missing remapped JAR for ${projectPath}: ${jarFile}"
+def verifyRecipePackJar = { Map spec, String projectPath ->
+    def platform = project(projectPath)
+    def outputTask = platform.tasks.findByName('remapJar') ?: platform.tasks.named('jar').get()
+    def jarFile = outputTask.archiveFile.get().asFile
+    assert jarFile.isFile(): "Missing remapped JAR for ${projectPath}: ${jarFile}"
 
-            def entries = new java.util.zip.ZipFile(jarFile).withCloseable { zip ->
-                zip.entries().collect { entry -> entry.name }
+    def entries = new java.util.zip.ZipFile(jarFile).withCloseable { zip ->
+        zip.entries().collect { entry -> entry.name }
+    }
+    def packRoot = spec.packRoot as String
+    def packMeta = "${packRoot}pack.mcmeta"
+    def recipeRoot = "${packRoot}data/carpet-ice-addition/recipe/"
+    def expectedRecipes = (spec.recipePaths as List<String>).collect { path -> "${recipeRoot}${path}.json".toString() }
+
+    assert entries.count { name -> name == packMeta } == 1: "Expected one ${packMeta} in ${jarFile.name}"
+    assert entries.containsAll(expectedRecipes): "Missing recipe of ${packRoot} in ${jarFile.name}"
+    assert entries.findAll { name -> name.startsWith(recipeRoot) && name.endsWith('.json') }.sort() == expectedRecipes.sort():
+            "Unexpected recipes of ${packRoot} in ${jarFile.name}"
+    assert entries.every { name -> !name.startsWith("data/carpet-ice-addition/recipe/${spec.legacyPrefix}") }:
+            "Legacy main datapack recipe remains in ${jarFile.name}"
+
+    def readEntryJson = { String entryName ->
+        new java.util.zip.ZipFile(jarFile).withCloseable { zip ->
+            def entry = zip.getEntry(entryName)
+            assert entry != null: "Entry ${entryName} not found in ${jarFile.name}"
+            zip.getInputStream(entry).withCloseable { stream ->
+                new groovy.json.JsonSlurper().parse(new java.io.InputStreamReader(stream, java.nio.charset.StandardCharsets.UTF_8))
             }
-            def packRoot = craftableCoralPackRoot
-            def packMeta = "${packRoot}pack.mcmeta"
-            def recipeRoot = "${packRoot}data/carpet-ice-addition/recipe/"
-            def expectedRecipes = craftableCoralRecipePaths.collect { path -> "${recipeRoot}${path}.json".toString() }
+        }
+    }
 
-            assert entries.count { name -> name == packMeta } == 1: "Expected one ${packMeta} in ${jarFile.name}"
-            assert entries.containsAll(expectedRecipes): "Missing coral recipe in ${jarFile.name}"
-            assert entries.findAll { name -> name.startsWith(recipeRoot) && name.endsWith('.json') }.sort() == expectedRecipes.sort():
-                    "Unexpected coral recipes in ${jarFile.name}"
-            assert entries.every { name -> !name.startsWith('data/carpet-ice-addition/recipe/coral_block_') }:
-                    "Legacy main datapack coral recipe remains in ${jarFile.name}"
+    def meta = readEntryJson(packMeta)
+    // 期望 pack_format 来自各平台 per-version gradle.properties 的 pack_format 键
+    assert meta.pack.pack_format == platform.pack_format.toInteger():
+            "Unexpected pack_format of ${packRoot} in ${jarFile.name}: ${meta.pack.pack_format}"
 
-            def meta = new java.util.zip.ZipFile(jarFile).withCloseable { zip ->
-                def entry = zip.getEntry(packMeta)
-                new groovy.json.JsonSlurper().parse(zip.getInputStream(entry))
-            }
-            // 期望 pack_format 来自各平台 per-version gradle.properties 的 pack_format 键
-            assert meta.pack.pack_format == platform.pack_format.toInteger():
-                    "Unexpected pack_format in ${jarFile.name}: ${meta.pack.pack_format}"
+    // 生效配方（平台本地层胜出后的结果）必须与平台族系的资源格式一致
+    if (spec.schemaCheck != null) {
+        expectedRecipes.each { recipeEntry ->
+            (spec.schemaCheck as Closure).call(readEntryJson(recipeEntry), projectPath == ':1.21.1')
         }
     }
 }
+
+def recipePackVerifyTasks = [:]
+recipePackSpecs.each { spec ->
+    def specCopy = spec
+    recipePackVerifyTasks[spec.taskName as String] = tasks.register(spec.taskName as String) {
+        doLast {
+            platformProjects.each { projectPath ->
+                verifyRecipePackJar(specCopy, projectPath as String)
+            }
+        }
+    }
+}
+def verifyCraftableCoralBlocksJars = recipePackVerifyTasks['verifyCraftableCoralBlocksJars']
+def verifyCalciteStonecuttingRecipeJars = recipePackVerifyTasks['verifyCalciteStonecuttingRecipeJars']
 
 def verifyFabricModJson = tasks.register('verifyFabricModJson') {
     doLast {
@@ -346,13 +420,13 @@ gradle.projectsEvaluated {
         def platform = project(projectPath)
         def jarTask = platform.tasks.findByName('remapJar') ?: platform.tasks.named('jar')
         def sourcesJarTask = platform.tasks.findByName('remapSourcesJar') ?: platform.tasks.named('sourcesJar')
-        verifyCraftableCoralBlocksJars.configure { dependsOn jarTask }
+        recipePackVerifyTasks.values().each { verifyTask -> verifyTask.configure { dependsOn jarTask } }
         verifyFabricModJson.configure { dependsOn jarTask }
         verifyMixinConfigs.configure { dependsOn jarTask; dependsOn sourcesJarTask }
         // 长期架构验证接入 check 生命周期：本地 ./gradlew build（任一平台）即触发全平台
         // 产物校验（verify 任务自身遍历全部 platformProjects，语义与 CI 显式清单一致）
         platform.tasks.named('check').configure {
-            dependsOn verifyCraftableCoralBlocksJars
+            recipePackVerifyTasks.values().each { verifyTask -> dependsOn verifyTask }
             dependsOn verifyFabricModJson
             dependsOn verifyMixinConfigs
         }

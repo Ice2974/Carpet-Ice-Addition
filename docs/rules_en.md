@@ -4,6 +4,8 @@
 
 Crafting-related rules provide this mod's recipes through a corresponding built-in datapack. Enabling a rule selects that datapack; disabling it deselects the datapack and triggers a vanilla server resource reload. If another datapack or mod provides a crafting recipe with the same output as one of those built-in recipes, the corresponding rule is automatically locked to `false` at runtime.
 
+The same principle applies to rules that provide a **stonecutting** recipe through a built-in datapack: conflicts are detected by matching recipe type and output, and the content of this mod's own recipe id (type / output / count / ingredient) is additionally validated — if another datapack overrides that id with different content, it is treated as a conflict too.
+
 When locked:
 
 - the built-in datapack from this mod is deselected;
@@ -12,7 +14,7 @@ When locked:
 - `/carpet <ruleName> true` is rejected;
 - all online players receive a notice;
 - `carpet.conf` is not modified;
-- removing the conflicting datapack and running `/reload` releases the lock and restores the previous configured value; online recipe books are synchronized after a successful resource reload.
+- removing the conflicting datapack and running `/reload` releases the lock and restores the previous configured value; online recipe books and already-open stonecutter menus are synchronized after a successful resource reload.
 
 ### Category definitions
 
@@ -468,3 +470,12 @@ Tridents can only despawn after being stuck in a block and remaining stationary 
 - Default: `false`
 - Possible values: `false`, `true`
 - Categories: `ICE`, `FEATURE`
+
+### calciteStonecuttingRecipe
+
+Allows dripstone blocks to be converted into calcite using a stonecutter.
+
+- Type: `boolean`
+- Default: `false`
+- Possible values: `false`, `true`
+- Categories: `ICE`, `FEATURE`, `SURVIVAL`

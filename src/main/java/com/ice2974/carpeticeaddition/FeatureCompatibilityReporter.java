@@ -31,6 +31,8 @@ public final class FeatureCompatibilityReporter {
     private static final AtomicBoolean PHANTOM_SPAWN_WARNING_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean KILLITEM_TEXT_EVENTS_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean CRAFTABLE_CORAL_BLOCKS_ERROR_REPORTED = new AtomicBoolean(false);
+    private static final AtomicBoolean CALCITE_STONECUTTING_RECIPE_ERROR_REPORTED = new AtomicBoolean(false);
+    private static final AtomicBoolean RECIPE_DATAPACKS_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean VILLAGER_TRADING_OPTIMIZATION_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean BEDROCK_IMPALING_PORT_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean BETTER_TRIDENT_DESPAWN_CONDITION_ERROR_REPORTED = new AtomicBoolean(false);
@@ -79,6 +81,10 @@ public final class FeatureCompatibilityReporter {
             flag = KILLITEM_TEXT_EVENTS_ERROR_REPORTED;
         } else if ("craftableCoralBlocks".equals(featureName)) {
             flag = CRAFTABLE_CORAL_BLOCKS_ERROR_REPORTED;
+        } else if ("calciteStonecuttingRecipe".equals(featureName)) {
+            flag = CALCITE_STONECUTTING_RECIPE_ERROR_REPORTED;
+        } else if ("recipeDatapacks".equals(featureName)) {
+            flag = RECIPE_DATAPACKS_ERROR_REPORTED;
         } else if ("villagerTradingOptimization".equals(featureName)) {
             flag = VILLAGER_TRADING_OPTIMIZATION_ERROR_REPORTED;
         } else if ("bedrockImpalingPort".equals(featureName)) {

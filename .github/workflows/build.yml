@@ -41,8 +41,8 @@ jobs:
 
       - name: Build and verify
         # 单元测试归属 :1.21.11（versions/1.21.11/src/test/java），显式执行保证测试入口不被静默跳过。
-        # 三个长期 verify 任务已接入各平台 check 生命周期，此处保留显式调用作为双保险。
-        run: ./gradlew build :1.21.11:test verifyCraftableCoralBlocksJars verifyFabricModJson verifyMixinConfigs --stacktrace
+        # 四个长期 verify 任务已接入各平台 check 生命周期，此处保留显式调用作为双保险。
+        run: ./gradlew build :1.21.11:test verifyCraftableCoralBlocksJars verifyCalciteStonecuttingRecipeJars verifyFabricModJson verifyMixinConfigs --stacktrace
 
       - name: Verify publish resolver
         run: python3 scripts/verify_publish_resolver.py

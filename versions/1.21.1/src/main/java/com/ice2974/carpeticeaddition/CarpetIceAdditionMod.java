@@ -5,13 +5,11 @@ import carpet.CarpetServer;
 import carpet.utils.CommandHelper;
 import com.ice2974.carpeticeaddition.rules.BetterTridentDespawnEpoch;
 import com.ice2974.carpeticeaddition.rules.BotTabListNameHelper;
-import com.ice2974.carpeticeaddition.rules.CraftableCoralBlocksDataPackController;
-import com.ice2974.carpeticeaddition.rules.CraftableCoralBlocksState;
 import com.ice2974.carpeticeaddition.rules.DelayedJukeboxStartEventManager;
 import com.ice2974.carpeticeaddition.rules.DrownedOceanRuinSpawns;
 import com.ice2974.carpeticeaddition.rules.EnhancedTridentRearmEpoch;
+import com.ice2974.carpeticeaddition.rules.RecipeDatapackRegistry;
 import com.ice2974.carpeticeaddition.rules.VillagerTradingOptimizationRuleHelper;
-import com.ice2974.carpeticeaddition.settings.CraftableCoralBlocksSettings;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionFluidSettings;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionEndPlatformSettings;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionLowVersionSettings;
@@ -50,7 +48,7 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
                 .getVersion()
                 .getFriendlyString();
         CarpetServer.manageExtension(INSTANCE);
-        CraftableCoralBlocksDataPackController.initialize();
+        RecipeDatapackRegistry.initialize();
     }
 
     @Override
@@ -58,7 +56,7 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
         CarpetServer.settingsManager.parseSettingsClass(CarpetIceAdditionSettings.class);
         CarpetServer.settingsManager.parseSettingsClass(CarpetIceAdditionEndPlatformSettings.class);
         CarpetServer.settingsManager.parseSettingsClass(CarpetIceAdditionLowVersionSettings.class);
-        CarpetServer.settingsManager.parseSettingsClass(CraftableCoralBlocksSettings.class);
+        RecipeDatapackRegistry.parseSettings();
         CarpetServer.settingsManager.parseSettingsClass(CarpetIceAdditionFluidSettings.class);
         try {
             DrownedOceanRuinSpawns.register();
@@ -74,9 +72,8 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
                 }
                 return;
             }
-            if ("craftableCoralBlocks".equals(ruleName)) {
-                MinecraftServer server = source != null ? source.getServer() : CarpetServer.minecraft_server;
-                CraftableCoralBlocksDataPackController.onRuleChanged(server);
+            if (RecipeDatapackRegistry.handleRuleChanged(
+                    ruleName, source != null ? source.getServer() : CarpetServer.minecraft_server)) {
                 return;
             }
             if ("waterFluidTickDelay".equals(ruleName) || "lavaFluidTickDelay".equals(ruleName)) {
@@ -127,15 +124,10 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
     @Override
     public void onPlayerLoggedIn(ServerPlayer player) {
         try {
-            // 锁定后字段已被直接压成 false，不能再以字段值作为提示门槛：只要 conflictLocked 即提示加入玩家
-            if (CraftableCoralBlocksState.isConflictLocked()) {
-                player.sendSystemMessage(net.minecraft.network.chat.Component.literal(
-                        com.ice2974.carpeticeaddition.translation.TranslationFormatUtil.translate(
-                                "carpet.rule.craftableCoralBlocks.conflict.locked")));
-            }
-            CraftableCoralBlocksDataPackController.onPlayerJoin(CarpetServer.minecraft_server, player);
+            // 锁定期提示与逐规则同步（含 coral 配方书；calcite 无配方书界面）统一由注册表处理。
+            RecipeDatapackRegistry.onPlayerLoggedIn(player);
         } catch (Throwable throwable) {
-            reportFeatureCompatibilityIssue("craftableCoralBlocks", throwable);
+            reportFeatureCompatibilityIssue("recipeDatapacks", throwable);
         }
         DeltaruneEasterEggs.onPlayerLoggedIn(player);
     }
@@ -168,9 +160,10 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
         // MinecraftServer.loadLevel 的 RETURN，overworld 与 RecipeManager 均已就绪，
         // integrated / dedicated server 均触发。此时通常无在线玩家，仅写日志；玩家加入时再提示。
         try {
-            CraftableCoralBlocksDataPackController.onServerLoadedWorlds(server);
+            // 触发首次静默点处理：冲突重算 + 菜单/配方书同步（即使无需 reload 也会消费 pendingSyncPass）
+            RecipeDatapackRegistry.onServerLoadedWorlds(server);
         } catch (Throwable throwable) {
-            reportFeatureCompatibilityIssue("craftableCoralBlocks", throwable);
+            reportFeatureCompatibilityIssue("recipeDatapacks", throwable);
         }
 
         CarpetIceAdditionFluidSettings.refreshCachedValues();
@@ -186,9 +179,9 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
         MachineStatusConfigManager.shutdown();
         DeltaruneEasterEggs.onServerClosed();
         try {
-            CraftableCoralBlocksDataPackController.onServerClosed(server);
+            RecipeDatapackRegistry.onServerClosed(server);
         } catch (Throwable throwable) {
-            reportFeatureCompatibilityIssue("craftableCoralBlocks", throwable);
+            reportFeatureCompatibilityIssue("recipeDatapacks", throwable);
         }
     }
 

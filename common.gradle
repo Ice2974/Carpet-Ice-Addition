@@ -192,7 +192,9 @@ afterEvaluate {
             "actual=${(actualCollisions as List).sort()} expected=${(expectedCollisions as List).sort()}"
     // 根资源所有权不变式（长期）：根 src/main/resources 不得收编平台/资源包元数据——
     // fabric.mod.json 与 per-version 内置资源包 pack.mcmeta 保持平台本地所有权。
-    ['fabric.mod.json', 'resourcepacks/craftable_coral_blocks/pack.mcmeta'].each { ownedPath ->
+    ['fabric.mod.json',
+     'resourcepacks/craftable_coral_blocks/pack.mcmeta',
+     'resourcepacks/calcite_stonecutting/pack.mcmeta'].each { ownedPath ->
         assert !rootProject.file("src/main/resources/${ownedPath}".toString()).isFile():
                 "根 src/main/resources 不得包含 ${ownedPath}（平台/资源包元数据所有权不变式）"
     }

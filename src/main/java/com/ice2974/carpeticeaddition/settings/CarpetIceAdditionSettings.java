@@ -23,8 +23,8 @@ public final class CarpetIceAdditionSettings {
     @Rule(categories = {ICE, FEATURE})
     public static boolean crafterStopsWhenOutputBlocked = false;
 
-    // craftableCoralBlocks 规则定义在独立的 CraftableCoralBlocksSettings：
-    // 其 Validator 需引用 MC 类（CommandSourceStack）。
+    // 配方类内置数据包规则定义在独立的 settings 类（其 Validator 需引用 MC 类 CommandSourceStack）：
+    // craftableCoralBlocks -> CraftableCoralBlocksSettings，calciteStonecuttingRecipe -> CalciteStonecuttingRecipeSettings。
 
     @Rule(categories = {ICE, BUGFIX})
     public static boolean recordWorldEventFix = false;

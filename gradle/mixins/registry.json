@@ -75,6 +75,7 @@
     { "name": "ServerWorldPhantomSpawnWarningMixin", "side": "common" },
     { "name": "ServerWorldRecordWorldEventMixin", "side": "common" },
     { "name": "SetRaidStatusIronGolemOptimizationMixin", "side": "common" },
+    { "name": "StonecutterMenuCalciteStonecuttingRecipeMixin", "side": "common" },
     { "name": "TheEndGatewayBlockEntityAccessor", "side": "common" },
     { "name": "TrialSpawnerDataMixin", "side": "common" },
     { "name": "VillagerGoalPackagesIronGolemOptimizationMixin", "side": "common" },
