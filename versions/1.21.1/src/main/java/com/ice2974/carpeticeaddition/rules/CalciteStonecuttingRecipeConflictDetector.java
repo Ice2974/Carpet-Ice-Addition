@@ -128,6 +128,23 @@ public final class CalciteStonecuttingRecipeConflictDetector {
         }
     }
 
+    /**
+     * 撤销前判定：该 holder 的内容是否仍是本规则承诺（1.21.1 平台 override 版）。
+     *
+     * <p>与 root 版语义一致，仅把上下文来源换成 1.21.1 的 {@code HolderLookup.Provider}；无法判定
+     * 一律返回 false ⇒ 调用方不得撤销。
+     */
+    static boolean matchesRuleContract(MinecraftServer server, RecipeHolder<?> holder) {
+        if (server == null || holder == null) {
+            return false;
+        }
+        try {
+            return isOwnRecipeAcceptable(holder.value(), server.registryAccess());
+        } catch (Throwable ignored) {
+            return false;
+        }
+    }
+
     /** 重新计算冲突锁定状态，并在状态迁移时广播提示与写日志。 */
     public static void recomputeAndNotify(MinecraftServer server) {
         boolean conflict = detectConflict(server);

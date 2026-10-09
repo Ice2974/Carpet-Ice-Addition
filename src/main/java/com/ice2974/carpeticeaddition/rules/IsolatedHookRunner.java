@@ -49,6 +49,25 @@ public final class IsolatedHookRunner {
                             + describe(firstCause),
                     firstCause);
         }
+
+        /**
+         * 合并两段**独立执行**的结果。
+         *
+         * <p>用途：同一次同步里「配方书动作」与「菜单动作」必须分别尝试——前一段失败不得跳过后一段，
+         * 因此两段各自调用 {@link #runAll(java.util.List)}，再合并成**一次**上报，避免后一段的失败
+         * 被前一段的聚合异常顶掉，也避免同一次同步上报两条记录。
+         *
+         * <p>语义：计数相加；{@code firstCause} 取先出现者（本结果的根因优先）。{@code null} 视为无失败。
+         */
+        public Result plus(Result other) {
+            if (other == null) {
+                return this;
+            }
+            return new Result(
+                    total + other.total,
+                    failed + other.failed,
+                    firstCause != null ? firstCause : other.firstCause);
+        }
     }
 
     private IsolatedHookRunner() {

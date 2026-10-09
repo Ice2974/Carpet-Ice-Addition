@@ -179,6 +179,28 @@ public final class CalciteStonecuttingRecipeConflictDetector {
     }
 
     /**
+     * 撤销前判定：该 holder 的内容是否仍是本规则承诺（供解锁记录撤销使用）。
+     *
+     * <p>与冲突判定共用 {@link #isOwnRecipeAcceptable}，避免「锁定判定」与「撤销判定」两处漂移。
+     * 无法判定（overworld 缺失 / display 解析异常）一律返回 false：调用方**不得**撤销——宁可保留记录，
+     * 也不误撤销已由外部数据包接管内容的同 id 配方。
+     */
+    static boolean matchesRuleContract(MinecraftServer server, RecipeHolder<?> holder) {
+        if (server == null || holder == null) {
+            return false;
+        }
+        try {
+            ServerLevel level = server.overworld();
+            if (level == null) {
+                return false;
+            }
+            return isOwnRecipeAcceptable(holder.value(), SlotDisplayContext.fromLevel(level));
+        } catch (Throwable ignored) {
+            return false;
+        }
+    }
+
+    /**
      * 重新计算冲突锁定状态，并在状态迁移时广播提示与写日志。
      *
      * <p>字段压 false / 恢复 desiredValue 均通过直接静态字段写完成，不经 SettingsManager，

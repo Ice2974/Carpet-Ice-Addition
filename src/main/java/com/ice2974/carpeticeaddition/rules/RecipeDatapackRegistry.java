@@ -90,9 +90,10 @@ public final class RecipeDatapackRegistry {
                 CalciteStonecuttingRecipeConflictDetector::recomputeAndNotify,
                 CalciteStonecuttingMenuSyncHelper::onReload,
                 CalciteStonecuttingMenuSyncHelper::onPackDisabled,
-                // 切石配方没有配方书界面，玩家登录时无需逐玩家同步（通用锁定提示由协调器统一处理）。
-                (server, player) -> {
-                },
+                // 登录补齐解锁状态（切石配方没有配方书界面，但解锁提示由 RecipeBookAdd 包驱动）；
+                // 是否真的授予由「本包已收敛 + 规则生效 + 本包已选中 + 配方可解析」共同决定，
+                // 通用锁定提示仍由协调器统一处理。
+                CalciteStonecuttingMenuSyncHelper::onPlayerJoin,
                 () -> {
                     CalciteStonecuttingRecipeState.setConflictLocked(false);
                     CalciteStonecuttingRecipeState.setDesiredValue(null);

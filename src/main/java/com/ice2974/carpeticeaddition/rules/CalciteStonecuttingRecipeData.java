@@ -5,11 +5,13 @@ import java.util.List;
 /**
  * {@code calciteStonecuttingRecipe} 的纯字符串数据与内容判定。
  *
- * <p>不依赖任何 Minecraft 类，供各平台冲突检测器与单测复用。
+ * <p>不依赖任何 Minecraft 类，供各平台冲突检测器、解锁同步器与单测复用。
  *
  * <p>规则承诺：使用切石机把 1 个滴水石块加工为 1 个方解石。因此「本模组配方 id 存在」并不足以证明
  * 规则能力成立——外部数据包可以用同一路径覆盖成别的配方。{@link #ownRecipeAcceptable} 把该判定
  * 下成纯函数，覆盖「类型被换」「产物被换」「数量被改」「原料被改（含原料不再接受滴水石块）」。
+ *
+ * <p>{@link #unlockAllowed} 是另一个纯决策：是否应把本规则配方的**解锁**授予在线玩家。
  */
 public final class CalciteStonecuttingRecipeData {
     /** 配方 namespace，固定为 mod id。 */
@@ -74,5 +76,23 @@ public final class CalciteStonecuttingRecipeData {
                 && RESULT_ITEM_ID.equals(resultItemId)
                 && resultCount == RESULT_COUNT
                 && ingredientAcceptsDripstone;
+    }
+
+    /**
+     * 纯决策：是否应把本规则配方的解锁授予玩家（静默点同步与玩家登录共用同一判定）。
+     *
+     * <p>三个条件缺一不可，原因都是「不能只看规则字段」：
+     * <ol>
+     *   <li>{@code ruleEffective}：规则关闭 / 冲突锁定时不得授予；</li>
+     *   <li>{@code packSelected}：本模组内置包当前必须在选中集合里。否则管理器里同 id 的配方只可能来自
+     *       外部数据包——冲突检测本身异常时若仍按 id 授予，等于替外部内容做解锁操作；</li>
+     *   <li>{@code ownRecipeResolvable}：必须能从**当前** {@code RecipeManager} 解析出 holder。
+     *       {@code ServerRecipeBook.addRecipes} 先写入「已解锁」记录，再按 holder 解析显示条目；
+     *       配方缺失时不会发送任何包（既无原版解锁提示），却已留下解锁记录，使后续授予因「已解锁」
+     *       而永久静默。因此「配方可解析」是授予的必要前提，而不是可选优化。</li>
+     * </ol>
+     */
+    public static boolean unlockAllowed(boolean ruleEffective, boolean packSelected, boolean ownRecipeResolvable) {
+        return ruleEffective && packSelected && ownRecipeResolvable;
     }
 }

@@ -152,4 +152,86 @@ class IsolatedHookRunnerTest {
         assertTrue(aggregated.getMessage().contains("0/1"), "消息格式为 失败数/总数：" + aggregated.getMessage());
         assertNull(aggregated.getCause(), "无失败时不得凭空产生 cause");
     }
+
+    // ---------------------------------------------------------------- 两段独立执行的合并（C1）
+
+    /**
+     * 「配方书段」与「菜单段」分别执行后合并：计数相加、首次根因取先出现者。
+     *
+     * <p>用途约束：两段必须都能被尝试（详见 {@code CalciteStonecuttingMenuSyncHelper}），合并后只上报
+     * 一次，后一段的失败不得被前一段的聚合异常顶掉。
+     */
+    @Test
+    void plusAddsCountsAndKeepsEarlierFirstCause() {
+        RuntimeException bookFailure = new IllegalStateException("recipe book stage failed");
+        RuntimeException menuFailure = new IllegalArgumentException("menu stage failed");
+
+        IsolatedHookRunner.Result book = IsolatedHookRunner.runAll(List.of(
+                () -> {
+                    throw bookFailure;
+                },
+                () -> {
+                }));
+        IsolatedHookRunner.Result menus = IsolatedHookRunner.runAll(List.of(() -> {
+            throw menuFailure;
+        }));
+
+        IsolatedHookRunner.Result combined = book.plus(menus);
+
+        assertEquals(3, combined.total(), "两段尝试总数必须相加");
+        assertEquals(2, combined.failed(), "两段失败数必须相加（后一段失败不得丢失）");
+        assertSame(bookFailure, combined.firstCause(), "首次根因取先出现者");
+        assertTrue(!combined.ok());
+        String message = combined.aggregatedException(DESCRIPTION).getMessage();
+        assertTrue(message.contains("2/3"), "合并后按总计数上报：" + message);
+        assertTrue(message.contains("recipe book stage failed"), "上报必须带上首个根因：" + message);
+    }
+
+    /** 前一段全部成功、后一段失败：合并后的根因必须来自后一段（否则菜单失败会被静默吞掉）。 */
+    @Test
+    void plusKeepsLaterCauseWhenEarlierStageIsClean() {
+        RuntimeException menuFailure = new IllegalArgumentException("menu stage failed");
+        IsolatedHookRunner.Result book = IsolatedHookRunner.runAll(List.of(() -> {
+        }));
+        IsolatedHookRunner.Result menus = IsolatedHookRunner.runAll(List.of(() -> {
+            throw menuFailure;
+        }));
+
+        IsolatedHookRunner.Result combined = book.plus(menus);
+
+        assertEquals(2, combined.total());
+        assertEquals(1, combined.failed());
+        assertSame(menuFailure, combined.firstCause());
+        assertTrue(combined.aggregatedException(DESCRIPTION).getMessage().contains("menu stage failed"));
+    }
+
+    @Test
+    void plusTreatsNullAsNoOp() {
+        IsolatedHookRunner.Result result = IsolatedHookRunner.runAll(List.of(() -> {
+        }));
+
+        IsolatedHookRunner.Result combined = result.plus(null);
+
+        assertEquals(result.total(), combined.total());
+        assertEquals(result.failed(), combined.failed());
+        assertNull(combined.firstCause());
+        assertTrue(combined.ok());
+    }
+
+    @Test
+    void plusKeepsOkSemanticsForTwoCleanRuns() {
+        IsolatedHookRunner.Result book = IsolatedHookRunner.runAll(List.of(() -> {
+        }, () -> {
+        }));
+        IsolatedHookRunner.Result menus = IsolatedHookRunner.runAll(List.of(() -> {
+        }));
+
+        IsolatedHookRunner.Result combined = book.plus(menus);
+
+        assertTrue(combined.ok(), "两段均无失败时不得凭空报错");
+        assertEquals(3, combined.total());
+        assertEquals(0, combined.failed());
+        assertNull(combined.firstCause());
+        assertNull(combined.aggregatedException(DESCRIPTION).getCause());
+    }
 }

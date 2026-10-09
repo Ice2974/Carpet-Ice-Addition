@@ -19,8 +19,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * {@link CalciteStonecuttingRecipeData} 的配方内容判定、recipe id 边界与打包数据一致性测试。
  *
  * <p>该纯类是冲突检测器信任的「规则承诺」来源：id 存在并不等于规则能力成立，外部数据包可以用同一
- * 路径覆盖成别的内容。这里同时验证 (1) 内容判定真值表、(2) id 解析边界（含 null 全定义）、
- * (3) 实际打包进 jar 的配方 JSON 与常量一致——否则冲突检测器会把本模组配方自身判为冲突。
+ * 路径覆盖成别的内容。这里同时验证 (1) 内容判定真值表、(2) 解锁授予门真值表、(3) id 解析边界
+ * （含 null 全定义）、(4) 实际打包进 jar 的配方 JSON 与常量一致——否则冲突检测器会把本模组配方
+ * 自身判为冲突。
  *
  * <p>打包数据读取依赖测试运行期 classpath 上的 {@code main} 资源（{@code processResources} 产物）。
  * 资源缺失时直接失败（不静默跳过），以免覆盖被伪装成通过。
@@ -68,6 +69,36 @@ class CalciteStonecuttingRecipeDataTest {
                 "负数数量 ⇒ 不可接受");
         assertFalse(CalciteStonecuttingRecipeData.ownRecipeAcceptable(true, "minecraft:calcite", 1, false),
                 "原料不再接受滴水石块 ⇒ 不可接受");
+    }
+
+    // ---------------------------------------------------------------- 解锁授予门
+
+    @Test
+    void unlockAllowedRequiresEffectiveRuleSelectedPackAndResolvableRecipe() {
+        for (boolean effective : new boolean[] {false, true}) {
+            for (boolean packSelected : new boolean[] {false, true}) {
+                for (boolean resolvable : new boolean[] {false, true}) {
+                    boolean expected = effective && packSelected && resolvable;
+                    assertEquals(expected,
+                            CalciteStonecuttingRecipeData.unlockAllowed(effective, packSelected, resolvable),
+                            "授予门必须等价于三条件合取：effective=" + effective
+                                    + ", packSelected=" + packSelected + ", resolvable=" + resolvable);
+                }
+            }
+        }
+    }
+
+    @Test
+    void unlockAllowedRejectsUnselectedPackAndUnresolvableRecipe() {
+        assertFalse(CalciteStonecuttingRecipeData.unlockAllowed(true, false, true),
+                "本包未选中时不得授予：管理器里的同 id 配方可能来自外部数据包，冲突检测异常时不得替外部内容解锁");
+        assertFalse(CalciteStonecuttingRecipeData.unlockAllowed(true, true, false),
+                "配方不可解析时不得授予：原版会先写入「已解锁」记录却不发包，"
+                        + "既无解锁提示，又让后续授予永久静默");
+        assertFalse(CalciteStonecuttingRecipeData.unlockAllowed(false, true, true),
+                "规则关闭 / 冲突锁定时不得授予");
+        assertTrue(CalciteStonecuttingRecipeData.unlockAllowed(true, true, true),
+                "三条件齐备时才授予");
     }
 
     // ---------------------------------------------------------------- recipe id 边界

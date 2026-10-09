@@ -16,6 +16,12 @@ When locked:
 - `carpet.conf` is not modified;
 - removing the conflicting datapack and running `/reload` releases the lock and restores the previous configured value; online recipe books and already-open stonecutter menus are synchronized after a successful resource reload.
 
+### Recipe unlock synchronization for built-in datapacks
+
+Once a rule is enabled and its built-in datapack has finished loading, the mod unlocks that datapack's recipes for online players and uses the vanilla mechanism to show the "New Recipe(s) Unlocked" toast: a player who has not unlocked the recipe yet receives exactly one notification, while a player who already unlocked it (including by taking the result from a stonecutter earlier) receives no duplicate notification. Players joining later get their unlock state synchronized automatically; resource reloads such as `/reload` and rejoining never show the notification again.
+
+Disabling a rule (including being locked by a conflict) revokes the unlock records granted by the mod, so enabling it again shows the notification once more; records left behind for offline players are cleaned up by vanilla on their next login. Revocation only targets this mod's own recipe ids whose content still matches the rule contract — if a stonecutting recipe id has been overridden by another datapack with different content, its unlock record is kept, because that recipe no longer belongs to this mod.
+
 ### Category definitions
 
 `CLIENT`: The rule involves client-side behavior and requires both Carpet and this mod to be fully installed on the client to take full effect; with a server-only installation, these rules only partially take effect.
