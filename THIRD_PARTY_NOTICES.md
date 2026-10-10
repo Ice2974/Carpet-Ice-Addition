@@ -61,6 +61,13 @@ The following projects inspired feature designs, rule behaviors, or architecture
 - Original project license: AGPL-3.0
 - Notes The feature design was inspired by the `betterItemFrames` rule (a scarpet-script based implementation) of carpet-redcraft-addons. The Carpet Ice Addition implementation was written independently as a Java mixin-based implementation for its target versions and layering structure, and does not incorporate source code from that project.
 
+### Carpet Sky Additions
+
+- Related rule `renewableRawIron`
+- Upstream project CarpetSkyAdditions-Reborn, https://github.com/TreeOfSelf/CarpetSkyAdditions-Reborn (a continuation of Carpet Sky Additions, https://github.com/jsorrell/CarpetSkyAdditions)
+- Original project license: MIT (Copyright (c) 2021-2023 Jack Sorrell)
+- Notes The trade-injection approach (appending a custom `MerchantOffer` after vanilla trade generation) was referenced from the `tallFlowersFromWanderingTrader` rule (`WanderingTraderHelper` / `WanderingTraderMixin`) of that project. The Carpet Ice Addition implementation was written independently: `renewableRawIron` targets villagers (Mason) instead of the wandering trader, uses different trade parameters, adds a base-cost idempotence check, and covers a different generation path and version range. No source code was copied from that project.
+
 ### Carpet TIS Addition
 
 - Related architecture inspiration: multi-version preprocess source architecture (Phase 5)

@@ -155,4 +155,7 @@ public final class CarpetIceAdditionSettings {
 
     @Rule(categories = {ICE, FEATURE})
     public static boolean betterTridentDespawnCondition = false;
+
+    @Rule(categories = {ICE, FEATURE})
+    public static boolean renewableRawIron = false;
 }

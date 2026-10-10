@@ -1,4 +1,4 @@
-﻿# Carpet Ice Addition
+# Carpet Ice Addition
 
 [![License](https://img.shields.io/badge/License-LGPL--3.0--or--later-blue)](LICENSE)
 [![Modrinth](https://img.shields.io/modrinth/dt/carpet-ice-addition?color=00AF5C&label=Modrinth%20downloads&logo=modrinth)](https://modrinth.com/mod/carpet-ice-addition)
@@ -39,6 +39,7 @@
 - **Carpet-TCTC-Addition**（LGPL-3.0）：`botTabListNamePrefix`、`botTabListNameSuffix`、`disableIllegalTextCharacterCheck`
 - **DoormatCarpetExtension**（LGPL-3.0）：`disablePlayerAttackingTamedMobs`
 - **carpet-redcraft-addons**（AGPL-3.0）：`itemFrameInvisible`、`itemFrameFixed`
+- **Carpet Sky Additions**（MIT）：`renewableRawIron`
 
 构建架构参考与构建期工具致谢：Fallen-Breath/fabric-mod-template、Carpet TIS Addition、Carpet AMS Addition、Fallen-Breath/preprocessor。
 

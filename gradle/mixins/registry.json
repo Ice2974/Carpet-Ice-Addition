@@ -62,6 +62,7 @@
     { "name": "PlayerListEntryTabListNameMixin", "side": "common" },
     { "name": "PoiCompetitorScanIronGolemOptimizationMixin", "side": "common" },
     { "name": "ReactToBellIronGolemOptimizationMixin", "side": "common" },
+    { "name": "RenewableRawIronVillagerMixin", "side": "common" },
     { "name": "ResetProfessionIronGolemOptimizationMixin", "side": "common" },
     { "name": "SafeScaffoldingBreakMixin", "side": "common" },
     { "name": "ScreenHandlerCtrlQStonecuttingFixMixin", "side": "common", "onlyMc": "1.21.1" },

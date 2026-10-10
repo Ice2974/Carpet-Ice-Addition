@@ -477,6 +477,20 @@ Tridents can only despawn after being stuck in a block and remaining stationary 
 - Possible values: `false`, `true`
 - Categories: `ICE`, `FEATURE`
 
+### renewableRawIron
+
+Master mason villagers offer 1 block of raw iron for 4 to 8 emeralds as an extra trade.
+
+> The trade is appended while vanilla generates master-level trades. It replaces no vanilla trade, and this rule never rebuilds, clears, or refreshes an existing trade list.
+> The rule only affects trade list **generation** and does not modify an already generated trade list. "Already master level" and "master-level trade list already generated" are therefore different states: a master mason whose trade list has not been initialized yet still receives the trade on first generation, while one whose list already exists is never retroactively updated.
+> After the rule is disabled, no new raw iron block trade is generated, and existing raw iron block trades are not removed and remain usable.
+> The base emerald price is rolled once when the trade is generated and is saved with the world, so it is not re-rolled by rule toggles or reloads; the price shown in the trade screen may drift slightly due to vanilla demand and reputation discounts.
+
+- Type: `boolean`
+- Default: `false`
+- Possible values: `false`, `true`
+- Categories: `ICE`, `FEATURE`
+
 ### calciteStonecuttingRecipe
 
 Allows dripstone blocks to be converted into calcite using a stonecutter.
