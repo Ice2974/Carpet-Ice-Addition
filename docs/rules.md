@@ -25,316 +25,6 @@
 
 ## 规则
 
-### 脚手架防误拆 (safeScaffoldingBreak)
-
-只有主手持脚手架或主手为空时，玩家才能破坏脚手架，防止误拆。
-
-- 类型: `boolean`
-- 默认值: `false`
-- 可选值: `false`, `true`
-- 分类: `ICE`, `FEATURE`
-
-### 可隐形展示框 (itemFrameInvisible)
-
-允许玩家用幻翼膜右键已放入物品的物品展示框或荧光物品展示框，使其隐形。
-
-> 规则关闭后，隐形的展示框会继续保持隐形状态
-
-- 类型: `boolean`
-- 默认值: `false`
-- 可选值: `false`, `true`
-- 分类: `ICE`, `FEATURE`
-
-### 可固定展示框 (itemFrameFixed)
-
-允许玩家用玻璃板右键已放入物品的物品展示框或荧光物品展示框，使其固定；固定后的展示框可用斧头右键解除固定。
-
-> 规则关闭后，固定的展示框会继续保持固定状态
-
-- 类型: `boolean`
-- 默认值: `false`
-- 可选值: `false`, `true`
-- 分类: `ICE`, `FEATURE`
-
-### 合成器输出阻塞时停止合成 (crafterStopsWhenOutputBlocked)
-
-合成器面朝容器无法完整接收主产物时阻止本次合成；合成余物保持原版处理。
-
-- 类型: `boolean`
-- 默认值: `false`
-- 可选值: `false`, `true`
-- 分类: `ICE`, `FEATURE`
-
-### 可合成珊瑚块 (craftableCoralBlocks)
-
-允许使用 9 个同种类珊瑚扇合成对应的珊瑚块，死珊瑚扇同样生效。
-
-- 类型: `boolean`
-- 默认值: `false`
-- 可选值: `false`, `true`
-- 分类: `ICE`, `FEATURE`, `SURVIVAL`
-
-### 唱片世界事件时序修复 (recordWorldEventFix)
-
-修复了将唱片快速放入唱片机后又迅速取出时，音乐仍可能继续播放，且多个唱片音频可能重叠的问题，详见 MC-112245。
-
-- 类型: `boolean`
-- 默认值: `false`
-- 可选值: `false`, `true`
-- 分类: `ICE`, `BUGFIX`
-
-### 刷怪笼忽略隐身玩家 (spawnersIgnoreInvisiblePlayers)
-
-普通刷怪笼、试炼刷怪笼和不祥试炼刷怪笼在判定附近玩家时会忽略隐身玩家。
-
-- 类型: `boolean`
-- 默认值: `false`
-- 可选值: `false`, `true`
-- 分类: `ICE`, `FEATURE`
-
-### 海底废墟溺尸重生 (drownedSpawningInOceanRuins)
-
-允许溺尸在海底废墟中持续生成。
-
-- 类型: `boolean`
-- 默认值: `false`
-- 可选值: `false`, `true`
-- 分类: `ICE`, `FEATURE`
-
-### 禁用海带自然生长 (disableKelpNaturalGrowth)
-
-禁用海带由随机刻触发的自然生长。
-
-- 类型: `boolean`
-- 默认值: `false`
-- 可选值: `false`, `true`
-- 分类: `ICE`, `FEATURE`
-
-### 禁用下界门激活维度检查 (disableNetherPortalDimensionCheck)
-
-禁用下界门激活时的维度检查，使其可以在任意维度激活。
-
-- 类型: `boolean`
-- 默认值: `false`
-- 可选值: `false`, `true`
-- 分类: `ICE`, `FEATURE`
-
-### 禁用重力方块复制维度检查 (disableFallingBlockDuplicationDimensionCheck)
-
-允许重力方块在跨越任意维度传送时触发原版复制行为，不再要求传送涉及末地。
-
-- 类型: `boolean`
-- 默认值: `false`
-- 可选值: `false`, `true`
-- 分类: `ICE`, `FEATURE`
-
-### 禁用紫水晶生长 (disableAmethystGrowth)
-
-紫水晶母岩不会再通过随机刻生成紫水晶芽，或推进紫水晶芽生长。
-
-- 类型: `boolean`
-- 默认值: `false`
-- 可选值: `false`, `true`
-- 分类: `ICE`, `FEATURE`
-
-### 可采集霜冰 (silkTouchFrostedIce)
-
-使用任意带有精准采集附魔的工具破坏霜冰时，会掉落 1 个普通冰。
-
-- 类型: `boolean`
-- 默认值: `false`
-- 可选值: `false`, `true`
-- 分类: `ICE`, `FEATURE`, `SURVIVAL`
-
-### 霜冰合适工具补齐 (frostedIceProperToolFix)
-
-将镐定为破坏霜冰的合适工具。
-
-- 类型: `boolean`
-- 默认值: `false`
-- 可选值: `false`, `true`
-- 分类: `ICE`, `BUGFIX`, `SURVIVAL`, `CLIENT`
-
-### 信标合适工具补齐 (beaconProperToolFix)
-
-使镐成为挖掘信标的合适工具。
-
-- 类型: `boolean`
-- 默认值: `false`
-- 可选值: `false`, `true`
-- 分类: `ICE`, `BUGFIX`, `SURVIVAL`, `CLIENT`
-
-### 类冰岩浆块 (iceLikeMagmaBlocks)
-
-玩家使用不带精准采集的工具破坏岩浆块时不掉落岩浆块，并根据类似冰块的判定逻辑，在下方为有效固体支撑或液体支撑时生成岩浆源。
-
-- 类型: `boolean`
-- 默认值: `false`
-- 可选值: `false`, `true`
-- 分类: `ICE`, `FEATURE`, `SURVIVAL`
-
-### 禁用菌岩退化 (disableNyliumDecay)
-
-绯红菌岩和诡异菌岩在上方被方块遮挡时不会退化为下界岩。
-
-- 类型: `boolean`
-- 默认值: `false`
-- 可选值: `false`, `true`
-- 分类: `ICE`, `FEATURE`
-
-### 羊毛抑制幽匿蔓延 (woolSuppressesSculkSpread)
-
-当幽匿催发体上方放置羊毛时，阻止其产生幽匿系列方块并取消已在进行中的蔓延，同时保留附近生物死亡时阻止经验球生成的特性。
-
-- 类型: `boolean`
-- 默认值: `false`
-- 可选值: `false`, `true`
-- 分类: `ICE`, `FEATURE`
-
-### 监守者不敌视玩家 (wardenNotHostileToPlayers)
-
-阻止监守者对玩家产生敌意并将玩家设为攻击目标，但不会阻止其感知玩家产生的振动。
-
-- 类型: `boolean`
-- 默认值: `false`
-- 可选值: `false`, `true`
-- 分类: `ICE`, `FEATURE`, `SURVIVAL`
-
-### 假人Tab栏名称前缀 (botTabListNamePrefix)
-
-为Tab栏中的假人添加前缀，可使用 `&` 代替分节符。
-
-- 类型: `String`
-- 默认值: `#none`
-- 参考值: `#none`, `[Bot]`
-- 分类: `ICE`, `BOT`
-
-### 假人Tab栏名称后缀 (botTabListNameSuffix)
-
-为Tab栏中的假人添加后缀，可使用 `&` 代替分节符。
-
-- 类型: `String`
-- 默认值: `#none`
-- 参考值: `#none`, `[Fake]`
-- 分类: `ICE`, `BOT`
-
-### 掉落物清理指令 (commandKillItem)
-
-注册 /killitem 指令，允许按半径或全局清理掉落物，并支持黑名单与命名掉落物保护配置。
-
-- 类型: `String`
-- 默认值: `ops`
-- 可选值: `false`, `true`, `ops`, `0`, `1`, `2`, `3`, `4`
-- 分类: `ICE`, `COMMAND`
-
-### 机器状态检查命令 (commandMachineStatus)
-
-控制 /machineStatus 命令权限，此命令用于保存生电机器关机时的目标方块状态，并查询当前哪些机器未处于保存的关机状态。
-
-- 类型: `String`
-- 默认值: `ops`
-- 可选值: `false`, `true`, `ops`, `0`, `1`, `2`, `3`, `4`
-- 分类: `ICE`, `COMMAND`
-
-### 回档前机器状态警告 (machineStatusRollbackWarning)
-
-玩家输入已适配的回档命令时，检查已保存的机器状态；如果存在未处于保存关机状态的机器，则向该玩家发送警告提示。
-
-> 默认适配的备份 Mod：Quick Backup Multi（`/qb`, `/quickbackupmulti`）。
->
-> 默认适配的 MCDR 插件：Quick Backup Multi（`!!qb`）、Prime Backup（`!!pb`）、Chunk Backup（`!!cb`）。
->
-> 可在全局 `config/carpet-ice-addition/machine_status_rollback_warning.json` 中配置需要检测的回档命令。
-
-- 类型: `boolean`
-- 默认值: `false`
-- 可选值: `false`, `true`
-- 分类: `ICE`
-
-### 假人免疫荆棘反伤 (fakePlayerIgnoreThornsDamage)
-
-假人在攻击带有荆棘附魔的生物或玩家时，不会受到荆棘造成的反伤。
-
-- 类型: `boolean`
-- 默认值: `false`
-- 可选值: `false`, `true`
-- 分类: `ICE`, `FEATURE`, `SURVIVAL`, `BOT`
-
-### 禁止伤害已驯服生物 (disablePlayerAttackingTamedMobs)
-
-若 PVP 开启则玩家不能伤害自己驯服的生物；若 PVP 关闭，则玩家不能伤害任何玩家拥有的已驯服生物。
-
-> 影响范围包括猫、狼、鹦鹉、鹦鹉螺、僵尸鹦鹉螺、马、驴、骡、僵尸马、骷髅马、驼羊、行商驼羊。
-
-- 类型: `boolean`
-- 默认值: `false`
-- 可选值: `false`, `true`
-- 分类: `ICE`, `FEATURE`
-
-### 强化三叉戟 (enhancedTrident)
-
-使三叉戟能够在一次移动中命中多个实体，并在静止后再次被移动时重新获得伤害能力。
-
-- 类型: `boolean`
-- 默认值: `false`
-- 可选值: `false`, `true`
-- 分类: `ICE`, `FEATURE`
-
-### 幻翼生成预警 (phantomSpawnWarning)
-
-玩家达到原版幻翼生成的失眠时间阈值时，会在夜晚开始时提醒玩家及时睡觉。
-
-- 类型: `boolean`
-- 默认值: `false`
-- 可选值: `false`, `true`
-- 分类: `ICE`, `SURVIVAL`
-
-### 轻松含水放置 (easyWaterloggedBlockPlacement)
-
-允许玩家在副手持有水桶时，将支持含水状态的方块直接放置为含水状态（水会蒸发的维度除外）。
-
-- 类型: `boolean`
-- 默认值: `false`
-- 可选值: `false`, `true`
-- 分类: `ICE`, `FEATURE`
-
-### 轻松铜类氧化 (easyCopperOxidation)
-
-发射器向未涂蜡且可继续氧化的铜类方块发射水瓶时，方块的氧化阶段推进一级，水瓶变为空玻璃瓶。
-
-- 类型: `boolean`
-- 默认值: `false`
-- 可选值: `false`, `true`
-- 分类: `ICE`, `FEATURE`, `DISPENSER`
-
-### 便携无限水 (portableInfiniteWater)
-
-当玩家主手和副手均持有原版水桶时，使用水桶不会消耗其中的水。
-
-- 类型: `boolean`
-- 默认值: `false`
-- 可选值: `false`, `true`
-- 分类: `ICE`, `FEATURE`, `SURVIVAL`
-
-### 禁用空中挖掘惩罚 (disableAirborneMiningPenalty)
-
-使玩家未站在地面上时不再受到挖掘速度惩罚。
-
-- 类型: `boolean`
-- 默认值: `false`
-- 可选值: `false`, `true`
-- 分类: `ICE`, `FEATURE`, `SURVIVAL`, `CLIENT`
-
-### 自定义末地平台位置 (customEndPlatformPosition)
-
-允许自定义实体通过末地传送门进入末地时生成的末地黑曜石平台中心位置，并同步调整进入末地后及匹配末地返回折跃门的落点。
-
-- 类型: `String`
-- 默认值: `vanilla`
-- 参考值: `vanilla`, `-100,49,0`
-- 实际可接受格式: `vanilla` 或 `x,y,z`
-- 分类: `ICE`, `FEATURE`
-
 ### 信标忽略遮挡 (beaconIgnoresObstruction)
 
 使信标无视上方方块的遮挡并正常工作。
@@ -344,117 +34,14 @@
 - 可选值: `false`, `true`
 - 分类: `ICE`, `FEATURE`, `CLIENT`
 
-### 命名游商不消失 (namedWanderingTraderPersistence)
+### 信标合适工具补齐 (beaconProperToolFix)
 
-被命名的流浪商人不会自然消失。
-
-- 类型: `boolean`
-- 默认值: `false`
-- 可选值: `false`, `true`
-- 分类: `ICE`, `FEATURE`
-
-### 禁止自然生成持矛生物 (mobsSpawnWithoutSpears) `MC>=1.21.11`
-
-僵尸、僵尸村民、尸壳、僵尸猪灵和猪灵在自然生成时不会手持长矛。
+使镐成为挖掘信标的合适工具。
 
 - 类型: `boolean`
 - 默认值: `false`
 - 可选值: `false`, `true`
-- 分类: `ICE`, `FEATURE`
-
-### Carpet单人退出崩溃修复 (carpetSingleplayerExitCrashFix) `MC<=1.21.1`
-
-修复客户端进入过 Carpet 服务器后，再退出单人世界可能触发的 Carpet 崩溃。
-
-- 类型: `boolean`
-- 默认值: `true`
-- 可选值: `false`, `true`
-- 分类: `ICE`, `BUGFIX`, `CLIENT`
-
-### 切石机 Ctrl+Q 修复 (ctrlQStonecuttingFix) `MC<=1.21.1`
-
-允许在切石机输出槽使用 Ctrl+Q 一次丢出整组产物。
-
-- 类型: `boolean`
-- 默认值: `false`
-- 可选值: `false`, `true`
-- 分类: `ICE`, `BUGFIX`
-
-### 禁用非法字符检查 (disableIllegalTextCharacterCheck)
-
-跳过原版的文本字符合法性检查，允许使用原版通常会拦截的字符，例如分节符。
-
-- 类型: `boolean`
-- 默认值: `false`
-- 可选值: `true`, `false`
-- 分类: `ICE`, `FEATURE`, `CLIENT`
-
-### 水流体刻延迟 (waterFluidTickDelay)
-
-自定义水的流动延迟，单位为游戏刻。
-
-> `vanilla`: 不接管，交由原版及其它模组计算\
-> `freeze`: 冻结流体，使其停止流动
-
-- 类型: `String`
-- 默认值: `vanilla`
-- 建议值: `freeze`, `vanilla`
-- 实际可接受值: `vanilla`、`freeze` 或 `1` 至 `72000` 的整数
-- 分类: `ICE`, `FEATURE`
-
-### 岩浆流体刻延迟 (lavaFluidTickDelay)
-
-自定义岩浆的流动延迟，单位为游戏刻。
-
-> `vanilla`: 不接管，交由原版及其它模组计算\
-> `freeze`: 冻结流体，使其停止流动
-
-- 类型: `String`
-- 默认值: `vanilla`
-- 建议值: `freeze`, `vanilla`
-- 实际可接受值: `vanilla`、`freeze` 或 `1` 至 `72000` 的整数
-- 分类: `ICE`, `FEATURE`
-
-### 村民交易优化 (villagerTradingOptimization)
-
-当村民被命名为 trade 时，将其 AI 精简为面向固定式村民交易所的最小行为集。
-
-> CORE 仅保留防溺水、工作站有效性校验、无寻路的近距离工作站认领（工作站需位于补货判定距离约 1.73 格内才会被认领，认领后仍可正常绑定工作站、赋职业与失业重置）\
-> WORK 仅保留补货行为，每日补货次数、间隔、跨日重置等补货硬语义与原版一致。村民不会为工作站寻路或移动，其余活动（见面、休息、空闲、恐慌、袭击、玩耍等）的任务列表被清空。
-
-- 类型: `boolean`
-- 默认值: `false`
-- 可选值: `false`, `true`
-- 分类: `ICE`, `FEATURE`, `OPTIMIZATION`
-
-### 命名牌重复命名修复 (nameTagDuplicateNamingFix)
-
-当命名牌上的名称与实体当前自定义名称相同时，阻止重复命名，避免浪费命名牌。
-
-- 类型: `boolean`
-- 默认值: `false`
-- 可选值: `false`, `true`
-- 分类: `ICE`, `BUGFIX`
-
-### 铁傀儡生成优化 (ironGolemSpawningOptimization)
-
-将村民命名为 iron_golem 时，将其 AI 精简为面向恐吓式刷铁机的最小行为集。
-
-> IDLE / MEET / PLAY / WORK 活动任务被整表跳过（含 gossip 交流、跟随 / 张望交易玩家等），不再发起找工作点 / 找聚会点的 48 格 POI 扫描与寻路；认床（HOME）能力保持原版。命名村民白天保持静止，仅保留优先级 99 的日程切换，夜间按日程进入 REST 睡眠、或经 CORE 的恐慌（PANIC）触发铁傀儡生成。
-
-- 类型: `boolean`
-- 默认值: `false`
-- 可选值: `false`, `true`
-- 分类: `ICE`, `FEATURE`, `OPTIMIZATION`
-
-### 附魔金苹果效果回调 (enchantedGoldenAppleEffectRollback)
-
-使附魔金苹果的食用效果恢复至 Java 版 1.8：获得 30 秒生命恢复 V、2 分钟伤害吸收 I、5 分钟抗性提升 I和5分钟抗火 I。
-
-- 类型: `boolean`
-- 默认值: `false`
-- 可选值: `false`, `true`
-- 分类: `ICE`, `FEATURE`, `SURVIVAL`
+- 分类: `ICE`, `BUGFIX`, `SURVIVAL`, `CLIENT`
 
 ### 基岩版穿刺移植 (bedrockImpalingPort)
 
@@ -474,6 +61,357 @@
 - 可选值: `false`, `true`
 - 分类: `ICE`, `FEATURE`
 
+### 假人Tab栏名称前缀 (botTabListNamePrefix)
+
+为Tab栏中的假人添加前缀，可使用 `&` 代替分节符。
+
+- 类型: `String`
+- 默认值: `#none`
+- 参考值: `#none`, `[Bot]`
+- 分类: `ICE`, `BOT`
+
+### 假人Tab栏名称后缀 (botTabListNameSuffix)
+
+为Tab栏中的假人添加后缀，可使用 `&` 代替分节符。
+
+- 类型: `String`
+- 默认值: `#none`
+- 参考值: `#none`, `[Fake]`
+- 分类: `ICE`, `BOT`
+
+### 方解石切石配方 (calciteStonecuttingRecipe)
+
+允许使用切石机将滴水石块加工为方解石。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`, `SURVIVAL`
+### Carpet单人退出崩溃修复 (carpetSingleplayerExitCrashFix) `MC<=1.21.1`
+
+修复客户端进入过 Carpet 服务器后，再退出单人世界可能触发的 Carpet 崩溃。
+
+- 类型: `boolean`
+- 默认值: `true`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `BUGFIX`, `CLIENT`
+
+### 掉落物清理指令 (commandKillItem)
+
+注册 /killitem 指令，允许按半径或全局清理掉落物，并支持黑名单与命名掉落物保护配置。
+
+- 类型: `String`
+- 默认值: `ops`
+- 可选值: `false`, `true`, `ops`, `0`, `1`, `2`, `3`, `4`
+- 分类: `ICE`, `COMMAND`
+
+### 机器状态检查命令 (commandMachineStatus)
+
+控制 /machineStatus 命令权限，此命令用于保存生电机器关机时的目标方块状态，并查询当前哪些机器未处于保存的关机状态。
+
+- 类型: `String`
+- 默认值: `ops`
+- 可选值: `false`, `true`, `ops`, `0`, `1`, `2`, `3`, `4`
+- 分类: `ICE`, `COMMAND`
+
+### 可合成珊瑚块 (craftableCoralBlocks)
+
+允许使用 9 个同种类珊瑚扇合成对应的珊瑚块，死珊瑚扇同样生效。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`, `SURVIVAL`
+
+### 合成器输出阻塞时停止合成 (crafterStopsWhenOutputBlocked)
+
+合成器面朝容器无法完整接收主产物时阻止本次合成；合成余物保持原版处理。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`
+
+### 切石机 Ctrl+Q 修复 (ctrlQStonecuttingFix) `MC<=1.21.1`
+
+允许在切石机输出槽使用 Ctrl+Q 一次丢出整组产物。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `BUGFIX`
+
+### 自定义末地平台位置 (customEndPlatformPosition)
+
+允许自定义实体通过末地传送门进入末地时生成的末地黑曜石平台中心位置，并同步调整进入末地后及匹配末地返回折跃门的落点。
+
+- 类型: `String`
+- 默认值: `vanilla`
+- 参考值: `vanilla`, `-100,49,0`
+- 实际可接受格式: `vanilla` 或 `x,y,z`
+- 分类: `ICE`, `FEATURE`
+
+### 禁用空中挖掘惩罚 (disableAirborneMiningPenalty)
+
+使玩家未站在地面上时不再受到挖掘速度惩罚。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`, `SURVIVAL`, `CLIENT`
+
+### 禁用紫水晶生长 (disableAmethystGrowth)
+
+紫水晶母岩不会再通过随机刻生成紫水晶芽，或推进紫水晶芽生长。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`
+
+### 禁用重力方块复制维度检查 (disableFallingBlockDuplicationDimensionCheck)
+
+允许重力方块在跨越任意维度传送时触发原版复制行为，不再要求传送涉及末地。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`
+
+### 禁用非法字符检查 (disableIllegalTextCharacterCheck)
+
+跳过原版的文本字符合法性检查，允许使用原版通常会拦截的字符，例如分节符。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `true`, `false`
+- 分类: `ICE`, `FEATURE`, `CLIENT`
+
+### 禁用海带自然生长 (disableKelpNaturalGrowth)
+
+禁用海带由随机刻触发的自然生长。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`
+
+### 禁用下界门激活维度检查 (disableNetherPortalDimensionCheck)
+
+禁用下界门激活时的维度检查，使其可以在任意维度激活。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`
+
+### 禁用菌岩退化 (disableNyliumDecay)
+
+绯红菌岩和诡异菌岩在上方被方块遮挡时不会退化为下界岩。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`
+
+### 禁止伤害已驯服生物 (disablePlayerAttackingTamedMobs)
+
+若 PVP 开启则玩家不能伤害自己驯服的生物；若 PVP 关闭，则玩家不能伤害任何玩家拥有的已驯服生物。
+
+> 影响范围包括猫、狼、鹦鹉、鹦鹉螺、僵尸鹦鹉螺、马、驴、骡、僵尸马、骷髅马、驼羊、行商驼羊。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`
+
+### 海底废墟溺尸重生 (drownedSpawningInOceanRuins)
+
+允许溺尸在海底废墟中持续生成。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`
+
+### 轻松铜类氧化 (easyCopperOxidation)
+
+发射器向未涂蜡且可继续氧化的铜类方块发射水瓶时，方块的氧化阶段推进一级，水瓶变为空玻璃瓶。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`, `DISPENSER`
+
+### 轻松含水放置 (easyWaterloggedBlockPlacement)
+
+允许玩家在副手持有水桶时，将支持含水状态的方块直接放置为含水状态（水会蒸发的维度除外）。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`
+
+### 附魔金苹果效果回调 (enchantedGoldenAppleEffectRollback)
+
+使附魔金苹果的食用效果恢复至 Java 版 1.8：获得 30 秒生命恢复 V、2 分钟伤害吸收 I、5 分钟抗性提升 I和5分钟抗火 I。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`, `SURVIVAL`
+
+### 强化三叉戟 (enhancedTrident)
+
+使三叉戟能够在一次移动中命中多个实体，并在静止后再次被移动时重新获得伤害能力。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`
+
+### 假人免疫荆棘反伤 (fakePlayerIgnoreThornsDamage)
+
+假人在攻击带有荆棘附魔的生物或玩家时，不会受到荆棘造成的反伤。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`, `SURVIVAL`, `BOT`
+
+### 霜冰合适工具补齐 (frostedIceProperToolFix)
+
+将镐定为破坏霜冰的合适工具。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `BUGFIX`, `SURVIVAL`, `CLIENT`
+
+### 类冰岩浆块 (iceLikeMagmaBlocks)
+
+玩家使用不带精准采集的工具破坏岩浆块时不掉落岩浆块，并根据类似冰块的判定逻辑，在下方为有效固体支撑或液体支撑时生成岩浆源。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`, `SURVIVAL`
+
+### 铁傀儡生成优化 (ironGolemSpawningOptimization)
+
+将村民命名为 iron_golem 时，将其 AI 精简为面向恐吓式刷铁机的最小行为集。
+
+> IDLE / MEET / PLAY / WORK 活动任务被整表跳过（含 gossip 交流、跟随 / 张望交易玩家等），不再发起找工作点 / 找聚会点的 48 格 POI 扫描与寻路；认床（HOME）能力保持原版。命名村民白天保持静止，仅保留优先级 99 的日程切换，夜间按日程进入 REST 睡眠、或经 CORE 的恐慌（PANIC）触发铁傀儡生成。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`, `OPTIMIZATION`
+
+### 可固定展示框 (itemFrameFixed)
+
+允许玩家用玻璃板右键已放入物品的物品展示框或荧光物品展示框，使其固定；固定后的展示框可用斧头右键解除固定。
+
+> 规则关闭后，固定的展示框会继续保持固定状态
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`
+
+### 可隐形展示框 (itemFrameInvisible)
+
+允许玩家用幻翼膜右键已放入物品的物品展示框或荧光物品展示框，使其隐形。
+
+> 规则关闭后，隐形的展示框会继续保持隐形状态
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`
+
+### 岩浆流体刻延迟 (lavaFluidTickDelay)
+
+自定义岩浆的流动延迟，单位为游戏刻。
+
+> `vanilla`: 不接管，交由原版及其它模组计算\
+> `freeze`: 冻结流体，使其停止流动
+
+- 类型: `String`
+- 默认值: `vanilla`
+- 建议值: `freeze`, `vanilla`
+- 实际可接受值: `vanilla`、`freeze` 或 `1` 至 `72000` 的整数
+- 分类: `ICE`, `FEATURE`
+
+### 回档前机器状态警告 (machineStatusRollbackWarning)
+
+玩家输入已适配的回档命令时，检查已保存的机器状态；如果存在未处于保存关机状态的机器，则向该玩家发送警告提示。
+
+> 默认适配的备份 Mod：Quick Backup Multi（`/qb`, `/quickbackupmulti`）。
+>
+> 默认适配的 MCDR 插件：Quick Backup Multi（`!!qb`）、Prime Backup（`!!pb`）、Chunk Backup（`!!cb`）。
+>
+> 可在全局 `config/carpet-ice-addition/machine_status_rollback_warning.json` 中配置需要检测的回档命令。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`
+
+### 禁止自然生成持矛生物 (mobsSpawnWithoutSpears) `MC>=1.21.11`
+
+僵尸、僵尸村民、尸壳、僵尸猪灵和猪灵在自然生成时不会手持长矛。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`
+
+### 命名游商不消失 (namedWanderingTraderPersistence)
+
+被命名的流浪商人不会自然消失。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`
+
+### 命名牌重复命名修复 (nameTagDuplicateNamingFix)
+
+当命名牌上的名称与实体当前自定义名称相同时，阻止重复命名，避免浪费命名牌。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `BUGFIX`
+
+### 幻翼生成预警 (phantomSpawnWarning)
+
+玩家达到原版幻翼生成的失眠时间阈值时，会在夜晚开始时提醒玩家及时睡觉。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `SURVIVAL`
+
+### 便携无限水 (portableInfiniteWater)
+
+当玩家主手和副手均持有原版水桶时，使用水桶不会消耗其中的水。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`, `SURVIVAL`
+
+### 唱片世界事件时序修复 (recordWorldEventFix)
+
+修复了将唱片快速放入唱片机后又迅速取出时，音乐仍可能继续播放，且多个唱片音频可能重叠的问题，详见 MC-112245。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `BUGFIX`
+
 ### 可再生粗铁 (renewableRawIron)
 
 大师级石匠村民可用 4 至 8 颗绿宝石购买 1 个粗铁块，作为额外交易加入。
@@ -485,11 +423,72 @@
 - 可选值: `false`, `true`
 - 分类: `ICE`, `FEATURE`
 
-### 方解石切石配方 (calciteStonecuttingRecipe)
+### 脚手架防误拆 (safeScaffoldingBreak)
 
-允许使用切石机将滴水石块加工为方解石。
+只有主手持脚手架或主手为空时，玩家才能破坏脚手架，防止误拆。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`
+
+### 可采集霜冰 (silkTouchFrostedIce)
+
+使用任意带有精准采集附魔的工具破坏霜冰时，会掉落 1 个普通冰。
 
 - 类型: `boolean`
 - 默认值: `false`
 - 可选值: `false`, `true`
 - 分类: `ICE`, `FEATURE`, `SURVIVAL`
+
+### 刷怪笼忽略隐身玩家 (spawnersIgnoreInvisiblePlayers)
+
+普通刷怪笼、试炼刷怪笼和不祥试炼刷怪笼在判定附近玩家时会忽略隐身玩家。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`
+
+### 村民交易优化 (villagerTradingOptimization)
+
+当村民被命名为 trade 时，将其 AI 精简为面向固定式村民交易所的最小行为集。
+
+> CORE 仅保留防溺水、工作站有效性校验、无寻路的近距离工作站认领（工作站需位于补货判定距离约 1.73 格内才会被认领，认领后仍可正常绑定工作站、赋职业与失业重置）\
+> WORK 仅保留补货行为，每日补货次数、间隔、跨日重置等补货硬语义与原版一致。村民不会为工作站寻路或移动，其余活动（见面、休息、空闲、恐慌、袭击、玩耍等）的任务列表被清空。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`, `OPTIMIZATION`
+
+### 监守者不敌视玩家 (wardenNotHostileToPlayers)
+
+阻止监守者对玩家产生敌意并将玩家设为攻击目标，但不会阻止其感知玩家产生的振动。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`, `SURVIVAL`
+
+### 水流体刻延迟 (waterFluidTickDelay)
+
+自定义水的流动延迟，单位为游戏刻。
+
+> `vanilla`: 不接管，交由原版及其它模组计算\
+> `freeze`: 冻结流体，使其停止流动
+
+- 类型: `String`
+- 默认值: `vanilla`
+- 建议值: `freeze`, `vanilla`
+- 实际可接受值: `vanilla`、`freeze` 或 `1` 至 `72000` 的整数
+- 分类: `ICE`, `FEATURE`
+
+### 羊毛抑制幽匿蔓延 (woolSuppressesSculkSpread)
+
+当幽匿催发体上方放置羊毛时，阻止其产生幽匿系列方块并取消已在进行中的蔓延，同时保留附近生物死亡时阻止经验球生成的特性。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`
