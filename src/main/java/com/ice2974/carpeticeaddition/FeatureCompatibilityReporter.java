@@ -38,6 +38,7 @@ public final class FeatureCompatibilityReporter {
     private static final AtomicBoolean BETTER_TRIDENT_DESPAWN_CONDITION_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean ENHANCED_TRIDENT_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean ENCHANTED_GOLDEN_APPLE_EFFECT_ROLLBACK_ERROR_REPORTED = new AtomicBoolean(false);
+    private static final AtomicBoolean RENEWABLE_RAW_IRON_ERROR_REPORTED = new AtomicBoolean(false);
 
     public static void reportFeatureCompatibilityIssue(String featureName, Throwable throwable) {
         AtomicBoolean flag;
@@ -95,6 +96,8 @@ public final class FeatureCompatibilityReporter {
             flag = ENHANCED_TRIDENT_ERROR_REPORTED;
         } else if ("enchantedGoldenAppleEffectRollback".equals(featureName)) {
             flag = ENCHANTED_GOLDEN_APPLE_EFFECT_ROLLBACK_ERROR_REPORTED;
+        } else if ("renewableRawIron".equals(featureName)) {
+            flag = RENEWABLE_RAW_IRON_ERROR_REPORTED;
         } else {
             LOGGER.warn("[Carpet Ice Addition] Compatibility issue in feature {}: {}", featureName, throwable.toString());
             return;

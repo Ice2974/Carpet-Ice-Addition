@@ -93,6 +93,8 @@ public final class RenewableRawIronTradeHelper {
      * <b>不再调用</b> {@code villager.getOffers()}，不会重入交易生成。
      *
      * <p>只追加：不 {@code setOffers}、不清空、不重建、不修改既有交易。
+     * 判定与追加核心在 {@link #addMasterMasonOfferIfMissing(boolean, boolean, int, RandomSource, MerchantOffers)}
+     * （参数化、不读取规则静态字段与实体，供单元测试直接驱动）。
      *
      * @param villager 目标村民
      * @param offers   当前交易列表（由调用方传入，避免递归取用）
@@ -101,10 +103,6 @@ public final class RenewableRawIronTradeHelper {
         if (offers == null) {
             return;
         }
-        if (!CarpetIceAdditionSettings.renewableRawIron) {
-            return;
-        }
-
         VillagerData data = villager.getVillagerData();
 //#if MC>=12105
         int level = data.level();
@@ -113,20 +111,34 @@ public final class RenewableRawIronTradeHelper {
 //$$        int level = data.getLevel();
 //$$        boolean isMason = data.getProfession() == VillagerProfession.MASON;
 //#endif
+        addMasterMasonOfferIfMissing(
+                CarpetIceAdditionSettings.renewableRawIron, isMason, level, villager.getRandom(), offers);
+    }
 
-        if (!isEligibleMasterMason(true, isMason, level)) {
+    /**
+     * 参数化追加核心：资格判定 + 幂等判重 + 追加。
+     *
+     * <p>判重必须先于随机价格生成：只要已存在等价交易，就直接返回，
+     * 既不新增、也不重新掷价、也不改动既有交易状态（uses / demand / specialPriceDiff）。
+     *
+     * @param ruleEnabled 规则当前是否开启（由公开重载读取静态字段后传入）
+     * @param isMason     是否为石匠
+     * @param level       村民当前等级
+     * @param random      价格随机源（仅在实际追加时消耗）
+     * @param offers      当前交易列表；{@code null} 时安全 no-op
+     */
+    static void addMasterMasonOfferIfMissing(
+            boolean ruleEnabled, boolean isMason, int level, RandomSource random, MerchantOffers offers) {
+        if (offers == null || !isEligibleMasterMason(ruleEnabled, isMason, level)) {
             return;
         }
-
-        // 判重必须先于随机价格生成：命中即返回，不新增、不重掷、不改动既有交易。
         for (MerchantOffer existing : offers) {
             if (isRenewableRawIronOffer(existing)) {
                 return;
             }
         }
-
         ItemStack result = new ItemStack(Items.RAW_IRON_BLOCK);
-        ItemCost cost = new ItemCost(Items.EMERALD, rollEmeraldCost(villager.getRandom()));
+        ItemCost cost = new ItemCost(Items.EMERALD, rollEmeraldCost(random));
         offers.add(new MerchantOffer(cost, result, MAX_USES, TRADE_XP, PRICE_MULTIPLIER));
     }
 

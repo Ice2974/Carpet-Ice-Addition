@@ -4,7 +4,7 @@
 
 Crafting-related rules provide this mod's recipes through a corresponding built-in datapack. Enabling a rule selects that datapack; disabling it deselects the datapack and triggers a vanilla server resource reload. If another datapack or mod provides a crafting recipe with the same output as one of those built-in recipes, the corresponding rule is automatically locked to `false` at runtime.
 
-The same principle applies to rules that provide a **stonecutting** recipe through a built-in datapack: conflicts are detected by matching recipe type and output, and the content of this mod's own recipe id (type / output / count / ingredient) is additionally validated — if another datapack overrides that id with different content, it is treated as a conflict too.
+The same principle applies to rules that provide a **stonecutting** recipe through a built-in datapack: conflicts are detected by matching recipe type and output, and the content of this mod's own recipe id (type / output / count / ingredient) is additionally validated — if another datapack overrides that id with different content, it is treated as a conflict too. An external stonecutting recipe whose output fails to resolve at runtime (a resolution exception) is also conservatively treated as a conflict and warned about once; an empty resolution result does not count as a conflict.
 
 When locked:
 

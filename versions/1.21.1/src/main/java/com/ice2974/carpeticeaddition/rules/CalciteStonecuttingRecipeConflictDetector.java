@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * {@code calciteStonecuttingRecipe} 的冲突检测器（1.21.1 平台 override）。
@@ -34,6 +35,12 @@ import java.util.Set;
  */
 public final class CalciteStonecuttingRecipeConflictDetector {
     private static final Logger LOGGER = LoggerFactory.getLogger("Carpet Ice Addition");
+
+    /**
+     * 「外部切石配方产物解析异常」的告警去重：冲突检测在每个静默点重跑，冲突持续期间会反复命中，
+     * 因此整个 JVM 运行期只告警一次（与 FeatureCompatibilityReporter 的去重风格一致）。
+     */
+    private static final AtomicBoolean UNRESOLVABLE_RECIPE_WARNED = new AtomicBoolean(false);
 
     private CalciteStonecuttingRecipeConflictDetector() {
     }
@@ -57,7 +64,7 @@ public final class CalciteStonecuttingRecipeConflictDetector {
                 ownAcceptable = isOwnRecipeAcceptable(recipe, lookup);
                 continue;
             }
-            if (hasConflictingResult(recipe, lookup, targets)) {
+            if (hasConflictingResult(recipe, id.toString(), lookup, targets)) {
                 return true;
             }
         }
@@ -81,11 +88,22 @@ public final class CalciteStonecuttingRecipeConflictDetector {
         return false;
     }
 
-    private static boolean hasConflictingResult(Recipe<?> recipe, HolderLookup.Provider lookup, Set<String> targets) {
+    /**
+     * 异 id 配方是否产出目标物品（包私有以供单测直接驱动）。
+     *
+     * <p>fail-closed：切石配方的产物解析抛异常时计为冲突——「无法判定」不得等同于「无冲突」，
+     * 与 root 版语义一致。产物为 null / 空不计为冲突（合法场景）。
+     */
+    static boolean hasConflictingResult(Recipe<?> recipe, String recipeId, HolderLookup.Provider lookup, Set<String> targets) {
         if (recipe.getType() != RecipeType.STONECUTTING) {
             return false;
         }
-        ItemStack result = resolveResultStack(recipe, lookup);
+        Resolution resolution = resolveResult(recipe, lookup);
+        if (resolution.sawFailure()) {
+            warnUnresolvableRecipe(recipeId, resolution.firstFailure());
+            return true;
+        }
+        ItemStack result = resolution.stack();
         if (result == null || result.isEmpty()) {
             return false;
         }
@@ -93,9 +111,17 @@ public final class CalciteStonecuttingRecipeConflictDetector {
         return resultId != null && targets.contains(resultId.toString());
     }
 
+    /** 一次性告警「产物无法解析的外部切石配方」，包含配方 id 与异常类型；重复命中静默。 */
+    private static void warnUnresolvableRecipe(String recipeId, Throwable failure) {
+        if (UNRESOLVABLE_RECIPE_WARNED.compareAndSet(false, true)) {
+            LOGGER.warn("[Carpet Ice Addition] External stonecutting recipe '{}' failed to resolve its result ({})"
+                    + "; treating it as a conflict", recipeId, failure == null ? null : failure.getClass().getName());
+        }
+    }
+
     private static boolean isOwnRecipeAcceptable(Recipe<?> recipe, HolderLookup.Provider lookup) {
         boolean stonecuttingType = recipe.getType() == RecipeType.STONECUTTING;
-        ItemStack result = resolveResultStack(recipe, lookup);
+        ItemStack result = resolveResult(recipe, lookup).stack();
         if (result == null || result.isEmpty()) {
             return false;
         }
@@ -107,11 +133,20 @@ public final class CalciteStonecuttingRecipeConflictDetector {
                 acceptsDripstone(recipe));
     }
 
-    private static ItemStack resolveResultStack(Recipe<?> recipe, HolderLookup.Provider lookup) {
+    /**
+     * 一次产物解析的结果：产物栈，以及是否因异常无法解析（含首个异常，供告警引用）。
+     *
+     * <p>异常与「产物为 null / 空」是不同分支：前者在 {@link #hasConflictingResult} 中按
+     * fail-closed 计为冲突，后者是合法场景，不计冲突。
+     */
+    private record Resolution(ItemStack stack, boolean sawFailure, Throwable firstFailure) {
+    }
+
+    private static Resolution resolveResult(Recipe<?> recipe, HolderLookup.Provider lookup) {
         try {
-            return recipe.getResultItem(lookup);
-        } catch (Throwable ignored) {
-            return null;
+            return new Resolution(recipe.getResultItem(lookup), false, null);
+        } catch (Throwable failure) {
+            return new Resolution(null, true, failure);
         }
     }
 

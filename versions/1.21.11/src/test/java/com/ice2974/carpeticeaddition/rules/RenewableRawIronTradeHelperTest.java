@@ -5,10 +5,12 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.trading.ItemCost;
 import net.minecraft.world.item.trading.MerchantOffer;
+import net.minecraft.world.item.trading.MerchantOffers;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -137,5 +139,74 @@ class RenewableRawIronTradeHelperTest {
         assertFalse(RenewableRawIronTradeHelper.isEligibleMasterMason(true, false, 5), "not a mason");
         assertFalse(RenewableRawIronTradeHelper.isEligibleMasterMason(true, true, 4), "expert level");
         assertFalse(RenewableRawIronTradeHelper.isEligibleMasterMason(true, true, 6), "level above master");
+    }
+
+    // ---- 追加路径（参数化核心）：幂等、不重掷、不改既有交易 ----
+
+    @Test
+    void appendsSingleOfferForEligibleMasterMason() {
+        MerchantOffers offers = new MerchantOffers();
+        RenewableRawIronTradeHelper.addMasterMasonOfferIfMissing(true, true, 5, RandomSource.create(42L), offers);
+        assertEquals(1, offers.size());
+        assertTrue(isRawIronOfferOf(offers.get(0)));
+        int baseCost = offers.get(0).getBaseCostA().getCount();
+        assertTrue(baseCost >= MIN_COST && baseCost <= MAX_COST, "appended cost out of range: " + baseCost);
+    }
+
+    @Test
+    void repeatedInvocationIsIdempotentAndNeverRerolls() {
+        MerchantOffers offers = new MerchantOffers();
+        RandomSource random = RandomSource.create(7L);
+        RenewableRawIronTradeHelper.addMasterMasonOfferIfMissing(true, true, 5, random, offers);
+        MerchantOffer first = offers.get(0);
+        int firstCost = first.getBaseCostA().getCount();
+        // 重复调用：不新增、不重掷（同一交易实例与基础价格保持不变）
+        for (int i = 0; i < 100; i++) {
+            RenewableRawIronTradeHelper.addMasterMasonOfferIfMissing(true, true, 5, random, offers);
+        }
+        assertEquals(1, offers.size());
+        assertSame(first, offers.get(0));
+        assertEquals(firstCost, offers.get(0).getBaseCostA().getCount());
+    }
+
+    @Test
+    void existingEquivalentOfferSuppressesAppendWithoutTouchingIt() {
+        // 判重先于掷价：命中即返回，不新增、不重掷、不改既有交易状态
+        MerchantOffers offers = new MerchantOffers();
+        MerchantOffer existing = rawIronOffer(MAX_COST);
+        offers.add(existing);
+        RenewableRawIronTradeHelper.addMasterMasonOfferIfMissing(true, true, 5, RandomSource.create(1L), offers);
+        assertEquals(1, offers.size());
+        assertSame(existing, offers.get(0));
+        assertEquals(MAX_COST, offers.get(0).getBaseCostA().getCount());
+        assertEquals(0, existing.getUses());
+    }
+
+    @Test
+    void unrelatedOffersDoNotSuppressAppend() {
+        MerchantOffers offers = new MerchantOffers();
+        offers.add(new MerchantOffer(
+                new ItemCost(Items.EMERALD, 1), new ItemStack(Items.STONE), 16, 5, 0.05F));
+        RenewableRawIronTradeHelper.addMasterMasonOfferIfMissing(true, true, 5, RandomSource.create(1L), offers);
+        assertEquals(2, offers.size());
+        assertTrue(isRawIronOfferOf(offers.get(1)), "append must land after unrelated offers");
+    }
+
+    @Test
+    void ineligiblePreconditionsAppendNothing() {
+        // 规则关闭 / 非石匠 / 非大师级：均不追加（null offers 亦为安全 no-op）
+        MerchantOffers ruleOff = new MerchantOffers();
+        RenewableRawIronTradeHelper.addMasterMasonOfferIfMissing(false, true, 5, RandomSource.create(1L), ruleOff);
+        assertTrue(ruleOff.isEmpty());
+
+        MerchantOffers notMason = new MerchantOffers();
+        RenewableRawIronTradeHelper.addMasterMasonOfferIfMissing(true, false, 5, RandomSource.create(1L), notMason);
+        assertTrue(notMason.isEmpty());
+
+        MerchantOffers notMaster = new MerchantOffers();
+        RenewableRawIronTradeHelper.addMasterMasonOfferIfMissing(true, true, 4, RandomSource.create(1L), notMaster);
+        assertTrue(notMaster.isEmpty());
+
+        RenewableRawIronTradeHelper.addMasterMasonOfferIfMissing(true, true, 5, RandomSource.create(1L), null);
     }
 }
