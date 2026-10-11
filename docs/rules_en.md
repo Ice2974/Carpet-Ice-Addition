@@ -1,10 +1,8 @@
 ## General mechanics
 
-### Crafting recipe conflict lock
+### Recipe conflict lock
 
-Crafting-related rules provide this mod's recipes through a corresponding built-in datapack. Enabling a rule selects that datapack; disabling it deselects the datapack and triggers a vanilla server resource reload. If another datapack or mod provides a crafting recipe with the same output as one of those built-in recipes, the corresponding rule is automatically locked to `false` at runtime.
-
-The same principle applies to rules that provide a **stonecutting** recipe through a built-in datapack: conflicts are detected by matching recipe type and output, and the content of this mod's own recipe id (type / output / count / ingredient) is additionally validated — if another datapack overrides that id with different content, it is treated as a conflict too. An external stonecutting recipe whose output fails to resolve at runtime (a resolution exception) is also conservatively treated as a conflict and warned about once; an empty resolution result does not count as a conflict.
+Recipe rules provide this mod's recipes through a corresponding built-in datapack. Enabling a rule selects that datapack; disabling it deselects the datapack and triggers a vanilla server resource reload. If another datapack or mod provides a recipe with the same output as one of those built-in recipes, the corresponding rule is automatically locked to `false` at runtime.
 
 When locked:
 
@@ -13,18 +11,21 @@ When locked:
 - `/carpet <ruleName>` shows `false`;
 - `/carpet <ruleName> true` is rejected;
 - all online players receive a notice;
-- `carpet.conf` is not modified;
-- removing the conflicting datapack and running `/reload` releases the lock and restores the previous configured value; online recipe books and already-open stonecutter menus are synchronized after a successful resource reload.
-
-### Recipe unlock synchronization for built-in datapacks
-
-Once a rule is enabled and its built-in datapack has finished loading, the mod unlocks that datapack's recipes for online players and uses the vanilla mechanism to show the "New Recipe(s) Unlocked" toast: a player who has not unlocked the recipe yet receives exactly one notification, while a player who already unlocked it (including by taking the result from a stonecutter earlier) receives no duplicate notification. Players joining later get their unlock state synchronized automatically; resource reloads such as `/reload` and rejoining never show the notification again.
-
-Disabling a rule (including being locked by a conflict) revokes the unlock records granted by the mod, so enabling it again shows the notification once more; records left behind for offline players are cleaned up by vanilla on their next login. Revocation only targets this mod's own recipe ids whose content still matches the rule contract — if a stonecutting recipe id has been overridden by another datapack with different content, its unlock record is kept, because that recipe no longer belongs to this mod.
+- `carpet.conf` is not modified, and only the locked rule becomes inactive;
+- removing the conflicting datapack and running `/reload` releases the lock and restores the previous configured value.
 
 ### Category definitions
 
-`CLIENT`: The rule involves client-side behavior and requires both Carpet and this mod to be fully installed on the client to take full effect; with a server-only installation, these rules only partially take effect.
+- `ICE`: A category label specific to Carpet Ice Addition.
+- `FEATURE`: Rules that significantly modify or extend game mechanics, features, or behaviors. Rules that only provide notifications or display information are excluded.
+- `SURVIVAL`: Rules intended for Survival mode that generally have no practical use in Creative mode.
+- `CREATIVE`: Rules intended for Creative mode that generally have no practical use in Survival mode.
+- `OPTIMIZATION`: Rules that improve performance by optimizing game logic or reducing unnecessary computations and resource usage.
+- `COMMAND`: Rules that register, enable, or control commands and their permissions.
+- `CLIENT`: The rule involves client-side behavior and requires both Carpet and this mod to be fully installed on the client to take full effect; with a server-only installation, these rules only partially take effect.
+- `BUGFIX`: Rules that fix known bugs, glitches, or unintended behaviors in the game or related mods.
+- `EXPERIMENTAL`: Rules that are experimental and whose behavior, compatibility, or stability may not have been fully verified.
+- `BOT`: Rules related to Carpet fake players, including changes to their display, interactions, or behavior.
 
 ## Rules
 
@@ -481,10 +482,7 @@ Tridents can only despawn after being stuck in a block and remaining stationary 
 
 Master mason villagers offer 1 block of raw iron for 4 to 8 emeralds as an extra trade.
 
-> The trade is appended while vanilla generates master-level trades. It replaces no vanilla trade, and this rule never rebuilds, clears, or refreshes an existing trade list.
 > The rule only affects trade list **generation** and does not modify an already generated trade list. "Already master level" and "master-level trade list already generated" are therefore different states: a master mason whose trade list has not been initialized yet still receives the trade on first generation, while one whose list already exists is never retroactively updated.
-> After the rule is disabled, no new raw iron block trade is generated, and existing raw iron block trades are not removed and remain usable.
-> The base emerald price is rolled once when the trade is generated and is saved with the world, so it is not re-rolled by rule toggles or reloads; the price shown in the trade screen may drift slightly due to vanilla demand and reputation discounts.
 
 - Type: `boolean`
 - Default: `false`
