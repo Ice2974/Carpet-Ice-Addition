@@ -1,6 +1,7 @@
 package com.ice2974.carpeticeaddition;
 
 import carpet.CarpetServer;
+import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import org.slf4j.Logger;
@@ -10,7 +11,7 @@ import org.slf4j.LoggerFactory;
  * Deltarune 系隐藏彩蛋的统一生命周期入口。当前内含 Kris &amp; Susie 彩蛋：
  * 同一服务器中同时存在名为 Kris 与 Susie 的玩家（忽略大小写，真人或 Carpet 假人）时，
  * 以服务器系统消息广播一句 Susie 的台词，每次服务器运行只触发一次；
- * 状态仅存内存、不落盘、无规则开关。彩蛋增多时再拆分独立实现类。
+ * 状态仅存内存、不落盘；所有彩蛋统一受 carpetIceAdditionEasterEgg 总开关控制。彩蛋增多时再拆分独立实现类。
  * 检查失败仅记 debug 日志，不影响登录流程。
  */
 final class DeltaruneEasterEggs {
@@ -35,7 +36,10 @@ final class DeltaruneEasterEggs {
     }
 
     static void onPlayerLoggedIn(ServerPlayer player) {
-        if (krisAndSusieTriggered || CarpetServer.minecraft_server == null) {
+        // 总开关关闭时直接返回且不置位已触发标记，重新开启后仍可在本次运行中触发
+        if (!CarpetIceAdditionSettings.carpetIceAdditionEasterEgg
+                || krisAndSusieTriggered
+                || CarpetServer.minecraft_server == null) {
             return;
         }
         try {

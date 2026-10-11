@@ -158,4 +158,7 @@ public final class CarpetIceAdditionSettings {
 
     @Rule(categories = {ICE, FEATURE})
     public static boolean renewableRawIron = false;
+
+    @Rule(categories = {ICE})
+    public static boolean carpetIceAdditionEasterEgg = true;
 }
