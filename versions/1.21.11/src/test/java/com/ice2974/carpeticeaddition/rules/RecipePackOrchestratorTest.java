@@ -9,7 +9,6 @@ import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -393,7 +392,6 @@ class RecipePackOrchestratorTest {
         boolean failRecompute;
         boolean failSync;
         int recomputeCalls;
-        int syncCalls;
         int disableCalls;
         int joinCalls;
         int resetCalls;
@@ -420,7 +418,6 @@ class RecipePackOrchestratorTest {
                         }
                     },
                     server -> {
-                        syncCalls++;
                         eventLog.add(tag + ":sync");
                         if (failSync) {
                             throw new RuntimeException(tag + " sync failed");
