@@ -20,11 +20,7 @@ When locked:
 - `FEATURE`: Rules that significantly modify or extend game mechanics, features, or behaviors. Rules that only provide notifications or display information are excluded.
 - `SURVIVAL`: Rules intended for Survival mode that generally have no practical use in Creative mode.
 - `CREATIVE`: Rules intended for Creative mode that generally have no practical use in Survival mode.
-- `OPTIMIZATION`: Rules that improve performance by optimizing game logic or reducing unnecessary computations and resource usage.
-- `COMMAND`: Rules that register, enable, or control commands and their permissions.
 - `CLIENT`: The rule involves client-side behavior and requires both Carpet and this mod to be fully installed on the client to take full effect; with a server-only installation, these rules only partially take effect.
-- `BUGFIX`: Rules that fix known bugs, glitches, or unintended behaviors in the game or related mods.
-- `EXPERIMENTAL`: Rules that are experimental and whose behavior, compatibility, or stability may not have been fully verified.
 - `BOT`: Rules related to Carpet fake players, including changes to their display, interactions, or behavior.
 
 ## Rules
@@ -309,7 +305,7 @@ When a dispenser fires a water bottle at an unwaxed copper block that can oxidiz
 - Type: `boolean`
 - Default: `false`
 - Possible values: `false`, `true`
-- Categories: `ICE`, `FEATURE`
+- Categories: `ICE`, `FEATURE`, `DISPENSER`
 
 ### portableInfiniteWater
 

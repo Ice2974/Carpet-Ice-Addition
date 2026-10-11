@@ -9,6 +9,7 @@ import static carpet.api.settings.RuleCategory.COMMAND;
 import static carpet.api.settings.RuleCategory.FEATURE;
 import static carpet.api.settings.RuleCategory.OPTIMIZATION;
 import static carpet.api.settings.RuleCategory.SURVIVAL;
+import static carpet.api.settings.RuleCategory.DISPENSER;
 
 public final class CarpetIceAdditionSettings {
     public static final String ICE = "CarpetIceAddition";
@@ -80,7 +81,7 @@ public final class CarpetIceAdditionSettings {
     @Rule(categories = {ICE, FEATURE})
     public static boolean easyWaterloggedBlockPlacement = false;
 
-    @Rule(categories = {ICE, FEATURE})
+    @Rule(categories = {ICE, FEATURE, DISPENSER})
     public static boolean easyCopperOxidation = false;
 
     @Rule(categories = {ICE, FEATURE, SURVIVAL})
