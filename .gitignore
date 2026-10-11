@@ -33,6 +33,7 @@ bin/
 .codex/
 .zcode/
 .agents/
+.zcodeignore
 
 # Git
 .shelf/
