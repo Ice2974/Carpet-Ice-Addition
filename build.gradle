@@ -1,7 +1,7 @@
 plugins {
     // 根项目承载 preprocess 版本图（根无 parent → 自动应用 RootPreprocessPlugin）。
     // 插件 id 沿用 ReplayMod 上游命名，经 settings.gradle resolutionStrategy 解析到
-    // JitPack com.github.Fallen-Breath:preprocessor（版本 = 根 gradle.properties preprocess_version，全 SHA 锁定）。
+    // JitPack com.github.liuyuexiaoyu1:preprocessor（版本 = 根 gradle.properties preprocess_version，全 SHA 锁定）。
     id 'com.replaymod.preprocess' version "${preprocess_version}"
 
     // 两个 loom 插件只在各版本平台项目内经 common.gradle 按 per-version loom_plugin 动态应用

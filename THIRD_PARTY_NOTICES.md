@@ -6,17 +6,17 @@ The license of Carpet Ice Addition's own code is described in [LICENSE](LICENSE)
 
 ## Build Tooling and Architecture Provenance
 
-### Fallen-Breath/preprocessor
+### liuyuexiaoyu1/preprocessor
 
-- Related build-time dependency: multi-version source preprocessing (Phase 5)
-- Upstream project Fallen-Breath/preprocessor, a fork of ReplayMod/preprocess, https://github.com/Fallen-Breath/preprocessor
-- Consumed via JitPack (`com.github.Fallen-Breath:preprocessor`, pinned to full commit `c5abb4fb12aad2590c852c1bc6c8d5758606ec0b`) as a Gradle build plugin
+- Related build-time dependency: multi-version source preprocessing
+- Upstream project liuyuexiaoyu1/preprocessor, a fork of Fallen-Breath/preprocessor (itself a fork of ReplayMod/preprocess), https://github.com/liuyuexiaoyu1/preprocessor
+- Consumed via JitPack (`com.github.liuyuexiaoyu1:preprocessor`, pinned to full commit `3c9230a9a0bec52b74dc6c10d03b7ad09b22498c`, branch `dev`) as a Gradle build plugin
 - Original project license: GPL-3.0-or-later
-- Notes Build-time only Gradle plugin that preprocesses the root source tree per Minecraft version (`//#if MC` macros, version graph with mapping edges). It is not compiled into, linked with, or distributed in any release artifact. Its license belongs to the tool itself and does not relicense Carpet Ice Addition's own code.
+- Notes Build-time only Gradle plugin that preprocesses the root source tree per Minecraft version (`//#if MC` macros, version graph with mapping edges, unobfuscated 26.x support). It is not compiled into, linked with, or distributed in any release artifact. Its license belongs to the tool itself and does not relicense Carpet Ice Addition's own code. The plugin transitively consumes `com.github.liuyuexiaoyu1:remap` (JitPack ref `1d797e8`, short commit hash chosen upstream) plus `net.fabricmc:mapping-io` and `org.ow2.asm:asm` at build time; these are likewise build-time only.
 
 ### Fallen-Breath/fabric-mod-template
 
-- Related architecture provenance: multi-version preprocess build architecture (Phase 5)
+- Related architecture provenance: multi-version preprocess build architecture
 - Upstream project Fallen-Breath/fabric-mod-template, https://github.com/Fallen-Breath/fabric-mod-template
 - Original project license: LGPL-3.0 (applies to the template itself)
 - Notes The multi-version source architecture used by this project (root source tree + per-version overrides + preprocess version graph) is modeled after the architecture family introduced by fabric-mod-template, which is also the base of Carpet TIS Addition and Carpet AMS Addition. The current build implementation (settings.json-driven platform registry, unified per-version data-driven common build script with dynamic Loom plugin application, mixin config generation, resource collision invariants) was constructed for Carpet Ice Addition's own 12-platform structure with substantial modifications, and no template files are shipped in this repository. The template's license does not apply to Carpet Ice Addition's source code or release artifacts.

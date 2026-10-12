@@ -54,7 +54,7 @@
 
 ## 根源码树与跨版本规则
 
-- 源码架构：根 `src/main/java` 主源码树（mainProject = 1.21.11）+ 根 `build.gradle` preprocess 版本图（插件 `com.replaymod.preprocess` 经 JitPack 全 SHA 锁定解析到 Fallen-Breath/preprocessor）+ `versions/<MC 版本>/src/main/java` per-version override；共享资源仅位于根 `src/main/resources`，不使用 `common/` 或 `versions/shared/` 资源档。
+- 源码架构：根 `src/main/java` 主源码树（mainProject = 1.21.11）+ 根 `build.gradle` preprocess 版本图（插件 `com.replaymod.preprocess` 经 JitPack 全 SHA 锁定解析到 liuyuexiaoyu1/preprocessor）+ `versions/<MC 版本>/src/main/java` per-version override；共享资源仅位于根 `src/main/resources`，不使用 `common/` 或 `versions/shared/` 资源档。
 - 单元测试归属 core 平台：共享测试源码位于 `versions/<mainProject 版本>/src/test/java`，测试入口为 `:<mainProject 版本>:test`（CI 显式执行）；共享单元测试不得经 preprocess 版本图传播到 non-core 平台（test sourceSet 统一恢复为本平台本地目录）；non-core 平台 test 任务因此默认保持 NO-SOURCE。未来如确需版本专属测试，应作为明确的 per-version 测试需求单独接线和规划，不隐式继承 core tests。
 - 根 src 必须保持「main 态」：纯文本可直接按 1.21.11 编译；所有非 1.21.11 内容必须以 `//$$ ` 前缀的注释态出现在条件分支内；预处理指令行（`//#if` / `//#elseif` / `//#else` / `//#endif` / `//#disable-remap` 等）不加 `$$` 前缀。
 - 宏只用于单处 ≤10 行、不改 Mixin 注入 descriptor 的小差异；结构性分叉（注入目标结构 / 方法签名 / AI 拓扑 / `@At` 字符串差异）必须用平台 override 文件表达，不强行塞进宏。

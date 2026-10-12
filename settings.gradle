@@ -3,7 +3,7 @@ import groovy.json.JsonSlurper
 pluginManagement {
     repositories {
         maven { url = 'https://maven.fabricmc.net/' }
-        // com.replaymod.preprocess 经 JitPack 解析到 Fallen-Breath/preprocessor（commit 全 SHA 锁定，见根 gradle.properties）
+        // com.replaymod.preprocess 经 JitPack 解析到 liuyuexiaoyu1/preprocessor（commit 全 SHA 锁定，见根 gradle.properties）
         maven { url = 'https://jitpack.io' }
         mavenCentral()
         gradlePluginPortal()
@@ -11,7 +11,7 @@ pluginManagement {
     resolutionStrategy {
         eachPlugin {
             if (requested.id.id == 'com.replaymod.preprocess') {
-                useModule("com.github.Fallen-Breath:preprocessor:${requested.version}")
+                useModule("com.github.liuyuexiaoyu1:preprocessor:${requested.version}")
             }
         }
     }
