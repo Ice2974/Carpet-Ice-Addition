@@ -314,6 +314,21 @@ class WeakloadRegistryTest {
     }
 
     @Test
+    void bareDimensionIdsTakeEffectUnderFullId() throws IOException {
+        Path file = tempDir.resolve("weakload.json");
+        Files.createDirectories(file.getParent());
+        Files.writeString(file, "{\"version\":1,\"dimensions\":{\"overworld\":[{\"x\":3,\"z\":-5}]}}",
+                StandardCharsets.UTF_8);
+
+        WeakloadRegistry registry = new WeakloadRegistry(file);
+
+        // WeakloadManager 恢复票据时用 dimension().identifier().toString()（完整形式）
+        // 查询：裸形式记录必须规范化后在该键下命中，否则永远无法生效
+        assertArrayEquals(new long[] {chunk(3, -5)}, registry.registeredChunks("minecraft:overworld"));
+        assertEquals(0, registry.registeredChunks("overworld").length);
+    }
+
+    @Test
     void corruptBackupFailureEntersProtectionMode() {
         MemoryIo io = new MemoryIo();
         io.failRead = true;

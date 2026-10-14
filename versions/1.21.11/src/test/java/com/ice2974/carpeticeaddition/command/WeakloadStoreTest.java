@@ -81,20 +81,49 @@ class WeakloadStoreTest {
         assertThrows(IOException.class, () -> read(chunkJson("Overworld:x", 0, 0)));
         assertThrows(IOException.class, () -> read(chunkJson("a:b:c", 0, 0)));
         assertThrows(IOException.class, () -> read(chunkJson("", 0, 0)));
-        assertThrows(IOException.class, () -> read(chunkJson(":overworld", 0, 0)));
         assertThrows(IOException.class, () -> read(chunkJson("minecraft:", 0, 0)));
         assertThrows(IOException.class, () -> read(chunkJson("min ecraft:overworld", 0, 0)));
         assertThrows(IOException.class, () -> read(chunkJson("minecraft/over:world", 0, 0)));
     }
 
     @Test
+    void bareDimensionIdNormalizesToDefaultNamespace() throws IOException {
+        Map<String, long[]> parsed = read(chunkJson("overworld", 4, 4));
+
+        assertArrayEquals(new long[] {WeakloadRegistry.pack(4, 4)}, parsed.get("minecraft:overworld"));
+        assertNull(parsed.get("overworld"), "raw bare key must not be kept alongside the normalized one");
+    }
+
+    @Test
+    void emptyNamespacePrefixNormalizesLikeVanilla() throws IOException {
+        // 原版 Identifier 把 ":overworld" 与 "overworld" 都解析为 minecraft:overworld
+        Map<String, long[]> parsed = read(chunkJson(":overworld", -1, 2));
+
+        assertArrayEquals(new long[] {WeakloadRegistry.pack(-1, 2)}, parsed.get("minecraft:overworld"));
+        assertNull(parsed.get(":overworld"));
+    }
+
+    @Test
+    void normalizedDuplicateDimensionsAreRejected() {
+        // 裸形式与完整形式规范化后是同一维度：明确拒绝，不静默合并或覆盖
+        assertThrows(IOException.class, () -> read("{"
+                + "\"version\":1,\"dimensions\":{"
+                + "\"overworld\":[{\"x\":1,\"z\":1}],"
+                + "\"minecraft:overworld\":[{\"x\":2,\"z\":2}]}}"));
+        assertThrows(IOException.class, () -> read("{"
+                + "\"version\":1,\"dimensions\":{"
+                + "\":overworld\":[{\"x\":1,\"z\":1}],"
+                + "\"minecraft:overworld\":[{\"x\":2,\"z\":2}]}}"));
+    }
+
+    @Test
     void legalButUnloadedDimensionIdsAreKept() throws IOException {
-        // 维度「当前不存在」不是 ID 非法：记录必须原样保留；缺省命名空间的裸形式也合法
+        // 维度「当前不存在」不是 ID 非法：记录必须原样保留（键规范化为完整形式）
         Map<String, long[]> parsed = read("{\"version\":1,\"dimensions\":{"
                 + "\"custom:unloaded\":[{\"x\":4,\"z\":4}],"
                 + "\"overworld\":[{\"x\":0,\"z\":0}]}}");
         assertArrayEquals(new long[] {WeakloadRegistry.pack(4, 4)}, parsed.get("custom:unloaded"));
-        assertArrayEquals(new long[] {WeakloadRegistry.pack(0, 0)}, parsed.get("overworld"));
+        assertArrayEquals(new long[] {WeakloadRegistry.pack(0, 0)}, parsed.get("minecraft:overworld"));
     }
 
     @Test

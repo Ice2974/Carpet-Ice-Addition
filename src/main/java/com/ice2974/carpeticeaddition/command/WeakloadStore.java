@@ -24,7 +24,9 @@ import java.util.TreeMap;
  * 写入走临时文件 + 原子替换；读取做严格结构校验，语法合法但结构非法的数据
  * （缺字段、null 槽位、版本不符、重复条目、非法维度 ID、区块坐标越界）一律按
  * 读取失败抛出，由上层（WeakloadRegistry）决定备份与保护策略，不会被静默
- * 当成空数据。维度 ID 只校验字符串合法性，维度当前不存在不视为非法。
+ * 当成空数据。维度 ID 在读取时规范化为完整 namespace:path 形式（裸形式与
+ * 空命名空间前缀套用默认命名空间 minecraft），规范化后重复的维度键按损坏
+ * 拒绝；维度当前不存在不视为非法。
  */
 final class WeakloadStore {
     private static final Gson GSON = new GsonBuilder()
@@ -59,12 +61,14 @@ final class WeakloadStore {
             }
             Map<String, long[]> result = new TreeMap<>();
             for (Map.Entry<String, List<ChunkEntry>> entry : data.dimensions.entrySet()) {
-                if (!isValidDimensionId(entry.getKey())) {
+                String dimensionId = normalizeDimensionId(entry.getKey());
+                if (dimensionId == null) {
                     throw invalid(path, "'" + entry.getKey() + "' is not a valid dimension id");
                 }
                 long[] chunks = readDimension(path, entry.getKey(), entry.getValue());
-                if (chunks.length > 0) {
-                    result.put(entry.getKey(), chunks);
+                if (chunks.length > 0 && result.putIfAbsent(dimensionId, chunks) != null) {
+                    throw invalid(path, "dimension '" + entry.getKey() + "' duplicates '"
+                            + dimensionId + "' after namespace normalization");
                 }
             }
             return result;
@@ -98,28 +102,33 @@ final class WeakloadStore {
     }
 
     /**
-     * 维度 ID 的字符串合法性，规则与原版 ResourceLocation 一致：至多一个冒号，
-     * 命名空间字符集 [a-z0-9_.-]、路径字符集 [a-z0-9_./-]，缺省命名空间合法。
-     * 只校验字符串本身——维度「当前不存在」不是非法，其记录必须保留。
+     * 校验并把维度 ID 规范化为完整 namespace:path 形式，字符串语义与原版
+     * Identifier / ResourceLocation 的解析一致：取首个冒号定界，冒号位于首位
+     * （空命名空间前缀）或没有冒号时套用默认命名空间 minecraft，即 overworld
+     * 与 :overworld 都规范化为 minecraft:overworld；后续冒号落入路径被字符集
+     * 校验拒绝。命名空间字符集 [a-z0-9_.-]、路径字符集 [a-z0-9_./-]，与原版
+     * 相同；额外要求路径非空（原版循环式校验放行空路径，本存储层把无法归属到
+     * 具体维度的空路径视为数据损坏）。非法返回 null。只做字符串处理，不依赖
+     * Minecraft 类——维度「当前不存在」不是非法，其记录必须保留。
      */
-    private static boolean isValidDimensionId(String dimensionId) {
+    private static String normalizeDimensionId(String dimensionId) {
         int separator = dimensionId.indexOf(':');
-        String namespace = separator >= 0 ? dimensionId.substring(0, separator) : "minecraft";
+        String namespace = separator >= 1 ? dimensionId.substring(0, separator) : "minecraft";
         String path = separator >= 0 ? dimensionId.substring(separator + 1) : dimensionId;
-        if (namespace.isEmpty() || path.isEmpty() || dimensionId.indexOf(':', separator + 1) >= 0) {
-            return false;
+        if (path.isEmpty()) {
+            return null;
         }
         for (int index = 0; index < namespace.length(); index++) {
             if (!isNamespaceChar(namespace.charAt(index))) {
-                return false;
+                return null;
             }
         }
         for (int index = 0; index < path.length(); index++) {
             if (!isPathChar(path.charAt(index))) {
-                return false;
+                return null;
             }
         }
-        return true;
+        return namespace + ':' + path;
     }
 
     private static boolean isNamespaceChar(char c) {
