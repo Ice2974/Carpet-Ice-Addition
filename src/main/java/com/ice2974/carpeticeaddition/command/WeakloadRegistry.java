@@ -18,8 +18,9 @@ import java.util.TreeSet;
  * 未加载维度的记录，维度维活判定只看 ticketed。
  *
  * <p>变更流程固定为「副本计算 → 原子持久化 → 票据差分 → 状态交换」：持久化失败时
- * 票据与内存零变更（整批回滚）；票据应用意外失败时回滚本批票据并回写旧 JSON，回写
- * 再失败则进入写保护模式，拒绝后续一切变更，禁止不一致继续扩大。
+ * 票据与内存零变更（整批回滚）；票据应用意外失败时回滚本批票据并回写旧 JSON，
+ * 回滚不完整或旧 JSON 回写失败都进入写保护模式，拒绝后续一切变更，禁止不一致
+ * 继续扩大，且不把该批变更报告为已回滚。
  */
 final class WeakloadRegistry {
     private static final Logger LOGGER = LoggerFactory.getLogger(WeakloadRegistry.class);
@@ -133,10 +134,11 @@ final class WeakloadRegistry {
     /**
      * 一致性变更入口。
      *
-     * @return 登记表实际发生变化的区块数（0 表示幂等无变化，不写盘也不动票据）
-     * @throws IOException 持久化失败（零变更）或票据应用失败（已回滚）
+     * @return 实际发生变化的区块 packed 坐标，按升序排列；长度 0 表示幂等无变化，
+     *         不写盘也不动票据
+     * @throws IOException 持久化失败（零变更）或票据应用失败（已完整回滚并恢复旧数据）
      */
-    synchronized int mutate(String dimensionId, long[] addPacked, long[] removePacked, TicketOps ops)
+    synchronized long[] mutate(String dimensionId, long[] addPacked, long[] removePacked, TicketOps ops)
             throws IOException {
         if (writeProtected) {
             throw new WriteProtectedException("Weakload data is write protected", null);
@@ -146,21 +148,19 @@ final class WeakloadRegistry {
         for (long packed : registered.getOrDefault(dimensionId, EMPTY_CHUNKS)) {
             desired.add(packed);
         }
-        int removed = 0;
+        TreeSet<Long> changedSet = new TreeSet<>();
         for (long packed : removePacked) {
             if (desired.remove(packed)) {
-                removed++;
+                changedSet.add(packed);
             }
         }
-        int added = 0;
         for (long packed : addPacked) {
             if (desired.add(packed)) {
-                added++;
+                changedSet.add(packed);
             }
         }
-        int changed = added + removed;
-        if (changed == 0) {
-            return 0;
+        if (changedSet.isEmpty()) {
+            return EMPTY_CHUNKS.clone();
         }
 
         Map<String, long[]> newState = copyState(registered);
@@ -207,19 +207,29 @@ final class WeakloadRegistry {
         } catch (Throwable ticketFailure) {
             LOGGER.error("Failed to apply weakload tickets for dimension {}, rolling back the batch",
                     dimensionId, ticketFailure);
-            rollbackTickets(ops, appliedAdds, appliedRemoves);
+            boolean rollbackComplete = rollbackTickets(ops, appliedAdds, appliedRemoves);
+            IOException restoreFailure = null;
             try {
                 store.write(registered);
-            } catch (IOException restoreFailure) {
-                writeProtected = true;
-                LOGGER.error("Failed to restore the previous weakload data after a ticket rollback. "
-                        + "Weakload data is now write protected; fix the world files and restart the server. "
-                        + "Ticket failure was:", ticketFailure);
-                LOGGER.error("...and the data restore failure was:", restoreFailure);
-                throw new WriteProtectedException("Weakload data entered write protection mode", restoreFailure);
+            } catch (IOException failure) {
+                restoreFailure = failure;
             }
-            throw new TicketApplyException("Failed to apply weakload tickets, the change was rolled back",
-                    ticketFailure);
+            if (rollbackComplete && restoreFailure == null) {
+                throw new TicketApplyException("Failed to apply weakload tickets, the change was rolled back",
+                        ticketFailure);
+            }
+            writeProtected = true;
+            if (!rollbackComplete) {
+                LOGGER.error("The weakload ticket rollback for dimension {} is incomplete: live tickets no "
+                        + "longer match the stored data, so the change is NOT rolled back. Weakload data is "
+                        + "now write protected; restart the server to rebuild the tickets from the stored data",
+                        dimensionId);
+            }
+            if (restoreFailure != null) {
+                LOGGER.error("Restoring the previous weakload data on disk after the ticket failure also "
+                        + "failed; the last persisted state may still contain the rejected change", restoreFailure);
+            }
+            throw new WriteProtectedException("Weakload data entered write protection mode", ticketFailure);
         }
 
         registered = newState;
@@ -228,26 +238,36 @@ final class WeakloadRegistry {
         } else {
             ticketed.put(dimensionId, toArray(desired));
         }
-        return changed;
+        return toArray(changedSet);
     }
 
-    private static void rollbackTickets(TicketOps ops, List<Long> appliedAdds, List<Long> appliedRemoves) {
+    /**
+     * 逐个撤销本批已应用的票据；返回是否全部逆操作成功。单个逆操作失败不中断
+     * 其余逆操作，但会让返回值为 false，由调用方进入写保护模式。
+     */
+    private static boolean rollbackTickets(TicketOps ops, List<Long> appliedAdds, List<Long> appliedRemoves) {
+        boolean complete = true;
         for (long packed : appliedAdds) {
             try {
                 ops.apply(packed, false);
             } catch (Throwable rollbackFailure) {
-                LOGGER.error("Failed to roll back weakload ticket for chunk [{}, {}]",
-                        unpackX(packed), unpackZ(packed), rollbackFailure);
+                complete = false;
+                LOGGER.error("Failed to roll back the weakload ticket for chunk [{}, {}]; the ticket stays "
+                        + "applied although the change was rejected", unpackX(packed), unpackZ(packed),
+                        rollbackFailure);
             }
         }
         for (long packed : appliedRemoves) {
             try {
                 ops.apply(packed, true);
             } catch (Throwable rollbackFailure) {
-                LOGGER.error("Failed to roll back weakload ticket for chunk [{}, {}]",
-                        unpackX(packed), unpackZ(packed), rollbackFailure);
+                complete = false;
+                LOGGER.error("Failed to roll back the weakload ticket for chunk [{}, {}]; the ticket stays "
+                        + "removed although the change was rejected", unpackX(packed), unpackZ(packed),
+                        rollbackFailure);
             }
         }
+        return complete;
     }
 
     private void loadOrRecover() {

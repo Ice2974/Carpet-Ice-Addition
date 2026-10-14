@@ -121,18 +121,20 @@ public final class WeakloadManager {
         }
     }
 
-    public static synchronized int addChunks(ServerLevel level, long[] packedChunks) throws IOException {
+    /** @return 实际新登记的区块 packed 坐标（升序；空数组表示幂等无变化） */
+    public static synchronized long[] addChunks(ServerLevel level, long[] packedChunks) throws IOException {
         return mutate(level, packedChunks, NO_CHUNKS);
     }
 
-    public static synchronized int removeChunks(ServerLevel level, long[] packedChunks) throws IOException {
+    /** @return 实际移除登记的区块 packed 坐标（升序；空数组表示幂等无变化） */
+    public static synchronized long[] removeChunks(ServerLevel level, long[] packedChunks) throws IOException {
         return mutate(level, NO_CHUNKS, packedChunks);
     }
 
-    public static synchronized int removeAllChunks(ServerLevel level) throws IOException {
+    public static synchronized long[] removeAllChunks(ServerLevel level) throws IOException {
         WeakloadRegistry activeRegistry = registry;
         if (activeRegistry == null) {
-            return 0;
+            return NO_CHUNKS.clone();
         }
         return mutate(level, NO_CHUNKS, activeRegistry.registeredChunks(level.dimension().identifier().toString()));
     }
@@ -165,7 +167,7 @@ public final class WeakloadManager {
         return activeRegistry != null && activeRegistry.isWriteProtected();
     }
 
-    private static int mutate(ServerLevel level, long[] addPacked, long[] removePacked) throws IOException {
+    private static long[] mutate(ServerLevel level, long[] addPacked, long[] removePacked) throws IOException {
         WeakloadRegistry activeRegistry = registry;
         if (activeRegistry == null) {
             throw new IOException("Weakload manager has not been initialized");

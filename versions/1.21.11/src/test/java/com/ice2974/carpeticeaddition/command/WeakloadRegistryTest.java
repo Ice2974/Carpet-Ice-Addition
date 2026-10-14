@@ -35,15 +35,19 @@ class WeakloadRegistryTest {
     @TempDir
     Path tempDir;
 
-    // ---- 记录型票据操作，可选在第 N 次调用时抛出 ----
+    // ---- 记录型票据操作，可选在第 N 次调用或对指定区块的 add/remove 时抛出 ----
     private static final class RecordingOps implements TicketOps {
         final List<String> log = new ArrayList<>();
         int failOnCall = -1;
+        long failRemoveOn = Long.MIN_VALUE;
+        long failAddOn = Long.MIN_VALUE;
         RuntimeException failure = new IllegalStateException("injected ticket failure");
 
         @Override
         public void apply(long packedChunkPos, boolean add) {
-            if (log.size() + 1 == failOnCall) {
+            if (log.size() + 1 == failOnCall
+                    || (add && packedChunkPos == failAddOn)
+                    || (!add && packedChunkPos == failRemoveOn)) {
                 log.add(label(packedChunkPos, add) + ":FAIL");
                 throw failure;
             }
@@ -117,16 +121,16 @@ class WeakloadRegistryTest {
     }
 
     @Test
-    void mutatePersistsAppliesTicketsAndCountsChanges() throws IOException {
+    void mutatePersistsAppliesTicketsAndReturnsChangedChunks() throws IOException {
         MemoryIo io = new MemoryIo();
         io.disk = new LinkedHashMap<>();
         io.exists = false;
         WeakloadRegistry registry = new WeakloadRegistry(io);
         RecordingOps ops = new RecordingOps();
 
-        int changed = registry.mutate(OVERWORLD, new long[] {chunk(0, 0), chunk(-3, 7), chunk(0, 0)}, new long[0], ops);
+        long[] changed = registry.mutate(OVERWORLD, new long[] {chunk(0, 0), chunk(-3, 7), chunk(0, 0)}, new long[0], ops);
 
-        assertEquals(2, changed);
+        assertArrayEquals(new long[] {chunk(-3, 7), chunk(0, 0)}, changed);
         assertArrayEquals(new long[] {chunk(-3, 7), chunk(0, 0)}, registry.registeredChunks(OVERWORLD));
         assertTrue(registry.hasActiveTickets(OVERWORLD));
         assertEquals(1, io.writes.size());
@@ -139,7 +143,7 @@ class WeakloadRegistryTest {
         MemoryIo io = new MemoryIo();
         io.disk = state(OVERWORLD, new long[] {chunk(5, 5)});
         WeakloadRegistry registry = new WeakloadRegistry(io);
-        assertEquals(0, registry.mutate(OVERWORLD, new long[] {chunk(5, 5)}, new long[0], new RecordingOps()));
+        assertArrayEquals(new long[0], registry.mutate(OVERWORLD, new long[] {chunk(5, 5)}, new long[0], new RecordingOps()));
         assertTrue(io.writes.isEmpty());
     }
 
@@ -198,6 +202,50 @@ class WeakloadRegistryTest {
     }
 
     @Test
+    void incompleteRollbackOfAddsEntersProtectionMode() throws IOException {
+        MemoryIo io = new MemoryIo();
+        io.disk = state(OVERWORLD, new long[] {chunk(1, 1)});
+        WeakloadRegistry registry = new WeakloadRegistry(io);
+        RecordingOps ops = new RecordingOps();
+        ops.failOnCall = 3;              // 前向在补恢复 add:3,3 时失败
+        ops.failRemoveOn = chunk(2, 2);  // 回滚逆操作 remove:2,2 再失败
+
+        // 不得报告为 TicketApplyException（其语义是「已完整回滚」）
+        assertThrows(WriteProtectedException.class,
+                () -> registry.mutate(OVERWORLD, new long[] {chunk(2, 2), chunk(3, 3)}, new long[0], ops));
+        assertTrue(registry.isWriteProtected());
+        // 单点逆操作失败后仍继续处理其余逆操作
+        assertEquals(List.of("add:1,1", "add:2,2", "add:3,3:FAIL", "remove:1,1", "remove:2,2:FAIL"), ops.log);
+        // 旧状态仍被尽力回写（最后一次写是旧状态），内存登记未变化
+        assertArrayEquals(new long[] {chunk(1, 1)}, io.writes.get(io.writes.size() - 1).get(OVERWORLD));
+        assertArrayEquals(new long[] {chunk(1, 1)}, registry.registeredChunks(OVERWORLD));
+        // 保护模式下禁止后续变更
+        assertThrows(WriteProtectedException.class,
+                () -> registry.mutate(OVERWORLD, new long[] {chunk(9, 9)}, new long[0], new RecordingOps()));
+    }
+
+    @Test
+    void incompleteRollbackOfRemovalsEntersProtectionMode() throws IOException {
+        MemoryIo io = new MemoryIo();
+        io.disk = new LinkedHashMap<>();
+        io.exists = false;
+        WeakloadRegistry registry = new WeakloadRegistry(io);
+        registry.mutate(OVERWORLD, new long[] {chunk(1, 1), chunk(2, 2)}, new long[0], new RecordingOps());
+
+        RecordingOps ops = new RecordingOps();
+        ops.failOnCall = 2;          // 前向第二个 remove:2,2 失败
+        ops.failAddOn = chunk(1, 1); // 回滚逆操作补回 add:1,1 再失败
+
+        assertThrows(WriteProtectedException.class,
+                () -> registry.mutate(OVERWORLD, new long[0], new long[] {chunk(1, 1), chunk(2, 2)}, ops));
+        assertTrue(registry.isWriteProtected());
+        assertEquals(List.of("remove:1,1", "remove:2,2:FAIL", "add:1,1:FAIL"), ops.log);
+        assertArrayEquals(new long[] {chunk(1, 1), chunk(2, 2)}, registry.registeredChunks(OVERWORLD));
+        assertArrayEquals(new long[] {chunk(1, 1), chunk(2, 2)},
+                io.writes.get(io.writes.size() - 1).get(OVERWORLD));
+    }
+
+    @Test
     void removingLastChunkStopsKeepAlive() throws IOException {
         MemoryIo io = new MemoryIo();
         io.disk = new LinkedHashMap<>();
@@ -206,9 +254,9 @@ class WeakloadRegistryTest {
         registry.mutate(OVERWORLD, new long[] {chunk(0, 0)}, new long[0], new RecordingOps());
         assertTrue(registry.hasActiveTickets(OVERWORLD));
 
-        int changed = registry.mutate(OVERWORLD, new long[0], new long[] {chunk(0, 0)}, new RecordingOps());
+        long[] changed = registry.mutate(OVERWORLD, new long[0], new long[] {chunk(0, 0)}, new RecordingOps());
 
-        assertEquals(1, changed);
+        assertArrayEquals(new long[] {chunk(0, 0)}, changed);
         assertFalse(registry.hasActiveTickets(OVERWORLD));
         assertEquals(0, registry.registeredChunks(OVERWORLD).length);
     }
@@ -249,6 +297,23 @@ class WeakloadRegistryTest {
     }
 
     @Test
+    void structurallyInvalidFileIsBackedUpAndContinuesFresh() throws IOException {
+        Path file = tempDir.resolve("weakload.json");
+        // 语法合法但结构非法：维度列表为 null，不得被静默当成空数据
+        String invalid = "{\"version\":1,\"dimensions\":{\"minecraft:overworld\":null}}";
+        Files.createDirectories(file.getParent());
+        Files.writeString(file, invalid, StandardCharsets.UTF_8);
+
+        WeakloadRegistry registry = new WeakloadRegistry(file);
+
+        assertFalse(registry.isWriteProtected());
+        assertEquals(0, registry.registeredChunks(OVERWORLD).length);
+        assertFalse(Files.exists(file), "original file must be moved away");
+        assertEquals(invalid, Files.readString(tempDir.resolve("weakload.json.corrupt"),
+                StandardCharsets.UTF_8), "backup must keep original bytes");
+    }
+
+    @Test
     void corruptBackupFailureEntersProtectionMode() {
         MemoryIo io = new MemoryIo();
         io.failRead = true;
@@ -283,16 +348,33 @@ class WeakloadRegistryTest {
     }
 
     @Test
-    void removalCountUsesSymmetricDifference() throws IOException {
+    void removalChangedSetUsesSymmetricDifference() throws IOException {
         MemoryIo io = new MemoryIo();
         io.disk = state(OVERWORLD, new long[] {chunk(1, 1), chunk(2, 2), chunk(3, 3)});
         WeakloadRegistry registry = new WeakloadRegistry(io);
 
-        int changed = registry.mutate(OVERWORLD, new long[] {chunk(4, 4)}, new long[] {chunk(2, 2), chunk(3, 3), chunk(9, 9)},
+        long[] changed = registry.mutate(OVERWORLD, new long[] {chunk(4, 4)}, new long[] {chunk(2, 2), chunk(3, 3), chunk(9, 9)},
                 new RecordingOps());
 
-        assertEquals(3, changed);
+        assertArrayEquals(new long[] {chunk(2, 2), chunk(3, 3), chunk(4, 4)}, changed);
         assertArrayEquals(new long[] {chunk(1, 1), chunk(4, 4)}, registry.registeredChunks(OVERWORLD));
         assertArrayEquals(new long[] {chunk(1, 1), chunk(4, 4)}, io.writes.get(0).get(OVERWORLD));
+    }
+
+    @Test
+    void changedSetReportsOnlyActuallyChangedChunks() throws IOException {
+        MemoryIo io = new MemoryIo();
+        io.disk = state(OVERWORLD, new long[] {chunk(2, 2)});
+        WeakloadRegistry registry = new WeakloadRegistry(io);
+
+        // 范围 [(1,1)..(2,2)] 四区块中仅 (2,2) 已登记 → 变更集为其余三者，不含 (2,2)
+        long[] changed = registry.mutate(OVERWORLD,
+                new long[] {chunk(1, 1), chunk(1, 2), chunk(2, 1), chunk(2, 2)}, new long[0], new RecordingOps());
+        assertArrayEquals(new long[] {chunk(1, 1), chunk(1, 2), chunk(2, 1)}, changed);
+
+        // 删除方向同理：(3,3) 未登记，不出现在变更集中
+        long[] removed = registry.mutate(OVERWORLD, new long[0],
+                new long[] {chunk(2, 1), chunk(2, 2), chunk(3, 3)}, new RecordingOps());
+        assertArrayEquals(new long[] {chunk(2, 1), chunk(2, 2)}, removed);
     }
 }

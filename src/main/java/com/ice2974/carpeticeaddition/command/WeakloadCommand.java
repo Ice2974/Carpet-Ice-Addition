@@ -124,32 +124,34 @@ public final class WeakloadCommand {
                 }
             }
 
-            int changed;
+            long[] changedChunks;
             try {
-                changed = add
+                changedChunks = add
                         ? WeakloadManager.addChunks(level, packedChunks)
                         : WeakloadManager.removeChunks(level, packedChunks);
             } catch (IOException exception) {
                 throw storageError(exception);
             }
-            if (changed == 0) {
+            if (changedChunks.length == 0) {
                 throw add ? ERROR_ALL_ADDED.create() : ERROR_NONE_REMOVED.create();
             }
             String minChunk = "[" + minChunkX + ", " + minChunkZ + "]";
             String maxChunk = "[" + maxChunkX + ", " + maxChunkZ + "]";
-            if (changed == 1) {
+            if (changedChunks.length == 1) {
+                // 范围内只有一个区块实际变化时反馈该区块本身，而不是范围最小角
+                long packed = changedChunks[0];
+                String chunk = "[" + WeakloadRegistry.unpackX(packed) + ", " + WeakloadRegistry.unpackZ(packed) + "]";
                 String key = add
                         ? "command.carpet-ice-addition.weakload.added.single"
                         : "command.carpet-ice-addition.weakload.removed.single";
-                source.sendSuccess(() -> tr(key, minChunk, dimension), true);
+                source.sendSuccess(() -> tr(key, chunk, dimension), true);
             } else {
                 String key = add
                         ? "command.carpet-ice-addition.weakload.added.multiple"
                         : "command.carpet-ice-addition.weakload.removed.multiple";
-                int finalChanged = changed;
-                source.sendSuccess(() -> tr(key, finalChanged, minChunk, maxChunk, dimension), true);
+                source.sendSuccess(() -> tr(key, changedChunks.length, minChunk, maxChunk, dimension), true);
             }
-            return changed;
+            return changedChunks.length;
         }
         throw ERROR_OUT_OF_WORLD.create("(" + minX + ", " + minZ + ")");
     }
