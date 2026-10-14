@@ -26,6 +26,13 @@ final class WeakloadRegistry {
     private static final Logger LOGGER = LoggerFactory.getLogger(WeakloadRegistry.class);
     private static final long[] EMPTY_CHUNKS = new long[0];
 
+    /**
+     * 区块坐标合法边界，与 WeakloadCommand 的 ±30000000 方块边界经
+     * SectionPos.blockToSectionCoord 折算一致（-30000000/16 与 29999999/16 向下取整）。
+     */
+    static final int MIN_CHUNK_COORD = -1875000;
+    static final int MAX_CHUNK_COORD = 1874999;
+
     /** 变更被保护模式拒绝（损坏文件无法迁移或回滚后旧数据恢复失败）。 */
     static final class WriteProtectedException extends IOException {
         WriteProtectedException(String message, Throwable cause) {
@@ -144,18 +151,27 @@ final class WeakloadRegistry {
             throw new WriteProtectedException("Weakload data is write protected", null);
         }
 
-        TreeSet<Long> desired = new TreeSet<>();
+        TreeSet<Long> original = new TreeSet<>();
         for (long packed : registered.getOrDefault(dimensionId, EMPTY_CHUNKS)) {
+            original.add(packed);
+        }
+        TreeSet<Long> desired = new TreeSet<>(original);
+        for (long packed : removePacked) {
+            desired.remove(packed);
+        }
+        for (long packed : addPacked) {
             desired.add(packed);
         }
+        // 变更集按「最终状态相对原状态」的对称差计算：同一区块同时出现在
+        // add/remove 两个方向时净效果为零，不计入变更，也不触发写盘与票据差分
         TreeSet<Long> changedSet = new TreeSet<>();
-        for (long packed : removePacked) {
-            if (desired.remove(packed)) {
+        for (long packed : desired) {
+            if (!original.contains(packed)) {
                 changedSet.add(packed);
             }
         }
-        for (long packed : addPacked) {
-            if (desired.add(packed)) {
+        for (long packed : original) {
+            if (!desired.contains(packed)) {
                 changedSet.add(packed);
             }
         }

@@ -377,4 +377,35 @@ class WeakloadRegistryTest {
                 new long[] {chunk(2, 1), chunk(2, 2), chunk(3, 3)}, new RecordingOps());
         assertArrayEquals(new long[] {chunk(2, 1), chunk(2, 2)}, removed);
     }
+
+    @Test
+    void sameChunkInBothDirectionsReportsNoNetChange() throws IOException {
+        MemoryIo io = new MemoryIo();
+        io.disk = state(OVERWORLD, new long[] {chunk(1, 1), chunk(2, 2)});
+        WeakloadRegistry registry = new WeakloadRegistry(io);
+        RecordingOps ops = new RecordingOps();
+
+        // (1,1) 已登记且同时出现在 add/remove：净效果为零，不算变更、不写盘、不动票据
+        long[] changed = registry.mutate(OVERWORLD, new long[] {chunk(1, 1)}, new long[] {chunk(1, 1)}, ops);
+
+        assertArrayEquals(new long[0], changed);
+        assertTrue(io.writes.isEmpty());
+        assertTrue(ops.log.isEmpty());
+        assertArrayEquals(new long[] {chunk(1, 1), chunk(2, 2)}, registry.registeredChunks(OVERWORLD));
+    }
+
+    @Test
+    void sameChunkInBothDirectionsStillRegistersWhenAbsent() throws IOException {
+        MemoryIo io = new MemoryIo();
+        io.disk = new LinkedHashMap<>();
+        io.exists = false;
+        WeakloadRegistry registry = new WeakloadRegistry(io);
+
+        // (2,2) 未登记：remove 是空操作，最终效果是登记，变更集恰为该区块
+        long[] changed = registry.mutate(OVERWORLD, new long[] {chunk(2, 2)}, new long[] {chunk(2, 2)},
+                new RecordingOps());
+
+        assertArrayEquals(new long[] {chunk(2, 2)}, changed);
+        assertArrayEquals(new long[] {chunk(2, 2)}, registry.registeredChunks(OVERWORLD));
+    }
 }

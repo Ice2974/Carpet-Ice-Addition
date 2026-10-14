@@ -22,8 +22,9 @@ import java.util.TreeMap;
  * 弱加载登记表的纯 JSON 存取层。区块以 x/z 整数对存储而不是 packed long：
  * 区块 packed 坐标会超出 JSON 双精度安全整数范围且可能为负，直接存数值会精度失真。
  * 写入走临时文件 + 原子替换；读取做严格结构校验，语法合法但结构非法的数据
- * （缺字段、null 槽位、版本不符、重复条目）一律按读取失败抛出，由上层
- * （WeakloadRegistry）决定备份与保护策略，不会被静默当成空数据。
+ * （缺字段、null 槽位、版本不符、重复条目、非法维度 ID、区块坐标越界）一律按
+ * 读取失败抛出，由上层（WeakloadRegistry）决定备份与保护策略，不会被静默
+ * 当成空数据。维度 ID 只校验字符串合法性，维度当前不存在不视为非法。
  */
 final class WeakloadStore {
     private static final Gson GSON = new GsonBuilder()
@@ -58,6 +59,9 @@ final class WeakloadStore {
             }
             Map<String, long[]> result = new TreeMap<>();
             for (Map.Entry<String, List<ChunkEntry>> entry : data.dimensions.entrySet()) {
+                if (!isValidDimensionId(entry.getKey())) {
+                    throw invalid(path, "'" + entry.getKey() + "' is not a valid dimension id");
+                }
                 long[] chunks = readDimension(path, entry.getKey(), entry.getValue());
                 if (chunks.length > 0) {
                     result.put(entry.getKey(), chunks);
@@ -78,6 +82,10 @@ final class WeakloadStore {
             if (chunk == null || chunk.x == null || chunk.z == null) {
                 throw invalid(path, "dimension '" + dimensionId + "' has an incomplete chunk entry");
             }
+            if (chunk.x < WeakloadRegistry.MIN_CHUNK_COORD || chunk.x > WeakloadRegistry.MAX_CHUNK_COORD
+                    || chunk.z < WeakloadRegistry.MIN_CHUNK_COORD || chunk.z > WeakloadRegistry.MAX_CHUNK_COORD) {
+                throw invalid(path, "dimension '" + dimensionId + "' has a chunk entry outside the world bounds");
+            }
             packed[index] = WeakloadRegistry.pack(chunk.x, chunk.z);
         }
         Arrays.sort(packed);
@@ -87,6 +95,39 @@ final class WeakloadStore {
             }
         }
         return packed;
+    }
+
+    /**
+     * 维度 ID 的字符串合法性，规则与原版 ResourceLocation 一致：至多一个冒号，
+     * 命名空间字符集 [a-z0-9_.-]、路径字符集 [a-z0-9_./-]，缺省命名空间合法。
+     * 只校验字符串本身——维度「当前不存在」不是非法，其记录必须保留。
+     */
+    private static boolean isValidDimensionId(String dimensionId) {
+        int separator = dimensionId.indexOf(':');
+        String namespace = separator >= 0 ? dimensionId.substring(0, separator) : "minecraft";
+        String path = separator >= 0 ? dimensionId.substring(separator + 1) : dimensionId;
+        if (namespace.isEmpty() || path.isEmpty() || dimensionId.indexOf(':', separator + 1) >= 0) {
+            return false;
+        }
+        for (int index = 0; index < namespace.length(); index++) {
+            if (!isNamespaceChar(namespace.charAt(index))) {
+                return false;
+            }
+        }
+        for (int index = 0; index < path.length(); index++) {
+            if (!isPathChar(path.charAt(index))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean isNamespaceChar(char c) {
+        return c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c == '_' || c == '.' || c == '-';
+    }
+
+    private static boolean isPathChar(char c) {
+        return isNamespaceChar(c) || c == '/';
     }
 
     private static IOException invalid(Path path, String detail) {
