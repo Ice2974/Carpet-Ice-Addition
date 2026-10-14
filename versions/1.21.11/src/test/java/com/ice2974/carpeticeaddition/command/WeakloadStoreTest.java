@@ -117,6 +117,23 @@ class WeakloadStoreTest {
     }
 
     @Test
+    void duplicateAliasWithEmptyListIsStillRejected() {
+        // 重复键检测与空列表过滤分离：任一侧为空也必须拒绝，不得绕过冲突检测
+        assertThrows(IOException.class, () -> read("{"
+                + "\"version\":1,\"dimensions\":{"
+                + "\"overworld\":[],"
+                + "\"minecraft:overworld\":[{\"x\":1,\"z\":1}]}}"));
+        assertThrows(IOException.class, () -> read("{"
+                + "\"version\":1,\"dimensions\":{"
+                + "\"minecraft:overworld\":[{\"x\":1,\"z\":1}],"
+                + "\"overworld\":[]}}"));
+        assertThrows(IOException.class, () -> read("{"
+                + "\"version\":1,\"dimensions\":{"
+                + "\"overworld\":[],"
+                + "\"minecraft:overworld\":[]}}"));
+    }
+
+    @Test
     void legalButUnloadedDimensionIdsAreKept() throws IOException {
         // 维度「当前不存在」不是 ID 非法：记录必须原样保留（键规范化为完整形式）
         Map<String, long[]> parsed = read("{\"version\":1,\"dimensions\":{"

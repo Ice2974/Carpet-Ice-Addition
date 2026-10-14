@@ -13,9 +13,11 @@ import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 /**
@@ -60,15 +62,20 @@ final class WeakloadStore {
                 throw invalid(path, "missing dimensions");
             }
             Map<String, long[]> result = new TreeMap<>();
+            // 重复键检测与空列表过滤分离：即使其中一条别名记录为空，冲突也必须暴露
+            Set<String> seenDimensions = new HashSet<>();
             for (Map.Entry<String, List<ChunkEntry>> entry : data.dimensions.entrySet()) {
                 String dimensionId = normalizeDimensionId(entry.getKey());
                 if (dimensionId == null) {
                     throw invalid(path, "'" + entry.getKey() + "' is not a valid dimension id");
                 }
-                long[] chunks = readDimension(path, entry.getKey(), entry.getValue());
-                if (chunks.length > 0 && result.putIfAbsent(dimensionId, chunks) != null) {
+                if (!seenDimensions.add(dimensionId)) {
                     throw invalid(path, "dimension '" + entry.getKey() + "' duplicates '"
                             + dimensionId + "' after namespace normalization");
+                }
+                long[] chunks = readDimension(path, entry.getKey(), entry.getValue());
+                if (chunks.length > 0) {
+                    result.put(dimensionId, chunks);
                 }
             }
             return result;
