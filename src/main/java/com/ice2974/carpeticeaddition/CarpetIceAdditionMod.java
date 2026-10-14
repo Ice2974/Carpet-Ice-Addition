@@ -25,6 +25,8 @@ import com.ice2974.carpeticeaddition.command.KillItemCommand;
 import com.ice2974.carpeticeaddition.command.KillItemConfigManager;
 import com.ice2974.carpeticeaddition.command.MachineStatusCommand;
 import com.ice2974.carpeticeaddition.command.MachineStatusConfigManager;
+import com.ice2974.carpeticeaddition.command.WeakloadCommand;
+import com.ice2974.carpeticeaddition.command.WeakloadManager;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
 import com.mojang.brigadier.CommandDispatcher;
@@ -53,6 +55,8 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
                 .getFriendlyString();
         CarpetServer.manageExtension(INSTANCE);
         RecipeDatapackRegistry.initialize();
+        // 1.21.5+ 票据类型必须写入 TICKET_TYPE 注册表且先于注册表冻结与世界加载
+        WeakloadManager.registerTicketType();
     }
 
     @Override
@@ -73,7 +77,8 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
         }
         CarpetServer.settingsManager.registerRuleObserver((source, rule, userInput) -> {
             String ruleName = rule.name();
-            if ("commandKillItem".equals(ruleName) || "commandMachineStatus".equals(ruleName)) {
+            if ("commandKillItem".equals(ruleName) || "commandMachineStatus".equals(ruleName)
+                    || "commandWeakload".equals(ruleName)) {
                 MinecraftServer server = source != null ? source.getServer() : CarpetServer.minecraft_server;
                 if (server != null) {
                     CommandHelper.notifyPlayersCommandsChanged(server);
@@ -130,6 +135,16 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
     @Override public void registerLoggers() { VillagerEventsLogger.register(); }
 
     @Override
+    public void onTick(MinecraftServer server) {
+        // 1.21.1–1.21.8 原版维度活跃判定不含自定义票据，空维度 300 tick 后会冻结方块实体刻，
+        // 需要对实际持有弱加载票据的维度清零 emptyTime；1.21.9+ 由票据 KEEP_DIMENSION_ACTIVE
+        // 标志位交由原版 hasActiveTickets 处理，不再额外调用
+        //#if MC<12109
+        //$$        WeakloadManager.onServerTick(server);
+        //#endif
+    }
+
+    @Override
     public void onPlayerLoggedIn(ServerPlayer player) {
         try {
             // 锁定期提示与逐规则同步（含 coral 配方书；calcite 无配方书界面）统一由注册表处理。
@@ -151,12 +166,14 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
     public void registerCommands(CommandDispatcher<CommandSourceStack> dispatcher, CommandBuildContext commandBuildContext) {
         KillItemCommand.register(dispatcher);
         MachineStatusCommand.register(dispatcher);
+        WeakloadCommand.register(dispatcher);
     }
 
     @Override
     public void onServerLoaded(MinecraftServer server) {
         KillItemConfigManager.initialize(server.getWorldPath(LevelResource.ROOT));
         MachineStatusConfigManager.initialize(server.getWorldPath(LevelResource.ROOT));
+        WeakloadManager.initialize(server.getWorldPath(LevelResource.ROOT));
         VillagerEventsRuntime.onServerLoaded(server);
         DeltaruneEasterEggs.onServerLoaded();
     }
@@ -176,6 +193,12 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
 
         CarpetIceAdditionFluidSettings.refreshCachedValues();
         VillagerTradingOptimizationRuleHelper.rebuildMismatchedVillagers(server);
+        try {
+            // 世界加载完成后恢复各维度弱加载票据；维度不存在时跳过，JSON 记录原样保留
+            WeakloadManager.restoreTickets(server);
+        } catch (Throwable throwable) {
+            reportFeatureCompatibilityIssue("weakload", throwable);
+        }
     }
 
     @Override
@@ -185,6 +208,7 @@ public final class CarpetIceAdditionMod implements ModInitializer, CarpetExtensi
         VillagerEventsRuntime.onServerClosed(server);
         KillItemConfigManager.shutdown();
         MachineStatusConfigManager.shutdown();
+        WeakloadManager.shutdown();
         DeltaruneEasterEggs.onServerClosed();
         try {
             RecipeDatapackRegistry.onServerClosed(server);

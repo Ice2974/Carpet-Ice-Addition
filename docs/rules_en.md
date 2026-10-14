@@ -98,7 +98,7 @@ Fixes a Carpet crash that can happen when leaving a singleplayer world after pre
 
 ### commandKillItem
 
-Registers the /killitem command for clearing item entities by radius or globally, with blacklist and named-item protection settings.
+Controls the permission of the /killitem command.
 
 - Type: `String`
 - Default: `ops`
@@ -107,7 +107,16 @@ Registers the /killitem command for clearing item entities by radius or globally
 
 ### commandMachineStatus
 
-Controls the permission of the /machineStatus command, which saves the target block state when a technical machine is shut down, and checks which machines are not currently in their saved shutdown state.
+Controls the permission of the /machineStatus command.
+
+- Type: `String`
+- Default: `ops`
+- Possible values: `false`, `true`, `ops`, `0`, `1`, `2`, `3`, `4`
+- Categories: `ICE`, `COMMAND`
+
+### commandWeakload
+
+Controls the permission of the /weakload command.
 
 - Type: `String`
 - Default: `ops`

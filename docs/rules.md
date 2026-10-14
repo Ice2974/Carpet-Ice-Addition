@@ -98,7 +98,7 @@
 
 ### 掉落物清理指令 (commandKillItem)
 
-注册 /killitem 指令，允许按半径或全局清理掉落物，并支持黑名单与命名掉落物保护配置。
+控制 /killitem 命令权限。
 
 - 类型: `String`
 - 默认值: `ops`
@@ -107,7 +107,16 @@
 
 ### 机器状态检查命令 (commandMachineStatus)
 
-控制 /machineStatus 命令权限，此命令用于保存生电机器关机时的目标方块状态，并查询当前哪些机器未处于保存的关机状态。
+控制 /machineStatus 命令权限。
+
+- 类型: `String`
+- 默认值: `ops`
+- 可选值: `false`, `true`, `ops`, `0`, `1`, `2`, `3`, `4`
+- 分类: `ICE`, `COMMAND`
+
+### 弱加载命令 (commandWeakload)
+
+控制 /weakload 命令权限。
 
 - 类型: `String`
 - 默认值: `ops`
