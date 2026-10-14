@@ -1,6 +1,6 @@
 # AGENTS.md
 
-本文件是给 Codex / Agent 使用的仓库工作规则，只记录协作方式、修改边界和验证要求，不维护项目当前状态、规则清单、版本清单或发布信息。
+本文件是给 Agent 使用的仓库工作规则，只记录协作方式、修改边界和验证要求，不维护项目当前状态、规则清单、版本清单或发布信息。
 
 ## 信息来源
 
@@ -19,11 +19,12 @@
 
 ## 目录边界
 
-- `src/main/java`（仓库根）：主源码树——面向 mainProject（1.21.11）的「main 态」源码 + `//#if MC` 预处理宏，经 preprocess 版本图变换为各平台编译输入；是唯一 Java main 共享源码所有者，包含规则定义、翻译、公共配置管理与工具逻辑；只允许 java，不放 resources。
-- `src/main/resources`（仓库根）：跨平台共享资源目录，承载 mod 图标、中英语言文件、珊瑚内置资源包 modern 档配方；经 `common.gradle` 接入所有平台的资源 srcDirs，次序在平台本地之后（同相对路径时平台本地优先）；不得包含 `fabric.mod.json`、`resourcepacks/craftable_coral_blocks/pack.mcmeta` 或 tracked `*.mixins.json`（资源所有权不变式，配置期断言）。
-- `versions/<MC 版本>`（如 `versions/1.21.1`、`versions/26.2`）：per-version override 源码（同路径整文件替换根 src 变换输出 / 异路径附加）、平台资源（`fabric.mod.json`、内置资源包 `pack.mcmeta`，1.21.1 另有 old-schema 配方同路径覆盖）与 per-version `gradle.properties`；平台 runtime resource source tree 不拥有手写 `*.mixins.json`。
+- `src/main/java`（仓库根）：主源码树——面向 mainProject（core 平台版本由 `versions/mainProject` 声明，当前为 1.21.11）的「main 态」源码 + `//#if MC` 预处理宏，经 preprocess 版本图变换为各平台编译输入；是唯一 Java main 共享源码所有者，包含规则定义、翻译、公共配置管理与工具逻辑；只允许 java，不放 resources。
+- `src/main/resources`（仓库根）：跨平台共享资源目录，承载 mod 图标、中英语言文件、内置资源包 modern 档配方；经 `common.gradle` 接入所有平台的资源 srcDirs，次序在平台本地之后（同相对路径时平台本地优先）；不得包含 `fabric.mod.json`、内置资源包 `pack.mcmeta` 或 tracked `*.mixins.json`（资源所有权不变式，配置期断言）。
+- `versions/<MC 版本>`（如 `versions/1.21.1`、`versions/26.2`）：per-version override 源码（同路径整文件替换根 src 变换输出 / 异路径附加）、平台资源（`fabric.mod.json`、内置资源包 `pack.mcmeta`，1.21.1 另有珊瑚与方解石切石 old-schema 配方同路径覆盖）与 per-version `gradle.properties`；平台 runtime resource source tree 不拥有手写 `*.mixins.json`。
+- `versions/mainProject`：唯一声明 core 平台版本项目名的文本文件（当前内容为 `1.21.11`），构建脚本据此断言并接线测试源集与主版本基准。
 - `gradle/mixins/registry.json`：唯一人工维护的 Mixin registry，登记 membership、版本 predicate 与 precedence；各平台 build-time generator 在 `versions/<MC 版本>/build/generated/mixinConfig/<mixin_config>` 生成 effective config，并以 task output 接入产物。root / platform runtime resource source tree 禁止重新加入 tracked `*.mixins.json`。
-- `docs/`：规则、命令、记录器、开发说明、发布说明等项目资料。
+- `docs/`：规则（`rules*.md`）、命令（`commands*.md`）、记录器（`loggers*.md`）的中英文档。
 - `THIRD_PARTY_NOTICES.md`：第三方来源、许可证、致谢、移植 / 参考 / 重写说明的维护文件；不替代 `LICENSE`，也不作为项目功能状态来源。
 - `references/`：本地参考资料目录，不作为项目事实来源，不修改其中内容。
 
@@ -37,7 +38,6 @@
 | Mod ID | `carpet-ice-addition` |
 | Java Package | `com.ice2974.carpeticeaddition` |
 | Maven Group | `com.ice2974` |
-| Archives Base Name | `carpet-ice-addition`（平台中间产物附加 `-<MC 版本>` 后缀，如 `carpet-ice-addition-1.21.1`） |
 | 主入口类（各平台共用） | `com.ice2974.carpeticeaddition.CarpetIceAdditionMod` |
 | 规则分类内部名 | `CarpetIceAddition`（对应翻译键 `carpet.category.CarpetIceAddition`，显示值 `Ice`） |
 | 资源 namespace | `carpet-ice-addition`（assets 路径 `assets/carpet-ice-addition/`） |
@@ -54,11 +54,11 @@
 
 ## 根源码树与跨版本规则
 
-- 源码架构：根 `src/main/java` 主源码树（mainProject = 1.21.11）+ 根 `build.gradle` preprocess 版本图（插件 `com.replaymod.preprocess` 经 JitPack 全 SHA 锁定解析到 liuyuexiaoyu1/preprocessor）+ `versions/<MC 版本>/src/main/java` per-version override；共享资源仅位于根 `src/main/resources`，不使用 `common/` 或 `versions/shared/` 资源档。
+- 源码架构：根 `src/main/java` 主源码树（mainProject 由 `versions/mainProject` 声明，当前为 1.21.11）+ 根 `build.gradle` preprocess 版本图（插件 `com.replaymod.preprocess` 经 JitPack 全 SHA 锁定解析到 liuyuexiaoyu1/preprocessor）+ `versions/<MC 版本>/src/main/java` per-version override；共享资源仅位于根 `src/main/resources`，不使用 `common/` 或 `versions/shared/` 资源档。
 - 单元测试归属 core 平台：共享测试源码位于 `versions/<mainProject 版本>/src/test/java`，测试入口为 `:<mainProject 版本>:test`（CI 显式执行）；共享单元测试不得经 preprocess 版本图传播到 non-core 平台（test sourceSet 统一恢复为本平台本地目录）；non-core 平台 test 任务因此默认保持 NO-SOURCE。未来如确需版本专属测试，应作为明确的 per-version 测试需求单独接线和规划，不隐式继承 core tests。
 - 根 src 必须保持「main 态」：纯文本可直接按 1.21.11 编译；所有非 1.21.11 内容必须以 `//$$ ` 前缀的注释态出现在条件分支内；预处理指令行（`//#if` / `//#elseif` / `//#else` / `//#endif` / `//#disable-remap` 等）不加 `$$` 前缀。
 - 宏只用于单处 ≤10 行、不改 Mixin 注入 descriptor 的小差异；结构性分叉（注入目标结构 / 方法签名 / AI 拓扑 / `@At` 字符串差异）必须用平台 override 文件表达，不强行塞进宏。
-- override 语义：非 core 平台的本地 `src/main/java` 按同路径整文件替换根 src 变换输出、异路径附加；override 文件直接编译，不参与宏求值与边重映射，内部不使用预处理指令；core（1.21.11）没有 override 层，本地 src 不参与编译。
+- override 语义：非 core 平台的本地 `src/main/java` 按同路径整文件替换根 src 变换输出、异路径附加；override 文件直接编译，不参与宏求值与边重映射，内部不使用预处理指令；core（1.21.11）没有 Java override 层，本地 src/main/java 不参与编译。
 - 版本图边 mapping 文件（`versions/mapping-<a>-<b>.txt`）只在 automatic mapping 无法表达时添加条目（外部库 rename、成员移动、remap↔plain 边）；1.21.x remap 边通常保持 0 字节。修改 mapping 后必须全量编译验证受影响平台。
 - 严禁把根 src（java 或 resources）注册为独立 Gradle 子项目；Java source root 必须停在标准的 src/main/java，禁止把 com/... package 目录直接注册为 source root。
 - 跨小版本差异优先通过宏、平台 override 或版本图 mapping 表达，不优先使用运行期字符串版本号判断来偷渡兼容。
@@ -68,14 +68,13 @@
 ## 版本注册表与构建配置
 
 - `settings.json` 是支持版本清单的唯一来源；`settings.gradle` 据此动态生成平台子项目（根直接子项目 `:<MC 版本>`，如 `:1.21.11`，磁盘目录 `versions/<MC 版本>`），并断言 `versions/` 目录集合恰为注册表条目目录（双向 fail closed；`versions/` 下无 `shared` 等附加目录）。
-- 新增 Minecraft 平台 = 在 `settings.json` 按版本升序登记 + 新建 `versions/<MC 版本>/`（per-version `gradle.properties`、src）+ 根 `build.gradle` 版本图 `createNode` 登记节点并与相邻版本 `link`（含新建对应 `versions/mapping-*.txt`），不要手写 include 清单；平台不写独立 `build.gradle`，`settings.gradle` 将全部平台的 buildFileName 统一指向根 `common.gradle`，由其按 per-version `gradle.properties` 的 `loom_plugin` 完整 `id:version` 动态应用对应 Loom 插件（根 `build.gradle` 以 `apply false` + 单引号字面版本声明所用 loom 坐标；`settings.gradle` 用限定语法扫描器对根 plugins 块做整行字面校验，并与全部平台 `loom_plugin` 使用集合双向全等，注释/字符串/块外/形态不符/坐标漂移一律 fail closed）。
+- 新增 Minecraft 平台 = 在 `settings.json` 按版本升序登记 + 新建 `versions/<MC 版本>/`（per-version `gradle.properties`、src、平台资源 `fabric.mod.json` 与各内置资源包 `pack.mcmeta`）+ 根 `build.gradle` 版本图 `createNode` 登记节点并与相邻版本 `link`（含新建对应 `versions/mapping-*.txt`），不要手写 include 清单；平台不写独立 `build.gradle`，`settings.gradle` 将全部平台的 buildFileName 统一指向根 `common.gradle`，由其按 per-version `gradle.properties` 的 `loom_plugin` 完整 `id:version` 动态应用对应 Loom 插件（根 `build.gradle` 以 `apply false` + 单引号字面版本声明所用 loom 坐标；`settings.gradle` 用限定语法扫描器对根 plugins 块做整行字面校验，并与全部平台 `loom_plugin` 使用集合双向全等，注释/字符串/块外/形态不符/坐标漂移一律 fail closed）。
 - 平台版本数据（minecraft、loader、fabric-api、carpet、pack_format 等）放在 `versions/<MC 版本>/gradle.properties`，不要向根 `gradle.properties` 回填平台前缀键。
 - 平台共通构建逻辑在根 `common.gradle`（即各平台项目的 build file 本身，脚本顶部按 `loom_plugin`/`jar_task` 动态应用 Loom 插件并断言两键一致），差异由 per-version 数据键驱动；修改共通逻辑时必须同时验证两种 loom 形态（Mojmap layered remap 与免混淆 plain）。
 - 平台资源 srcDirs 固定为 [平台本地 `src/main/resources`，根 `src/main/resources`]；不使用 `common/`、`versions/shared/` 或 `extra_resource_dirs` 档。同相对路径资源碰撞由平台本地层胜出（`processResources` / `sourcesJar` 显式 `DuplicatesStrategy.EXCLUDE`；first-wins 本身不是 fail-closed），碰撞是否被允许由配置期碰撞不变式 fail-closed 裁决——任何新增碰撞必须同步登记根 `build.gradle` 的 `expectedRootResourceCollisions`（keySet 与版本注册表全等，缺失键不会默认按空集放行）。
 - Mixin effective config 由 `gradle/mixins/registry.json` 经每个平台的 `generateMixinConfig` 生成到独立 `build/generated/mixinConfig/`；只允许通过显式 task-output wiring 接入 `processResources` / `sourcesJar`，不得将 generated 目录注册为 resource srcDir，也不得在 root / platform runtime resource source tree 手写 `*.mixins.json`。运行时仍使用各平台既有 `carpet-ice-addition-mcXXXX.mixins.json` 文件名。
 - `mixin_config` 与 `mcXXXX` runtime Mixin 文件名是长期 runtime compatibility identity，不是当前 project/source/preprocess/publish platform identity。当前 actual 版本树的发布资产必须由 `settings.json` + per-version `release_minecraft_range` + 根 `mod_version` 派生精确文件名，并与真实产物校验；不得从 Mixin 引用或拼接版本码识别平台。
 - 发布解析只接受 `settings.json` 实际版本号注册表；历史 `mcXXXX` registry 树 / `versions/platform-mcXXXX/` 布局不再支持补发布，解析遇之 fail closed。修改发布解析时运行 `python scripts/verify_publish_resolver.py`（先 build），harness 必须机械提取并测试 workflow 中 layout 与 asset attribution 的同一份生产逻辑，marker 缺失/重复须失败。
-
 
 ## 规则 / 命令 / 记录器修改
 
@@ -84,15 +83,16 @@
 | 类型 | 至少检查 | 必须同步文档 |
 | - | - | - |
 | 规则 | 规则定义类、翻译提供类、中英文语言文件、相关 Mixin / Helper / 配置类、入口类（根 src 注册宏边界）、canonical registry 的 membership / predicate / precedence、受影响平台 override | `docs/rules.md`、`docs/rules_en.md` |
-| 命令 | 命令注册入口、命令实现类、权限判断、命令树刷新逻辑、反馈/错误文本、配置持久化逻辑 | `docs/commands.md`、`docs/commands_en.md` |
-| 记录器 | `registerLoggers()` 接入点、logger 注册/显示/辅助类、事件触发点、Mixin、HUD 更新入口、内部名、默认 option、可选 options、订阅状态快速判断 | `docs/loggers.md`、`docs/loggers_en.md` |
+| 命令 | 命令注册入口、命令实现类、权限判断与对应规则类（COMMAND 分类）、命令树刷新逻辑、翻译提供类、中英文语言文件、受影响平台 override 入口类（各平台 `CarpetIceAdditionMod`）、反馈/错误文本、配置持久化逻辑 | `docs/commands.md`、`docs/commands_en.md` |
+| 记录器 | `registerLoggers()` 接入点、受影响平台 override 入口类（各平台 `CarpetIceAdditionMod`）、logger 注册/显示/辅助类、翻译提供类、中英文语言文件、事件触发点、Mixin、HUD 更新入口、内部名、默认 option、可选 options、订阅状态快速判断 | `docs/loggers.md`、`docs/loggers_en.md` |
 
 约定：
 
 - 中文规则名使用 `.name`；中英文规则介绍使用 `.desc`；英文规则名默认直接显示内部名，不额外新增英文 `.name`。
 - 游戏内规则介绍（`.desc`）句末不带句号；`docs/` 文档中的规则介绍句末需要句号。
-- 规则文档中的规则介绍需要与游戏内规则介绍保持一致；来源说明需要中英文同步保留或同步调整。
-- 新增或调整带有第三方来源说明的规则、命令或记录器时，需要同步检查 `THIRD_PARTY_NOTICES.md`，不要只修改 `docs/` 文档。
+- 规则文档中的规则介绍需要与游戏内规则介绍保持一致（文档内的注解不需要同步）。
+- 规则文档（`docs/rules.md` 与 `docs/rules_en.md`）中的规则条目顺序统一按照规则内部名（英文 camelCase 标识符，如 `beaconIgnoresObstruction`）的字母升序排列，不要按中文拼音或汉字笔画排序。
+- 第三方工具、许可证、设计灵感与致谢集中在 `THIRD_PARTY_NOTICES.md`（及 `README*.md` 致谢）统一维护；`docs/` 规则与命令文档保持纯粹的功能说明，不混杂第三方来源声明。新增或调整带有第三方来源的功能时，直接维护 `THIRD_PARTY_NOTICES.md`。
 - 命令文档顶部应包含 `命令列表` / `Command List`，新增或调整命令时同时更新列表和对应命令详情。
 - logger 指 Carpet `/log` 体系下由玩家订阅的游戏内信息输出，不是 SLF4J / Log4j 服务端日志；不要新增独立的 `/log` 命令。
 - logger 可以依赖规则，但不要默认把“规则开关”和“logger 订阅”混为一件事；如存在联动，需在文档中说明。
@@ -104,17 +104,21 @@
 
 - 面向玩家的命令反馈、错误提示、规则触发提示、回档警告、记录器输出等，如果使用本模组自定义翻译键，不要直接向玩家发送 `Text.translatable(...)` 或 `Component.translatable(...)`。
 - 服务端应先通过项目既有服务端翻译工具解析翻译键，再发送 literal / plain 文本给客户端；优先复用 `src/main/java/com/ice2974/carpeticeaddition/translation/TranslationFormatUtil.java` 或同目录既有工具。
-- 中英文语言文件仍是玩家可见文本来源，不要把长文本硬编码到命令类、Mixin 或平台专属实现中。
+- 服务端翻译双重注册：Carpet 服务端翻译由 `CarpetIceAdditionMod.canHasTranslations(lang)` 委托给 `src/main/java/com/ice2974/carpeticeaddition/translation/CarpetIceAdditionTranslations.java`。所有新增或修改的玩家可见翻译键，必须同时登记在：
+  1. 共享资源文件：`src/main/resources/assets/carpet-ice-addition/lang/zh_cn.json` 与 `en_us.json`；
+  2. 服务端翻译字典类：`CarpetIceAdditionTranslations.java`（中文与英文两个 Map）。
+  若仅更新 JSON 资源，服务端 `Translations.tr(...)` 将无法解析该翻译键。
+- 中英文语言文件与 Java 翻译类仍是玩家可见文本来源，不要把长文本硬编码到命令类、Mixin 或平台专属实现中。
 - 需要颜色、点击事件、hover 文本等样式时，先在服务端完成翻译和参数格式化，再在对应版本文本组件上应用样式。
 - 只有 vanilla / Minecraft 客户端必然存在的翻译键，才可以考虑继续使用客户端侧 translatable；本模组自定义键默认走服务端翻译。
 
 ## 许可证与第三方来源声明
 
 - `LICENSE` 只描述本项目自身授权；`THIRD_PARTY_NOTICES.md` 用于维护第三方项目来源、许可证、致谢，以及“参考 / 移植 / 重写”说明。
-- 新增、调整或删除从第三方项目参考、移植、重写的规则、命令、记录器、Mixin、Helper、配方或配置逻辑时，必须同步检查 `THIRD_PARTY_NOTICES.md` 是否需要更新。
-- 代码、语言文件、`docs/`、`README*` 与 `THIRD_PARTY_NOTICES.md` 中的第三方来源表述必须一致；涉及中英文文档时，需要同步更新中英文描述。
+- 新增、调整或删除从第三方项目参考、移植、重写的规则、命令、记录器、Mixin、Helper、配方或配置逻辑时，必须同步检查 `THIRD_PARTY_NOTICES.md`（以及 `README*.md` 的致谢章节）是否需要更新。
+- 代码、语言文件、`README*` 与 `THIRD_PARTY_NOTICES.md` 中的第三方来源表述必须一致；涉及中英文文档时，需要同步更新中英文描述。
 - 修改第三方来源说明时，不要擅自弱化许可证信息，不要把“复制 / 改写 / 移植”改写成“灵感参考”，除非已完成相应 clean-room 重写或有明确审查结论。
-- 若移除第三方派生实现、完成独立重写或更换实现方案，需要同步调整 `THIRD_PARTY_NOTICES.md` 和相关规则文档中的来源说明，保留必要致谢。
+- 若移除第三方派生实现、完成独立重写或更换实现方案，需要同步调整 `THIRD_PARTY_NOTICES.md` 中的来源说明，保留必要致谢。
 - 若无法确认来源许可证、派生关系、NOTICE 是否足够或是否需要保留原许可证文本，不要删除来源声明，写入“待人工确认项”。
 
 ## 配置、文档与版本号
@@ -122,21 +126,26 @@
 - 运行时配置应按作用范围选择存放位置：只对当前存档生效、内容依赖世界状态或坐标的配置，放在当前世界 / 存档目录下；全局性、通用性、与具体存档无关的配置，放在全局 `config/` 目录下。
 - 配置读取失败时记录日志并回退默认值；写入失败时记录日志，并向命令执行者返回明确错误。
 - 文档只维护当前状态，不追加无关历史流水账；新增或调整内容的格式应与旧内容一致。
-- 规则文档内的规则顺序默认按照首字母顺序排，新增的规则也应该遵守这个格式
 
 ## 构建与验证
 
 - 默认使用仓库内 Gradle Wrapper 执行编译、构建和验证；Windows 下优先使用 `.\gradlew.bat`。
 - Java 版本由 Gradle Java Toolchain 自动选择，不要在任务中手动切换 `JAVA_HOME`，也不要把本机 JDK 绝对路径写入仓库级 `gradle.properties`、`build.gradle` 或其他提交文件。
-- 本机已通过用户级 Gradle 配置提供本地 JDK。构建前如需确认 Java Toolchain 状态，可运行：
-
-```powershell
-.\gradlew.bat -q javaToolchains
-```
-
-- 只修改 Markdown 文档时，至少运行 `git diff --check`。
-- 修改源码、资源、构建脚本、Mixin、平台入口或 sourceSets 时，先运行 `git diff --check`，再运行受影响模块的 `compileJava`。
-- 涉及根 `src/`（java 或 resources）、平台 override 或跨平台公共逻辑时，优先验证所有当前支持平台的编译。
+- 分级验证指引：
+  - **仅修改 Markdown 文档**：至少运行 `git diff --check`。
+  - **修改 Java 业务逻辑（规则、命令、工具、逻辑类）**：先运行 `git diff --check`，再编译受影响模块（涉及根 `src/` 或跨平台公共逻辑时优先全平台编译 `.\gradlew.bat compileJava`），并运行 core 平台单元测试：
+    ```powershell
+    .\gradlew.bat :1.21.11:test
+    ```
+  - **修改 Mixin 类、注入点或 `gradle/mixins/registry.json`**：先执行编译，随后执行 Mixin 配置闭环校验：
+    ```powershell
+    .\gradlew.bat verifyMixinConfigs
+    ```
+  - **修改内置资源包、配方或平台元数据（`fabric.mod.json`、`pack.mcmeta`）**：执行对应元数据与资源包校验：
+    ```powershell
+    .\gradlew.bat verifyFabricModJson verifyCraftableCoralBlocksJars verifyCalciteStonecuttingRecipeJars
+    ```
+  - **涉及全项目集成、生命周期或发布工作流**：运行全量 `.\gradlew.bat build`（各平台 `check` 任务已自动级联挂载上述全部 verify 任务）；若修改发布解析相关脚本，在 build 后运行 `python scripts/verify_publish_resolver.py`。
 - 如果因环境限制无法运行验证命令，需要在回复中明确说明未验证内容、原因和风险。
 - 不要把未运行的游戏内测试、多人测试或启动测试写成已通过。
 
