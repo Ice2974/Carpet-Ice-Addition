@@ -527,17 +527,21 @@ class WeakloadRegistryTest {
         io.disk = new LinkedHashMap<>();
         io.exists = false;
         WeakloadRegistry registry = new WeakloadRegistry(io);
-        registry.mutate(OVERWORLD, new long[] {chunk(1, 1), chunk(2, 2)}, new long[0], new StatefulOps());
-
+        // 全程同一 StatefulOps：初始添加的票据必须留在其状态集合中，删除与回滚才有真实对象
         StatefulOps ops = new StatefulOps();
+        registry.mutate(OVERWORLD, new long[] {chunk(1, 1), chunk(2, 2)}, new long[0], ops);
+
+        // 设置故障前先确认模拟票据集合确已持有两个区块
+        assertEquals(Set.of(chunk(1, 1), chunk(2, 2)), ops.state);
+        Set<Long> initialState = Set.copyOf(ops.state);
         ops.failRemoveAfterEffectOn = chunk(2, 2);
 
         IOException exception = assertThrows(IOException.class,
                 () -> registry.mutate(OVERWORLD, new long[0], new long[] {chunk(1, 1), chunk(2, 2)}, ops));
 
-        // 已实际移除的 remove 抛错：回滚必须把票据补回，实际票据状态复原
+        // 已实际移除的 remove 抛错：回滚必须把票据补回，实际票据状态复原为初始集合
         assertInstanceOf(TicketApplyException.class, exception);
-        assertArrayEquals(new Long[] {chunk(1, 1), chunk(2, 2)}, ops.state.toArray(new Long[0]));
+        assertEquals(initialState, ops.state, "the rollback must restore the real ticket set to the initial state");
         assertArrayEquals(new long[] {chunk(1, 1), chunk(2, 2)}, registry.registeredChunks(OVERWORLD));
         assertFalse(registry.isWriteProtected());
     }
@@ -548,9 +552,13 @@ class WeakloadRegistryTest {
         io.disk = new LinkedHashMap<>();
         io.exists = false;
         WeakloadRegistry registry = new WeakloadRegistry(io);
-        registry.mutate(OVERWORLD, new long[] {chunk(1, 1), chunk(2, 2)}, new long[0], new StatefulOps());
-
+        // 全程同一 StatefulOps：初始添加的票据必须留在其状态集合中，删除与回滚才有真实对象
         StatefulOps ops = new StatefulOps();
+        registry.mutate(OVERWORLD, new long[] {chunk(1, 1), chunk(2, 2)}, new long[0], ops);
+
+        // 设置故障前先确认模拟票据集合确已持有两个区块
+        assertEquals(Set.of(chunk(1, 1), chunk(2, 2)), ops.state);
+        Set<Long> initialState = Set.copyOf(ops.state);
         ops.failRemoveBeforeEffectOn = chunk(2, 2);
 
         IOException exception = assertThrows(IOException.class,
@@ -558,7 +566,7 @@ class WeakloadRegistryTest {
 
         // 副作用发生前抛错的 remove：回滚补回仍存在的票据是幂等的（V2），不产生重复
         assertInstanceOf(TicketApplyException.class, exception);
-        assertArrayEquals(new Long[] {chunk(1, 1), chunk(2, 2)}, ops.state.toArray(new Long[0]));
+        assertEquals(initialState, ops.state, "the rollback must restore the real ticket set to the initial state");
         assertArrayEquals(new long[] {chunk(1, 1), chunk(2, 2)}, registry.registeredChunks(OVERWORLD));
         assertFalse(registry.isWriteProtected());
     }
