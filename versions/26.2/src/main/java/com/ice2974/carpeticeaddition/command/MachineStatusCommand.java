@@ -55,9 +55,6 @@ public final class MachineStatusCommand {
     private static final DynamicCommandExceptionType CHUNK_NOT_LOADED = new DynamicCommandExceptionType(
             value -> tr("command.carpet-ice-addition.machine_status.error.chunk_not_loaded", value)
     );
-    private static final SimpleCommandExceptionType CONFIG_SAVE_FAILED = new SimpleCommandExceptionType(
-            tr("command.carpet-ice-addition.machine_status.error.config_save_failed")
-    );
 
     private MachineStatusCommand() {
     }
@@ -140,7 +137,7 @@ public final class MachineStatusCommand {
         try {
             MachineStatusConfigManager.addMachine(name, dimensionId.toString(), pos.getX(), pos.getY(), pos.getZ(), shutdownState);
         } catch (IOException exception) {
-            throw CONFIG_SAVE_FAILED.create();
+            throw simpleError("command.carpet-ice-addition.machine_status.error.config_save_failed");
         }
 
         context.getSource().sendSuccess(
@@ -161,7 +158,7 @@ public final class MachineStatusCommand {
         try {
             MachineStatusConfigManager.removeMachine(name);
         } catch (IOException exception) {
-            throw CONFIG_SAVE_FAILED.create();
+            throw simpleError("command.carpet-ice-addition.machine_status.error.config_save_failed");
         }
 
         context.getSource().sendSuccess(
@@ -178,7 +175,7 @@ public final class MachineStatusCommand {
         try {
             MachineStatusConfigManager.renameMachine(name, newName);
         } catch (IOException exception) {
-            throw CONFIG_SAVE_FAILED.create();
+            throw simpleError("command.carpet-ice-addition.machine_status.error.config_save_failed");
         }
 
         context.getSource().sendSuccess(
@@ -204,7 +201,7 @@ public final class MachineStatusCommand {
         try {
             MachineStatusConfigManager.updateMachineState(name, newState);
         } catch (IOException exception) {
-            throw CONFIG_SAVE_FAILED.create();
+            throw simpleError("command.carpet-ice-addition.machine_status.error.config_save_failed");
         }
 
         context.getSource().sendSuccess(
@@ -233,7 +230,7 @@ public final class MachineStatusCommand {
         try {
             MachineStatusConfigManager.moveMachine(name, dimensionId.toString(), pos.getX(), pos.getY(), pos.getZ(), shutdownState);
         } catch (IOException exception) {
-            throw CONFIG_SAVE_FAILED.create();
+            throw simpleError("command.carpet-ice-addition.machine_status.error.config_save_failed");
         }
 
         context.getSource().sendSuccess(
@@ -613,6 +610,10 @@ public final class MachineStatusCommand {
                     : properties.replace(",", ", ");
         }
         return trString("command.carpet-ice-addition.machine_status.state_properties.none");
+    }
+
+    static CommandSyntaxException simpleError(String key, Object... args) {
+        return new SimpleCommandExceptionType(tr(key, args)).create();
     }
 
     private static MutableComponent tr(String key, Object... args) {

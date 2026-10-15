@@ -41,21 +41,6 @@ public final class WeakloadCommand {
     private static final Dynamic2CommandExceptionType ERROR_NOT_WEAK_LOADED = new Dynamic2CommandExceptionType(
             (chunk, dimension) -> tr("command.carpet-ice-addition.weakload.query.failure", chunk, dimension)
     );
-    private static final SimpleCommandExceptionType ERROR_ALL_ADDED = new SimpleCommandExceptionType(
-            tr("command.carpet-ice-addition.weakload.added.failure")
-    );
-    private static final SimpleCommandExceptionType ERROR_NONE_REMOVED = new SimpleCommandExceptionType(
-            tr("command.carpet-ice-addition.weakload.removed.failure")
-    );
-    private static final SimpleCommandExceptionType CONFIG_SAVE_FAILED = new SimpleCommandExceptionType(
-            tr("command.carpet-ice-addition.weakload.error.config_save_failed")
-    );
-    private static final SimpleCommandExceptionType CONFIG_PROTECTED = new SimpleCommandExceptionType(
-            tr("command.carpet-ice-addition.weakload.error.config_protected")
-    );
-    private static final SimpleCommandExceptionType TICKET_APPLY_FAILED = new SimpleCommandExceptionType(
-            tr("command.carpet-ice-addition.weakload.error.ticket_apply_failed")
-    );
 
     private WeakloadCommand() {
     }
@@ -133,7 +118,9 @@ public final class WeakloadCommand {
                 throw storageError(exception);
             }
             if (changedChunks.length == 0) {
-                throw add ? ERROR_ALL_ADDED.create() : ERROR_NONE_REMOVED.create();
+                throw add
+                        ? simpleError("command.carpet-ice-addition.weakload.added.failure")
+                        : simpleError("command.carpet-ice-addition.weakload.removed.failure");
             }
             String minChunk = "[" + minChunkX + ", " + minChunkZ + "]";
             String maxChunk = "[" + maxChunkX + ", " + maxChunkZ + "]";
@@ -217,12 +204,16 @@ public final class WeakloadCommand {
 
     private static CommandSyntaxException storageError(IOException exception) {
         if (exception instanceof WriteProtectedException) {
-            return CONFIG_PROTECTED.create();
+            return simpleError("command.carpet-ice-addition.weakload.error.config_protected");
         }
         if (exception instanceof TicketApplyException) {
-            return TICKET_APPLY_FAILED.create();
+            return simpleError("command.carpet-ice-addition.weakload.error.ticket_apply_failed");
         }
-        return CONFIG_SAVE_FAILED.create();
+        return simpleError("command.carpet-ice-addition.weakload.error.config_save_failed");
+    }
+
+    static CommandSyntaxException simpleError(String key, Object... args) {
+        return new SimpleCommandExceptionType(tr(key, args)).create();
     }
 
     private static MutableComponent tr(String key, Object... args) {

@@ -61,9 +61,6 @@ public final class KillItemCommand {
     private static final long DETAIL_CACHE_TTL_MILLIS = 10L * 60L * 1000L;
     private static final Map<UUID, LinkedHashMap<String, CachedKillItemResult>> DETAIL_CACHE = new HashMap<>();
 
-    private static final SimpleCommandExceptionType PLAYER_ONLY = new SimpleCommandExceptionType(
-            tr("command.carpet-ice-addition.killitem.error.player_only")
-    );
     private static final DynamicCommandExceptionType INVALID_IDENTIFIER = new DynamicCommandExceptionType(
             value -> tr("command.carpet-ice-addition.killitem.error.invalid_identifier", value)
     );
@@ -72,9 +69,6 @@ public final class KillItemCommand {
     );
     private static final DynamicCommandExceptionType ITEM_NOT_FOUND = new DynamicCommandExceptionType(
             value -> tr("command.carpet-ice-addition.killitem.error.item_not_found", value)
-    );
-    private static final SimpleCommandExceptionType CONFIG_SAVE_FAILED = new SimpleCommandExceptionType(
-            tr("command.carpet-ice-addition.killitem.error.config_save_failed")
     );
 
     private KillItemCommand() {
@@ -237,7 +231,7 @@ public final class KillItemCommand {
             );
             return changed ? 1 : 0;
         } catch (IOException exception) {
-            throw CONFIG_SAVE_FAILED.create();
+            throw simpleError("command.carpet-ice-addition.killitem.error.config_save_failed");
         }
     }
 
@@ -256,7 +250,7 @@ public final class KillItemCommand {
             );
             return changed ? 1 : 0;
         } catch (IOException exception) {
-            throw CONFIG_SAVE_FAILED.create();
+            throw simpleError("command.carpet-ice-addition.killitem.error.config_save_failed");
         }
     }
 
@@ -273,7 +267,7 @@ public final class KillItemCommand {
             );
             return changed ? 1 : 0;
         } catch (IOException exception) {
-            throw CONFIG_SAVE_FAILED.create();
+            throw simpleError("command.carpet-ice-addition.killitem.error.config_save_failed");
         }
     }
 
@@ -303,7 +297,7 @@ public final class KillItemCommand {
             );
             return value ? 1 : 0;
         } catch (IOException exception) {
-            throw CONFIG_SAVE_FAILED.create();
+            throw simpleError("command.carpet-ice-addition.killitem.error.config_save_failed");
         }
     }
 
@@ -466,7 +460,7 @@ public final class KillItemCommand {
         if (entity instanceof ServerPlayer player) {
             return player;
         }
-        throw PLAYER_ONLY.create();
+        throw simpleError("command.carpet-ice-addition.killitem.error.player_only");
     }
 
     private static Identifier parseIdentifier(String value) throws CommandSyntaxException {
@@ -568,6 +562,10 @@ public final class KillItemCommand {
 
     private static boolean canUseKillItem(CommandSourceStack source) {
         return CommandHelper.canUseCommand(source, CarpetIceAdditionSettings.commandKillItem);
+    }
+
+    static CommandSyntaxException simpleError(String key, Object... args) {
+        return new SimpleCommandExceptionType(tr(key, args)).create();
     }
 
     private static Component tr(String key, Object... args) {
