@@ -146,14 +146,19 @@ public final class WeakloadCommand {
     private static int removeAll(CommandSourceStack source) throws CommandSyntaxException {
         ServerLevel level = source.getLevel();
         String dimension = level.dimension().identifier().toString();
+        long[] changedChunks;
         try {
-            WeakloadManager.removeAllChunks(level);
+            changedChunks = WeakloadManager.removeAllChunks(level);
         } catch (IOException exception) {
             throw storageError(exception);
         }
+        if (changedChunks.length == 0) {
+            // 空维度与有记录的维度不得都报成功：无记录时反馈空态并返回 0
+            throw simpleError("command.carpet-ice-addition.weakload.added.none", dimension);
+        }
         source.sendSuccess(
                 () -> tr("command.carpet-ice-addition.weakload.removed.all", dimension), true);
-        return 0;
+        return changedChunks.length;
     }
 
     private static int queryWeakLoad(CommandSourceStack source, ColumnPos pos) throws CommandSyntaxException {

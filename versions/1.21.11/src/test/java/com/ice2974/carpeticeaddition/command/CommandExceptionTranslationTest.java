@@ -27,6 +27,7 @@ class CommandExceptionTranslationTest {
 
     private static final String WEAKLOAD_REMOVED_FAILURE = "command.carpet-ice-addition.weakload.removed.failure";
     private static final String WEAKLOAD_ADDED_FAILURE = "command.carpet-ice-addition.weakload.added.failure";
+    private static final String WEAKLOAD_ADDED_NONE = "command.carpet-ice-addition.weakload.added.none";
     private static final String WEAKLOAD_SAVE_FAILED = "command.carpet-ice-addition.weakload.error.config_save_failed";
     private static final String WEAKLOAD_CONFIG_PROTECTED = "command.carpet-ice-addition.weakload.error.config_protected";
     private static final String WEAKLOAD_TICKET_APPLY_FAILED = "command.carpet-ice-addition.weakload.error.ticket_apply_failed";
@@ -41,6 +42,8 @@ class CommandExceptionTranslationTest {
         assertNotNull(zh, "中文翻译字典不应为空");
         assertEquals("没有移除任何弱加载，这些区块未被弱加载或无效", zh.get(WEAKLOAD_REMOVED_FAILURE));
         assertEquals("没有区块被弱加载，这些区块已被弱加载或无效", zh.get(WEAKLOAD_ADDED_FAILURE));
+        // /weakload remove all 空维度时经 simpleError 复用的空态键，须与权威文本一致
+        assertEquals("维度 '%s' 中没有弱加载的区块", zh.get(WEAKLOAD_ADDED_NONE));
         assertEquals("弱加载数据保存失败，请检查服务器日志", zh.get(WEAKLOAD_SAVE_FAILED));
         assertEquals("弱加载数据已因存储故障进入保护模式，请检查服务器日志并在修复存档文件后重启服务器", zh.get(WEAKLOAD_CONFIG_PROTECTED));
         assertEquals("弱加载票据应用失败，本次变更已回滚，请检查服务器日志", zh.get(WEAKLOAD_TICKET_APPLY_FAILED));
@@ -52,6 +55,7 @@ class CommandExceptionTranslationTest {
         assertNotNull(en, "英文翻译字典不应为空");
         assertEquals("No weak loading was removed. Chunks are either not weak loaded or invalid", en.get(WEAKLOAD_REMOVED_FAILURE));
         assertEquals("Nothing was weak loaded. Chunks are either already weak loaded or invalid", en.get(WEAKLOAD_ADDED_FAILURE));
+        assertEquals("No weak loaded chunks in dimension '%s'", en.get(WEAKLOAD_ADDED_NONE));
         assertEquals("Failed to save /weakload data. Check the server log", en.get(WEAKLOAD_SAVE_FAILED));
         assertEquals("Weak load data is in protection mode after a storage failure. Check the server log and restart the server after fixing the world files", en.get(WEAKLOAD_CONFIG_PROTECTED));
         assertEquals("Failed to apply weak load tickets and the change was rolled back. Check the server log", en.get(WEAKLOAD_TICKET_APPLY_FAILED));
