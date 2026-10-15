@@ -94,6 +94,20 @@ public final class WeakloadManager {
                     LOGGER.error("Failed to restore weakload ticket for chunk [{}, {}] in dimension {}",
                             WeakloadRegistry.unpackX(packed), WeakloadRegistry.unpackZ(packed), dimensionId,
                             throwable);
+                    // 抛错的当次 add 可能已产生副作用：尝试补偿撤销。补偿再失败则票据状态
+                    // 不确定（原版侧可能残留额外票据），进入写保护并交由下次重启重建；该
+                    // 区块不计入 ticketed，保持登记
+                    try {
+                        applyTicket(level, packed, false);
+                    } catch (Throwable compensationFailure) {
+                        LOGGER.error("The weakload ticket state for chunk [{}, {}] in dimension {} is "
+                                        + "uncertain: an extra ticket may remain on the vanilla side. Tickets "
+                                        + "will be rebuilt from the stored data after the next restart; weakload "
+                                        + "data is now write protected",
+                                WeakloadRegistry.unpackX(packed), WeakloadRegistry.unpackZ(packed), dimensionId,
+                                compensationFailure);
+                        activeRegistry.enterWriteProtection();
+                    }
                 }
             }
             activeRegistry.markTicketed(dimensionId, toLongArray(applied));

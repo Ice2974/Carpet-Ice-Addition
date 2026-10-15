@@ -18,9 +18,10 @@ import java.util.TreeSet;
  * 未加载维度的记录，维度维活判定只看 ticketed。
  *
  * <p>变更流程固定为「副本计算 → 原子持久化 → 票据差分 → 状态交换」：持久化失败时
- * 票据与内存零变更（整批回滚）；票据应用意外失败时回滚本批票据并回写旧 JSON，
- * 回滚不完整或旧 JSON 回写失败都进入写保护模式，拒绝后续一切变更，禁止不一致
- * 继续扩大，且不把该批变更报告为已回滚。
+ * 票据与内存零变更（整批回滚）；票据应用意外失败时回滚本批已尝试的票据（抛错的
+ * 当次操作同样纳入回滚，其副作用可能已经生效：原版票据 API 在状态变更之后才调用
+ * 更新监听器）并回写旧 JSON，回滚不完整或旧 JSON 回写失败都进入写保护模式，拒绝
+ * 后续一切变更，禁止不一致继续扩大，且不把该批变更报告为已回滚。
  */
 final class WeakloadRegistry {
     private static final Logger LOGGER = LoggerFactory.getLogger(WeakloadRegistry.class);
@@ -129,6 +130,15 @@ final class WeakloadRegistry {
         return writeProtected;
     }
 
+    /**
+     * 生命周期路径的最小写保护入口：票据恢复期补偿撤销失败（票据状态不确定）时，
+     * 与内部「回滚不完整」路径同等地冻结后续一切变更。package-private，不构成公开 API。
+     */
+    synchronized void enterWriteProtection() {
+        writeProtected = true;
+        LOGGER.error("Weakload data is now write protected after an uncertain ticket state");
+    }
+
     /** 恢复路径专用：世界加载后登记已实际应用的票据。 */
     synchronized void markTicketed(String dimensionId, long[] appliedChunks) {
         if (appliedChunks.length == 0) {
@@ -209,16 +219,17 @@ final class WeakloadRegistry {
             }
         }
 
+        // 记账先于 apply：抛错的当次操作必须纳入回滚，其副作用可能已经生效
         List<Long> appliedAdds = new ArrayList<>();
         List<Long> appliedRemoves = new ArrayList<>();
         try {
             for (long packed : toApply) {
-                ops.apply(packed, true);
                 appliedAdds.add(packed);
+                ops.apply(packed, true);
             }
             for (long packed : toRetract) {
-                ops.apply(packed, false);
                 appliedRemoves.add(packed);
+                ops.apply(packed, false);
             }
         } catch (Throwable ticketFailure) {
             LOGGER.error("Failed to apply weakload tickets for dimension {}, rolling back the batch",
@@ -236,8 +247,8 @@ final class WeakloadRegistry {
             }
             writeProtected = true;
             if (!rollbackComplete) {
-                LOGGER.error("The weakload ticket rollback for dimension {} is incomplete: live tickets no "
-                        + "longer match the stored data, so the change is NOT rolled back. Weakload data is "
+                LOGGER.error("The weakload ticket rollback for dimension {} is incomplete: live tickets may "
+                        + "no longer match the stored data, so the change is NOT rolled back. Weakload data is "
                         + "now write protected; restart the server to rebuild the tickets from the stored data",
                         dimensionId);
             }
@@ -258,8 +269,9 @@ final class WeakloadRegistry {
     }
 
     /**
-     * 逐个撤销本批已应用的票据；返回是否全部逆操作成功。单个逆操作失败不中断
-     * 其余逆操作，但会让返回值为 false，由调用方进入写保护模式。
+     * 逐个撤销本批已尝试应用的票据；返回是否全部逆操作成功。单个逆操作失败不中断
+     * 其余逆操作，但会让返回值为 false，由调用方进入写保护模式。逆操作抛错只能说明
+     * 该区块票据状态不确定（逆操作自身也可能已产生副作用），不能断言票据保持原状。
      */
     private static boolean rollbackTickets(TicketOps ops, List<Long> appliedAdds, List<Long> appliedRemoves) {
         boolean complete = true;
@@ -268,9 +280,9 @@ final class WeakloadRegistry {
                 ops.apply(packed, false);
             } catch (Throwable rollbackFailure) {
                 complete = false;
-                LOGGER.error("Failed to roll back the weakload ticket for chunk [{}, {}]; the ticket stays "
-                        + "applied although the change was rejected", unpackX(packed), unpackZ(packed),
-                        rollbackFailure);
+                LOGGER.error("Failed to roll back the weakload ticket for chunk [{}, {}]; the ticket state "
+                        + "for this chunk is uncertain after the failed rollback step", unpackX(packed),
+                        unpackZ(packed), rollbackFailure);
             }
         }
         for (long packed : appliedRemoves) {
@@ -278,9 +290,9 @@ final class WeakloadRegistry {
                 ops.apply(packed, true);
             } catch (Throwable rollbackFailure) {
                 complete = false;
-                LOGGER.error("Failed to roll back the weakload ticket for chunk [{}, {}]; the ticket stays "
-                        + "removed although the change was rejected", unpackX(packed), unpackZ(packed),
-                        rollbackFailure);
+                LOGGER.error("Failed to roll back the weakload ticket for chunk [{}, {}]; the ticket state "
+                        + "for this chunk is uncertain after the failed rollback step", unpackX(packed),
+                        unpackZ(packed), rollbackFailure);
             }
         }
         return complete;

@@ -15,6 +15,9 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -56,6 +59,41 @@ class WeakloadRegistryTest {
 
         private static String label(long packed, boolean add) {
             return (add ? "add:" : "remove:") + WeakloadRegistry.unpackX(packed) + "," + WeakloadRegistry.unpackZ(packed);
+        }
+    }
+
+    // ---- 状态化票据操作：以真实集合模拟原版票据存储，编码分桶字节码验证过的两条语义假设
+    // ——V1 remove(absent)=no-op 成功、V2 add(existing)=幂等（1.21.1/1.21.4 为 SortedArraySet
+    // addOrGet/remove，1.21.5+ 为 isTicketSameTypeAndLevel 显式短路）。可配置 add/remove 在
+    // 副作用前或副作用后抛错，以及回滚方向的逆操作抛错 ----
+    private static final class StatefulOps implements TicketOps {
+        final TreeSet<Long> state = new TreeSet<>();
+        long failAddBeforeEffectOn = Long.MIN_VALUE;
+        long failAddAfterEffectOn = Long.MIN_VALUE;
+        long failRemoveBeforeEffectOn = Long.MIN_VALUE;
+        long failRemoveAfterEffectOn = Long.MIN_VALUE;
+        long failRemoveRollbackOn = Long.MIN_VALUE;
+        long failAddRollbackOn = Long.MIN_VALUE;
+
+        @Override
+        public void apply(long packedChunkPos, boolean add) {
+            if (add) {
+                if (packedChunkPos == failAddBeforeEffectOn || packedChunkPos == failAddRollbackOn) {
+                    throw new IllegalStateException("injected add failure before effect");
+                }
+                state.add(packedChunkPos);
+                if (packedChunkPos == failAddAfterEffectOn) {
+                    throw new IllegalStateException("injected add failure after effect");
+                }
+            } else {
+                if (packedChunkPos == failRemoveBeforeEffectOn || packedChunkPos == failRemoveRollbackOn) {
+                    throw new IllegalStateException("injected remove failure before effect");
+                }
+                state.remove(packedChunkPos);
+                if (packedChunkPos == failRemoveAfterEffectOn) {
+                    throw new IllegalStateException("injected remove failure after effect");
+                }
+            }
         }
     }
 
@@ -174,8 +212,8 @@ class WeakloadRegistryTest {
                 () -> registry.mutate(OVERWORLD, new long[] {chunk(2, 2), chunk(3, 3)}, new long[0], ops));
 
         assertInstanceOf(TicketApplyException.class, exception);
-        // 票据序：补恢复既有登记 add:1,1、add:2,2 → 失败点 add:3,3 → 回滚前两个
-        assertEquals(List.of("add:1,1", "add:2,2", "add:3,3:FAIL", "remove:1,1", "remove:2,2"), ops.log);
+        // 票据序：补恢复既有登记 add:1,1、add:2,2 → 失败点 add:3,3（已记账）→ 回滚全部三个
+        assertEquals(List.of("add:1,1", "add:2,2", "add:3,3:FAIL", "remove:1,1", "remove:2,2", "remove:3,3"), ops.log);
         // 回滚后旧状态已回写（最后一次写是旧状态），内存登记未变化
         assertArrayEquals(new long[] {chunk(1, 1)}, io.writes.get(io.writes.size() - 1).get(OVERWORLD));
         assertArrayEquals(new long[] {chunk(1, 1)}, registry.registeredChunks(OVERWORLD));
@@ -214,8 +252,8 @@ class WeakloadRegistryTest {
         assertThrows(WriteProtectedException.class,
                 () -> registry.mutate(OVERWORLD, new long[] {chunk(2, 2), chunk(3, 3)}, new long[0], ops));
         assertTrue(registry.isWriteProtected());
-        // 单点逆操作失败后仍继续处理其余逆操作
-        assertEquals(List.of("add:1,1", "add:2,2", "add:3,3:FAIL", "remove:1,1", "remove:2,2:FAIL"), ops.log);
+        // 单点逆操作失败后仍继续处理其余逆操作（含抛错的当次 add:3,3 的逆操作）
+        assertEquals(List.of("add:1,1", "add:2,2", "add:3,3:FAIL", "remove:1,1", "remove:2,2:FAIL", "remove:3,3"), ops.log);
         // 旧状态仍被尽力回写（最后一次写是旧状态），内存登记未变化
         assertArrayEquals(new long[] {chunk(1, 1)}, io.writes.get(io.writes.size() - 1).get(OVERWORLD));
         assertArrayEquals(new long[] {chunk(1, 1)}, registry.registeredChunks(OVERWORLD));
@@ -239,7 +277,7 @@ class WeakloadRegistryTest {
         assertThrows(WriteProtectedException.class,
                 () -> registry.mutate(OVERWORLD, new long[0], new long[] {chunk(1, 1), chunk(2, 2)}, ops));
         assertTrue(registry.isWriteProtected());
-        assertEquals(List.of("remove:1,1", "remove:2,2:FAIL", "add:1,1:FAIL"), ops.log);
+        assertEquals(List.of("remove:1,1", "remove:2,2:FAIL", "add:1,1:FAIL", "add:2,2"), ops.log);
         assertArrayEquals(new long[] {chunk(1, 1), chunk(2, 2)}, registry.registeredChunks(OVERWORLD));
         assertArrayEquals(new long[] {chunk(1, 1), chunk(2, 2)},
                 io.writes.get(io.writes.size() - 1).get(OVERWORLD));
@@ -422,5 +460,156 @@ class WeakloadRegistryTest {
 
         assertArrayEquals(new long[] {chunk(2, 2)}, changed);
         assertArrayEquals(new long[] {chunk(2, 2)}, registry.registeredChunks(OVERWORLD));
+    }
+
+    @Test
+    void statefulAddFailureAfterEffectRetractsOrphanAndReportsRollback() throws IOException {
+        MemoryIo io = new MemoryIo();
+        io.disk = new LinkedHashMap<>();
+        io.exists = false;
+        WeakloadRegistry registry = new WeakloadRegistry(io);
+        StatefulOps ops = new StatefulOps();
+        ops.failAddAfterEffectOn = chunk(2, 2);
+
+        IOException exception = assertThrows(IOException.class,
+                () -> registry.mutate(OVERWORLD, new long[] {chunk(1, 1), chunk(2, 2)}, new long[0], ops));
+
+        // 已产生副作用的 add 抛错：其票据必须被逆操作清除，不得遗留孤儿票据
+        assertInstanceOf(TicketApplyException.class, exception);
+        assertTrue(ops.state.isEmpty(), "the partially applied ticket must be retracted by the rollback");
+        assertEquals(0, registry.registeredChunks(OVERWORLD).length);
+        assertFalse(registry.hasActiveTickets(OVERWORLD));
+        assertFalse(registry.isWriteProtected());
+    }
+
+    @Test
+    void statefulAddFailureBeforeEffectReversesHarmlessly() throws IOException {
+        MemoryIo io = new MemoryIo();
+        io.disk = new LinkedHashMap<>();
+        io.exists = false;
+        WeakloadRegistry registry = new WeakloadRegistry(io);
+        StatefulOps ops = new StatefulOps();
+        ops.failAddBeforeEffectOn = chunk(2, 2);
+
+        IOException exception = assertThrows(IOException.class,
+                () -> registry.mutate(OVERWORLD, new long[] {chunk(1, 1), chunk(2, 2)}, new long[0], ops));
+
+        // 副作用发生前抛错：逆操作对未生效票据是 no-op（V1），回滚仍完整
+        assertInstanceOf(TicketApplyException.class, exception);
+        assertTrue(ops.state.isEmpty());
+        assertEquals(0, registry.registeredChunks(OVERWORLD).length);
+        assertFalse(registry.isWriteProtected());
+    }
+
+    @Test
+    void statefulAddFailureWithFailingReverseOpEntersProtection() throws IOException {
+        MemoryIo io = new MemoryIo();
+        io.disk = new LinkedHashMap<>();
+        io.exists = false;
+        WeakloadRegistry registry = new WeakloadRegistry(io);
+        StatefulOps ops = new StatefulOps();
+        ops.failAddAfterEffectOn = chunk(2, 2);
+        ops.failRemoveRollbackOn = chunk(1, 1);
+
+        assertThrows(WriteProtectedException.class,
+                () -> registry.mutate(OVERWORLD, new long[] {chunk(1, 1), chunk(2, 2)}, new long[0], ops));
+
+        // 逆操作单点失败：状态不确定，进入写保护；残余票据作为证据保留在状态集合中
+        assertTrue(registry.isWriteProtected());
+        assertEquals(Set.of(chunk(1, 1)), ops.state);
+        assertThrows(WriteProtectedException.class,
+                () -> registry.mutate(OVERWORLD, new long[] {chunk(9, 9)}, new long[0], new StatefulOps()));
+    }
+
+    @Test
+    void statefulRemoveFailureAfterEffectIsReAddedByRollback() throws IOException {
+        MemoryIo io = new MemoryIo();
+        io.disk = new LinkedHashMap<>();
+        io.exists = false;
+        WeakloadRegistry registry = new WeakloadRegistry(io);
+        registry.mutate(OVERWORLD, new long[] {chunk(1, 1), chunk(2, 2)}, new long[0], new StatefulOps());
+
+        StatefulOps ops = new StatefulOps();
+        ops.failRemoveAfterEffectOn = chunk(2, 2);
+
+        IOException exception = assertThrows(IOException.class,
+                () -> registry.mutate(OVERWORLD, new long[0], new long[] {chunk(1, 1), chunk(2, 2)}, ops));
+
+        // 已实际移除的 remove 抛错：回滚必须把票据补回，实际票据状态复原
+        assertInstanceOf(TicketApplyException.class, exception);
+        assertArrayEquals(new Long[] {chunk(1, 1), chunk(2, 2)}, ops.state.toArray(new Long[0]));
+        assertArrayEquals(new long[] {chunk(1, 1), chunk(2, 2)}, registry.registeredChunks(OVERWORLD));
+        assertFalse(registry.isWriteProtected());
+    }
+
+    @Test
+    void statefulRemoveFailureBeforeEffectIsIdempotentlyReAdded() throws IOException {
+        MemoryIo io = new MemoryIo();
+        io.disk = new LinkedHashMap<>();
+        io.exists = false;
+        WeakloadRegistry registry = new WeakloadRegistry(io);
+        registry.mutate(OVERWORLD, new long[] {chunk(1, 1), chunk(2, 2)}, new long[0], new StatefulOps());
+
+        StatefulOps ops = new StatefulOps();
+        ops.failRemoveBeforeEffectOn = chunk(2, 2);
+
+        IOException exception = assertThrows(IOException.class,
+                () -> registry.mutate(OVERWORLD, new long[0], new long[] {chunk(1, 1), chunk(2, 2)}, ops));
+
+        // 副作用发生前抛错的 remove：回滚补回仍存在的票据是幂等的（V2），不产生重复
+        assertInstanceOf(TicketApplyException.class, exception);
+        assertArrayEquals(new Long[] {chunk(1, 1), chunk(2, 2)}, ops.state.toArray(new Long[0]));
+        assertArrayEquals(new long[] {chunk(1, 1), chunk(2, 2)}, registry.registeredChunks(OVERWORLD));
+        assertFalse(registry.isWriteProtected());
+    }
+
+    @Test
+    void enterWriteProtectionBlocksMutationsButKeepsReads() throws IOException {
+        MemoryIo io = new MemoryIo();
+        io.disk = new LinkedHashMap<>();
+        io.exists = false;
+        WeakloadRegistry registry = new WeakloadRegistry(io);
+        registry.mutate(OVERWORLD, new long[] {chunk(1, 1), chunk(2, 2)}, new long[0], new StatefulOps());
+
+        registry.enterWriteProtection();
+
+        assertTrue(registry.isWriteProtected());
+        assertThrows(WriteProtectedException.class,
+                () -> registry.mutate(OVERWORLD, new long[] {chunk(3, 3)}, new long[0], new StatefulOps()));
+        // 写保护只拦截变更，读路径不受影响
+        assertArrayEquals(new long[] {chunk(1, 1), chunk(2, 2)}, registry.registeredChunks(OVERWORLD));
+        assertTrue(registry.hasActiveTickets(OVERWORLD));
+    }
+
+    @Test
+    void corruptedFileWithExistingBackupKeepsOldBackupAndUsesUniqueName() throws IOException {
+        Path file = tempDir.resolve("weakload.json");
+        Path backup = tempDir.resolve("weakload.json.corrupt");
+        Files.createDirectories(file.getParent());
+        Files.writeString(backup, "old corrupted payload", StandardCharsets.UTF_8);
+        Files.writeString(file, "{ not valid json", StandardCharsets.UTF_8);
+
+        WeakloadRegistry registry = new WeakloadRegistry(file);
+
+        // JDK 默认 provider（Windows/Unix）对无 REPLACE_EXISTING 的 move 做目标存在性检查并抛
+        // FileAlreadyExistsException（NTFS 实测、Unix 为 JDK 源码证据；POSIX 实机未验证），代码据此
+        // 回退到带时间戳的唯一名。同毫秒时间戳碰撞时第二次 move 抛错并保守进写保护，属可接受的
+        // 低优先级边界，不做时钟注入重构
+        assertFalse(registry.isWriteProtected());
+        assertEquals(0, registry.registeredChunks(OVERWORLD).length);
+        assertFalse(Files.exists(file), "original file must be moved away");
+        assertEquals("old corrupted payload", Files.readString(backup, StandardCharsets.UTF_8),
+                "the pre-existing backup must never be overwritten");
+        try (Stream<Path> entries = Files.list(tempDir)) {
+            List<Path> uniqueBackups = entries
+                    .filter(path -> path.getFileName().toString().matches("weakload\\.json\\.corrupt-\\d+"))
+                    .toList();
+            assertEquals(1, uniqueBackups.size(), "exactly one timestamped backup must exist");
+            assertEquals("{ not valid json", Files.readString(uniqueBackups.get(0), StandardCharsets.UTF_8));
+        }
+
+        // 备份让位后恢复路径继续可用：后续变更正常落盘
+        registry.mutate(OVERWORLD, new long[] {chunk(1, 2)}, new long[0], new RecordingOps());
+        assertArrayEquals(new long[] {chunk(1, 2)}, WeakloadStore.read(file).get(OVERWORLD));
     }
 }
