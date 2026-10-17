@@ -471,6 +471,15 @@
 - 可选值: `false`, `true`
 - 分类: `ICE`, `FEATURE`, `OPTIMIZATION`
 
+### 虚空伤害触发图腾 (voidDamageTriggersTotem)
+
+允许虚空伤害触发不死图腾。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`, `SURVIVAL`
+
 ### 监守者不敌视玩家 (wardenNotHostileToPlayers)
 
 阻止监守者对玩家产生敌意并将玩家设为攻击目标，但不会阻止其感知玩家产生的振动。

@@ -471,6 +471,15 @@ Naming a villager trade trims its AI to the minimum behavior set required by a f
 - Possible values: `false`, `true`
 - Categories: `ICE`, `FEATURE`, `OPTIMIZATION`
 
+### voidDamageTriggersTotem
+
+Allows void damage to trigger Totems of Undying.
+
+- Type: `boolean`
+- Default: `false`
+- Possible values: `false`, `true`
+- Categories: `ICE`, `FEATURE`, `SURVIVAL`
+
 ### wardenNotHostileToPlayers
 
 Prevents wardens from becoming hostile toward players or targeting them for attack without preventing them from detecting player-caused vibrations.

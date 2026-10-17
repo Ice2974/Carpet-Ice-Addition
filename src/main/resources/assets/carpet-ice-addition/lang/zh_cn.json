@@ -239,6 +239,8 @@
   "carpet.rule.betterTridentDespawnCondition.desc": "\u4e09\u53c9\u621f\u63d2\u5165\u65b9\u5757\u4e14\u4fdd\u6301\u9759\u6b62 1200 \u6e38\u620f\u523b\u540e\u624d\u4f1a\u6d88\u5931",
   "carpet.rule.renewableRawIron.name": "\u53ef\u518d\u751f\u7c97\u94c1",
   "carpet.rule.renewableRawIron.desc": "\u5927\u5e08\u7ea7\u77f3\u5320\u6751\u6c11\u53ef\u7528 4 \u81f3 8 \u9897\u7eff\u5b9d\u77f3\u8d2d\u4e70 1 \u4e2a\u7c97\u94c1\u5757\uff0c\u4f5c\u4e3a\u989d\u5916\u4ea4\u6613\u52a0\u5165",
+  "carpet.rule.voidDamageTriggersTotem.name": "\u865a\u7a7a\u4f24\u5bb3\u89e6\u53d1\u56fe\u817e",
+  "carpet.rule.voidDamageTriggersTotem.desc": "\u5141\u8bb8\u865a\u7a7a\u4f24\u5bb3\u89e6\u53d1\u4e0d\u6b7b\u56fe\u817e",
   "carpet.rule.carpetIceAdditionEasterEgg.name": "\u51b0\u6bef\u5f69\u86cb",
   "carpet.rule.carpetIceAdditionEasterEgg.desc": "\u63a7\u5236\u6240\u6709\u9690\u85cf\u5f69\u86cb\u662f\u5426\u89e6\u53d1"
 }

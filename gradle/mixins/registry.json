@@ -84,6 +84,7 @@
     { "name": "VillagerLightningVillagerEventsMixin", "side": "common" },
     { "name": "VillagerTradingOptimizationMixin", "side": "common" },
     { "name": "VillagerVillagerEventsMixin", "side": "common" },
+    { "name": "VoidDamageTriggersTotemMixin", "side": "common" },
     { "name": "WanderingTraderMixin", "side": "common" },
     { "name": "WardenAngerManagerMixin", "side": "common" },
     { "name": "WardenEntityMixin", "side": "common" },
