@@ -25,6 +25,15 @@
 
 ## 规则
 
+### 背压合成器 (backpressureCrafter)
+
+合成器面朝容器无法完整接收主产物时阻止本次合成；合成余物保持原版处理。
+
+- 类型: `boolean`
+- 默认值: `false`
+- 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`
+
 ### 信标忽略遮挡 (beaconIgnoresObstruction)
 
 使信标无视上方方块的遮挡并正常工作。
@@ -131,15 +140,6 @@
 - 默认值: `false`
 - 可选值: `false`, `true`
 - 分类: `ICE`, `FEATURE`, `SURVIVAL`
-
-### 合成器输出阻塞时停止合成 (crafterStopsWhenOutputBlocked)
-
-合成器面朝容器无法完整接收主产物时阻止本次合成；合成余物保持原版处理。
-
-- 类型: `boolean`
-- 默认值: `false`
-- 可选值: `false`, `true`
-- 分类: `ICE`, `FEATURE`
 
 ### 切石机 Ctrl+Q 修复 (ctrlQStonecuttingFix) `MC<=1.21.1`
 

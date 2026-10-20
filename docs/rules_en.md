@@ -25,6 +25,15 @@ When locked:
 
 ## Rules
 
+### backpressureCrafter
+
+Prevents a crafter from crafting when the container it faces cannot fully accept the main recipe result. Recipe remainders keep their vanilla behavior.
+
+- Type: `boolean`
+- Default: `false`
+- Possible values: `false`, `true`
+- Categories: `ICE`, `FEATURE`
+
 ### beaconIgnoresObstruction
 
 Allows beacons to function normally regardless of blocks above them.
@@ -131,15 +140,6 @@ Allows 9 coral fans of the same type to be crafted into the corresponding coral 
 - Default: `false`
 - Possible values: `false`, `true`
 - Categories: `ICE`, `FEATURE`, `SURVIVAL`
-
-### crafterStopsWhenOutputBlocked
-
-Prevents a crafter from crafting when the container it faces cannot fully accept the main recipe result. Recipe remainders keep their vanilla behavior.
-
-- Type: `boolean`
-- Default: `false`
-- Possible values: `false`, `true`
-- Categories: `ICE`, `FEATURE`
 
 ### ctrlQStonecuttingFix `MC<=1.21.1`
 

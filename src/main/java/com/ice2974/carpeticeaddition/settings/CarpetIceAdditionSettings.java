@@ -22,7 +22,7 @@ public final class CarpetIceAdditionSettings {
     public static boolean safeScaffoldingBreak = false;
 
     @Rule(categories = {ICE, FEATURE})
-    public static boolean crafterStopsWhenOutputBlocked = false;
+    public static boolean backpressureCrafter = false;
 
     // 配方类内置数据包规则定义在独立的 settings 类（其 Validator 需引用 MC 类 CommandSourceStack）：
     // craftableCoralBlocks -> CraftableCoralBlocksSettings，calciteStonecuttingRecipe -> CalciteStonecuttingRecipeSettings。

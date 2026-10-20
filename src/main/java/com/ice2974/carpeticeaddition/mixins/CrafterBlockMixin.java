@@ -33,7 +33,7 @@ public abstract class CrafterBlockMixin {
 
     @Inject(method = "dispenseFrom", at = @At("HEAD"), cancellable = true)
     private void carpetIceAddition$cancelCraftIfOutputBlocked(BlockState state, ServerLevel world, BlockPos pos, CallbackInfo ci) {
-        if (!CarpetIceAdditionSettings.crafterStopsWhenOutputBlocked) {
+        if (!CarpetIceAdditionSettings.backpressureCrafter) {
             return;
         }
 
@@ -67,7 +67,7 @@ public abstract class CrafterBlockMixin {
                 ci.cancel();
             }
         } catch (Throwable throwable) {
-            CarpetIceAdditionMod.reportFeatureCompatibilityIssue("crafterStopsWhenOutputBlocked", throwable);
+            CarpetIceAdditionMod.reportFeatureCompatibilityIssue("backpressureCrafter", throwable);
         }
     }
 }

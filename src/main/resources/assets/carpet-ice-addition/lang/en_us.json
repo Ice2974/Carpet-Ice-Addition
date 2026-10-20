@@ -1,7 +1,7 @@
 {
   "carpet.category.CarpetIceAddition": "Ice",
   "carpet.rule.safeScaffoldingBreak.desc": "Require holding scaffolding or an empty main hand to break scaffolding, preventing accidental dismantling",
-  "carpet.rule.crafterStopsWhenOutputBlocked.desc": "Prevents a crafter from crafting when the container it faces cannot fully accept the main recipe result. Recipe remainders keep their vanilla behavior",
+  "carpet.rule.backpressureCrafter.desc": "Prevents a crafter from crafting when the container it faces cannot fully accept the main recipe result. Recipe remainders keep their vanilla behavior",
   "carpet.rule.craftableCoralBlocks.desc": "Allows 9 coral fans of the same type to be crafted into the corresponding coral block, including dead coral variants",
   "carpet.rule.craftableCoralBlocks.conflict.locked": "Conflicting datapack or mod detected, craftableCoralBlocks has been locked to false",
   "carpet.rule.craftableCoralBlocks.conflict.command": "This rule is locked to false due to a conflicting datapack or mod",
