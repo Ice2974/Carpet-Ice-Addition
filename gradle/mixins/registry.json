@@ -8,6 +8,7 @@
   "entries": [
     { "name": "AcquirePoiIronGolemOptimizationMixin", "side": "common" },
     { "name": "AmethystNaturalGrowthMixin", "side": "common" },
+    { "name": "AnvilMenuToughAnvilMixin", "side": "common" },
     { "name": "AssignProfessionFromJobSiteIronGolemOptimizationMixin", "side": "common" },
     { "name": "BeaconBlockEntityMixin", "side": "common" },
     { "name": "BeaconProperToolFixMixin", "side": "common" },
@@ -41,6 +42,7 @@
     { "name": "EnhancedTridentPistonMoveMixin", "side": "common" },
     { "name": "EnhancedTridentProjectileAccessor", "side": "common" },
     { "name": "FakePlayerIgnoreThornsDamageMixin", "side": "common" },
+    { "name": "FallingBlockEntityToughAnvilMixin", "side": "common" },
     { "name": "FlowingFluidFreezeMixin", "side": "common" },
     { "name": "FrostedIceProperToolFixMixin", "side": "common" },
     { "name": "GateBehaviorIronGolemOptimizationMixin", "side": "common" },

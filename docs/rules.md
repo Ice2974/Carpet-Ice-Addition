@@ -96,6 +96,7 @@
 - 默认值: `false`
 - 可选值: `false`, `true`
 - 分类: `ICE`, `FEATURE`, `SURVIVAL`
+
 ### Carpet单人退出崩溃修复 (carpetSingleplayerExitCrashFix) `MC<=1.21.1`
 
 修复客户端进入过 Carpet 服务器后，再退出单人世界可能触发的 Carpet 崩溃。
@@ -356,10 +357,8 @@
 
 玩家输入已适配的回档命令时，检查已保存的机器状态；如果存在未处于保存关机状态的机器，则向该玩家发送警告提示。
 
-> 默认适配的备份 Mod：Quick Backup Multi（`/qb`, `/quickbackupmulti`）。
->
-> 默认适配的 MCDR 插件：Quick Backup Multi（`!!qb`）、Prime Backup（`!!pb`）、Chunk Backup（`!!cb`）。
->
+> 默认适配的备份 Mod：Quick Backup Multi（`/qb`, `/quickbackupmulti`）。\
+> 默认适配的 MCDR 插件：Quick Backup Multi（`!!qb`）、Prime Backup（`!!pb`）、Chunk Backup（`!!cb`）。\
 > 可在全局 `config/carpet-ice-addition/machine_status_rollback_warning.json` 中配置需要检测的回档命令。
 
 - 类型: `boolean`
@@ -466,6 +465,19 @@
 - 类型: `boolean`
 - 默认值: `false`
 - 可选值: `false`, `true`
+- 分类: `ICE`, `FEATURE`
+
+### 坚韧的铁砧 (toughAnvil)
+
+防止铁砧因使用或坠落而损坏，可配置仅防止使用或仅防止坠落。
+
+> `true`：同时阻止使用和坠落造成的铁砧自身损坏。\
+> `useOnly`：仅阻止使用（铁砧 GUI 内修复、附魔、重命名等取物操作）造成的损坏，坠落损坏保持原版。\
+> `fallOnly`：仅阻止坠落（重力方块落地）造成的损坏，使用损坏保持原版。
+
+- 类型: `String`
+- 默认值: `false`
+- 可选值: `false`, `true`, `useOnly`, `fallOnly`
 - 分类: `ICE`, `FEATURE`
 
 ### 村民交易优化 (villagerTradingOptimization)

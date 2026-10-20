@@ -190,5 +190,6 @@
   "carpet.rule.betterTridentDespawnCondition.desc": "Tridents can only despawn after being stuck in a block and remaining stationary for 1200 game ticks",
   "carpet.rule.renewableRawIron.desc": "Master mason villagers offer 1 block of raw iron for 4 to 8 emeralds as an extra trade",
   "carpet.rule.voidDamageTriggersTotem.desc": "Allows void damage to trigger Totems of Undying",
+  "carpet.rule.toughAnvil.desc": "Prevents anvils from being damaged by use or falling, with options to protect only against use or only against falling",
   "carpet.rule.carpetIceAdditionEasterEgg.desc": "Controls whether all hidden easter eggs trigger"
 }

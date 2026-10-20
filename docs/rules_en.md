@@ -356,10 +356,8 @@ Customizes the lava flow delay in game ticks.
 
 Checks saved machine states when a player enters a supported rollback command, and warns that player if any machines are not in their saved shutdown state.
 
-> Supported backup mod by default: Quick Backup Multi (`/qb`, `/quickbackupmulti`).
->
-> Supported MCDR plugins by default: Quick Backup Multi (`!!qb`), Prime Backup (`!!pb`), Chunk Backup (`!!cb`).
->
+> Supported backup mod by default: Quick Backup Multi (`/qb`, `/quickbackupmulti`).\
+> Supported MCDR plugins by default: Quick Backup Multi (`!!qb`), Prime Backup (`!!pb`), Chunk Backup (`!!cb`).\
 > Rollback commands to detect can be configured in the global `config/carpet-ice-addition/machine_status_rollback_warning.json`.
 
 - Type: `boolean`
@@ -466,6 +464,19 @@ Normal spawners, trial spawners, and ominous trial spawners ignore invisible pla
 - Type: `boolean`
 - Default: `false`
 - Possible values: `false`, `true`
+- Categories: `ICE`, `FEATURE`
+
+### toughAnvil
+
+Prevents anvils from being damaged by use or falling, with options to protect only against use or only against falling.
+
+> `true`: Prevents anvils from being damaged by both use and falling.\
+> `useOnly`: Prevents anvil damage caused by use in the anvil GUI (repairing, renaming, combining); falling damage remains vanilla.\
+> `fallOnly`: Prevents anvil damage caused by falling; use damage remains vanilla.
+
+- Type: `String`
+- Default: `false`
+- Possible values: `false`, `true`, `useOnly`, `fallOnly`
 - Categories: `ICE`, `FEATURE`
 
 ### villagerTradingOptimization

@@ -170,6 +170,20 @@ public final class CarpetIceAdditionSettings {
     @Rule(categories = {ICE, FEATURE, SURVIVAL})
     public static boolean voidDamageTriggersTotem = false;
 
+    @Rule(
+            categories = {ICE, FEATURE},
+            options = {"false", "true", "useOnly", "fallOnly"}
+    )
+    public static String toughAnvil = "false";
+
+    public static boolean preventsAnvilUseDamage() {
+        return "true".equals(toughAnvil) || "useOnly".equals(toughAnvil);
+    }
+
+    public static boolean preventsAnvilFallDamage() {
+        return "true".equals(toughAnvil) || "fallOnly".equals(toughAnvil);
+    }
+
     @Rule(categories = {ICE})
     public static boolean carpetIceAdditionEasterEgg = true;
 }
