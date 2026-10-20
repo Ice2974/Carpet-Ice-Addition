@@ -367,6 +367,15 @@ Checks saved machine states when a player enters a supported rollback command, a
 - Possible values: `false`, `true`
 - Categories: `ICE`
 
+### meekWarden
+
+Prevents wardens from becoming hostile toward players or targeting them for attack without preventing them from detecting player-caused vibrations.
+
+- Type: `boolean`
+- Default: `false`
+- Possible values: `false`, `true`
+- Categories: `ICE`, `FEATURE`, `SURVIVAL`
+
 ### mobsSpawnWithoutSpears `MC>=1.21.11`
 
 Prevents naturally spawned zombies, zombie villagers, husks, zombified piglins, and piglins from holding spears.
@@ -474,15 +483,6 @@ Naming a villager trade trims its AI to the minimum behavior set required by a f
 ### voidDamageTriggersTotem
 
 Allows void damage to trigger Totems of Undying.
-
-- Type: `boolean`
-- Default: `false`
-- Possible values: `false`, `true`
-- Categories: `ICE`, `FEATURE`, `SURVIVAL`
-
-### wardenNotHostileToPlayers
-
-Prevents wardens from becoming hostile toward players or targeting them for attack without preventing them from detecting player-caused vibrations.
 
 - Type: `boolean`
 - Default: `false`

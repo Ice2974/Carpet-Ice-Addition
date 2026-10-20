@@ -37,7 +37,7 @@ public abstract class WardenAngerManagerMixin {
     @Inject(method = "increaseAnger", at = @At("HEAD"), cancellable = true)
     private void carpetIceAddition$noPlayerAnger(Entity entity, int amount,
             CallbackInfoReturnable<Integer> cir) {
-        if (CarpetIceAdditionSettings.wardenNotHostileToPlayers && entity instanceof Player) {
+        if (CarpetIceAdditionSettings.meekWarden && entity instanceof Player) {
             cir.setReturnValue(0);
         }
     }
@@ -48,7 +48,7 @@ public abstract class WardenAngerManagerMixin {
     @Inject(method = "tick", at = @At("HEAD"))
     private void carpetIceAddition$clearPlayerAnger(ServerLevel world,
             Predicate<Entity> suspectPredicate, CallbackInfo ci) {
-        if (!CarpetIceAdditionSettings.wardenNotHostileToPlayers) {
+        if (!CarpetIceAdditionSettings.meekWarden) {
             return;
         }
         for (Entity entity : List.copyOf(this.suspects)) {

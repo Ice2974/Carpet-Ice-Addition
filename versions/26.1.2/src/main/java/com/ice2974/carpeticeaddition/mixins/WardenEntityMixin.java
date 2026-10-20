@@ -25,7 +25,7 @@ public abstract class WardenEntityMixin {
     // 必须经由 Entity 强转调用。
     @Inject(method = "tick", at = @At("HEAD"))
     private void carpetIceAddition$forgetPlayerTargets(CallbackInfo ci) {
-        if (!CarpetIceAdditionSettings.wardenNotHostileToPlayers || ((Entity) (Object) this).level().isClientSide()) {
+        if (!CarpetIceAdditionSettings.meekWarden || ((Entity) (Object) this).level().isClientSide()) {
             return;
         }
         Brain<Warden> brain = this.getBrain();
@@ -41,7 +41,7 @@ public abstract class WardenEntityMixin {
     // 取消后玩家无法经任何 vanilla 路径成为攻击目标。
     @Inject(method = "setAttackTarget", at = @At("HEAD"), cancellable = true)
     private void carpetIceAddition$noPlayerTarget(LivingEntity target, CallbackInfo ci) {
-        if (CarpetIceAdditionSettings.wardenNotHostileToPlayers && target instanceof Player) {
+        if (CarpetIceAdditionSettings.meekWarden && target instanceof Player) {
             ci.cancel();
         }
     }

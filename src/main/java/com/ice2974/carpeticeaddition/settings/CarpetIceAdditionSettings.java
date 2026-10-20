@@ -67,7 +67,7 @@ public final class CarpetIceAdditionSettings {
     public static boolean woolSuppressesSculkSpread = false;
 
     @Rule(categories = {ICE, FEATURE, SURVIVAL})
-    public static boolean wardenNotHostileToPlayers = false;
+    public static boolean meekWarden = false;
 
     @Rule(categories = {ICE, FEATURE, SURVIVAL, BOT})
     public static boolean fakePlayerIgnoreThornsDamage = false;
