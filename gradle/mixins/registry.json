@@ -66,7 +66,6 @@
     { "name": "ReactToBellIronGolemOptimizationMixin", "side": "common" },
     { "name": "RenewableRawIronVillagerMixin", "side": "common" },
     { "name": "ResetProfessionIronGolemOptimizationMixin", "side": "common" },
-    { "name": "SafeScaffoldingBreakMixin", "side": "common" },
     { "name": "ScreenHandlerCtrlQStonecuttingFixMixin", "side": "common", "onlyMc": "1.21.1" },
     { "name": "SculkCatalystBlockEntityMixin", "side": "common" },
     { "name": "SculkCatalystListenerMixin", "side": "common" },
@@ -105,7 +104,6 @@
       "before": "ServerGamePacketListenerImplDisableIllegalTextCharacterCheckMixin",
       "after": "ServerGamePacketListenerImplMachineStatusRollbackWarningMixin"
     },
-    { "before": "PlayerBreakIceLikeMagmaBlocksMixin", "after": "SafeScaffoldingBreakMixin" },
     { "before": "FakePlayerIgnoreThornsDamageMixin", "after": "DisableAirborneMiningPenaltyMixin" },
     { "before": "DisablePlayerAttackingTamedMobsMixin", "after": "EntitySetCustomNameTradingOptimizationMixin" },
     { "before": "EntitySetCustomNameTradingOptimizationMixin", "after": "EntitySetCustomNameIronGolemOptimizationMixin" },

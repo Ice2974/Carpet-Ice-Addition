@@ -12,7 +12,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public final class FeatureCompatibilityReporter {
     private static final Logger LOGGER = LoggerFactory.getLogger("Carpet Ice Addition");
 
-    private static final AtomicBoolean SAFE_SCAFFOLDING_BREAK_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean BACKPRESSURE_CRAFTER_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean RECORD_WORLD_EVENT_FIX_ERROR_REPORTED = new AtomicBoolean(false);
     private static final AtomicBoolean SPAWNERS_IGNORE_INVISIBLE_PLAYERS_ERROR_REPORTED = new AtomicBoolean(false);
@@ -43,9 +42,7 @@ public final class FeatureCompatibilityReporter {
 
     public static void reportFeatureCompatibilityIssue(String featureName, Throwable throwable) {
         AtomicBoolean flag;
-        if ("safeScaffoldingBreak".equals(featureName)) {
-            flag = SAFE_SCAFFOLDING_BREAK_ERROR_REPORTED;
-        } else if ("backpressureCrafter".equals(featureName)) {
+        if ("backpressureCrafter".equals(featureName)) {
             flag = BACKPRESSURE_CRAFTER_ERROR_REPORTED;
         } else if ("recordWorldEventFix".equals(featureName)) {
             flag = RECORD_WORLD_EVENT_FIX_ERROR_REPORTED;

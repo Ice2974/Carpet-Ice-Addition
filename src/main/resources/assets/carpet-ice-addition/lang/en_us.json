@@ -1,6 +1,5 @@
 {
   "carpet.category.CarpetIceAddition": "Ice",
-  "carpet.rule.safeScaffoldingBreak.desc": "Require holding scaffolding or an empty main hand to break scaffolding, preventing accidental dismantling",
   "carpet.rule.backpressureCrafter.desc": "Prevents a crafter from crafting when the container it faces cannot fully accept the main recipe result. Recipe remainders keep their vanilla behavior",
   "carpet.rule.craftableCoralBlocks.desc": "Allows 9 coral fans of the same type to be crafted into the corresponding coral block, including dead coral variants",
   "carpet.rule.craftableCoralBlocks.conflict.locked": "Conflicting datapack or mod detected, craftableCoralBlocks has been locked to false",
@@ -45,7 +44,6 @@
   "carpet.rule.commandMachineStatus.desc": "Controls the permission of the /machineStatus command",
   "carpet.rule.commandWeakload.desc": "Controls the permission of the /weakload command",
   "carpet.rule.machineStatusRollbackWarning.desc": "Checks saved machine states when a player enters a supported rollback command, and warns that player if any machines are not in their saved shutdown state",
-  "message.carpet-ice-addition.safe_scaffolding_break": "Hold scaffolding or empty your main hand to break scaffolding",
   "message.carpet-ice-addition.phantom_spawn_warning": "Phantoms may spawn tonight. You should sleep",
   "message.carpet-ice-addition.machine_status_rollback_warning.title": "Rollback Machine Status Warning",
   "message.carpet-ice-addition.machine_status_rollback_warning.detected_prefix": "Detected rollback command: ",

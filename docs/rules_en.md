@@ -439,15 +439,6 @@ Master mason villagers offer 1 block of raw iron for 4 to 8 emeralds as an extra
 - Possible values: `false`, `true`
 - Categories: `ICE`, `FEATURE`
 
-### safeScaffoldingBreak
-
-Require holding scaffolding or an empty main hand to break scaffolding, preventing accidental dismantling.
-
-- Type: `boolean`
-- Default: `false`
-- Possible values: `false`, `true`
-- Categories: `ICE`, `FEATURE`
-
 ### silkTouchFrostedIce
 
 Drops 1 regular ice when broken using any tool with the Silk Touch enchantment.

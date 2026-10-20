@@ -440,15 +440,6 @@
 - 可选值: `false`, `true`
 - 分类: `ICE`, `FEATURE`
 
-### 脚手架防误拆 (safeScaffoldingBreak)
-
-只有主手持脚手架或主手为空时，玩家才能破坏脚手架，防止误拆。
-
-- 类型: `boolean`
-- 默认值: `false`
-- 可选值: `false`, `true`
-- 分类: `ICE`, `FEATURE`
-
 ### 可采集霜冰 (silkTouchFrostedIce)
 
 使用任意带有精准采集附魔的工具破坏霜冰时，会掉落 1 个普通冰。
