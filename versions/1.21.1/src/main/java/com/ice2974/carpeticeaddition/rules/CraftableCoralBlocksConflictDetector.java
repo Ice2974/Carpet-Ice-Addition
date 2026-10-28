@@ -25,7 +25,7 @@ public final class CraftableCoralBlocksConflictDetector {
     }
 
     /**
-     * 重新计算冲突锁定状态，并在状态迁移 / reload 仍锁定时广播提示与写日志。
+     * 重新计算冲突锁定状态，并在状态迁移时广播提示与写日志。
      *
      * <p>必须在 recipe book 同步与菜单刷新之前调用。字段压 false / 恢复 desiredValue 均通过
      * 直接静态字段写完成，不经 SettingsManager，因此不触发 observer / validator / 配置保存，

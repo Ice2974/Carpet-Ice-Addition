@@ -12,7 +12,7 @@ import net.minecraft.server.level.ServerPlayer;
  *
  * <p>入口类（各平台 {@code CarpetIceAdditionMod}）只与本类交互，规则自身的启停、冲突锁定、
  * 资源 reload、配方书 / 菜单同步全部由 {@link RecipePackCoordinator} 统一承担。
- * 新增一条配方类规则只需在此登记一个 {@link RecipePackCoordinator.ManagedPack}。
+ * 新增配方类规则时在此登记 {@link RecipePackCoordinator.ManagedPack} 及其冲突描述。
  */
 public final class RecipeDatapackRegistry {
     /** {@code craftableCoralBlocks} 的内置数据包 id。 */

@@ -20,8 +20,12 @@ import net.minecraft.world.level.Level;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.appender.AbstractAppender;
 
 import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -104,6 +108,65 @@ class CalciteStonecuttingRecipeConflictDetectorTest {
                 RecipeType.STONECUTTING, List.of(displayOf(Items.CALCITE), throwingDisplay()));
         assertTrue(CalciteStonecuttingRecipeConflictDetector.hasConflictingResult(
                 recipe, "minecraft:conflicting", ctx, targets));
+    }
+
+    @Test
+    void unresolvableRecipeWarnsOnceForEachRule() {
+        var first = new RecipeConflictDefinition(RecipeConflictDefinition.Type.STONECUTTING,
+                List.of("test:warning_first"), List.of("minecraft:calcite"));
+        var second = new RecipeConflictDefinition(RecipeConflictDefinition.Type.STONECUTTING,
+                List.of("test:warning_second"), List.of("minecraft:stone"));
+        var messages = new ArrayList<String>();
+        var appender = new AbstractAppender("recipe-conflict-test", null, null, false, null) {
+            @Override public void append(LogEvent event) { messages.add(event.getMessage().getFormattedMessage()); }
+        };
+        var logger = (org.apache.logging.log4j.core.Logger) LogManager.getLogger("Carpet Ice Addition");
+        appender.start();
+        logger.addAppender(appender);
+        try {
+            Recipe<?> recipe = new StubRecipe(RecipeType.STONECUTTING, List.of(throwingDisplay()));
+            assertTrue(StonecuttingRecipeConflictScanner.hasConflictingResult(recipe, "test:broken", ctx, first, first.targets()));
+            assertTrue(StonecuttingRecipeConflictScanner.hasConflictingResult(recipe, "test:broken", ctx, first, first.targets()));
+            assertTrue(StonecuttingRecipeConflictScanner.hasConflictingResult(recipe, "test:broken", ctx, second, second.targets()));
+            assertTrue(StonecuttingRecipeConflictScanner.hasConflictingResult(recipe, "test:broken", ctx, second, second.targets()));
+            assertEquals(2, messages.size());
+            assertTrue(messages.get(0).contains("test:warning_first"));
+            assertTrue(messages.get(1).contains("test:warning_second"));
+        } finally {
+            logger.removeAppender(appender);
+            appender.stop();
+        }
+    }
+
+    @Test
+    void sharedScannerKeepsEachRulesOwnIdsTypesAndTargetsIndependent() {
+        record Entry(String id, Recipe<?> recipe) {}
+        var entries = List.of(
+                new Entry("test:craft_a", new StubRecipe(RecipeType.CRAFTING, List.of(displayOf(Items.CALCITE)))),
+                new Entry("test:craft_b", new StubRecipe(RecipeType.CRAFTING, List.of(displayOf(Items.STONE)))),
+                new Entry("test:stone_a", new StubRecipe(RecipeType.STONECUTTING, List.of(displayOf(Items.CALCITE)))),
+                new Entry("test:stone_b", new StubRecipe(RecipeType.STONECUTTING, List.of(displayOf(Items.STONE)))));
+        var craftA = new RecipeConflictDefinition(RecipeConflictDefinition.Type.CRAFTING, List.of("test:craft_a"), List.of("minecraft:calcite"));
+        var craftB = new RecipeConflictDefinition(RecipeConflictDefinition.Type.CRAFTING, List.of("test:craft_b"), List.of("minecraft:stone"));
+        var stoneA = new RecipeConflictDefinition(RecipeConflictDefinition.Type.STONECUTTING, List.of("test:stone_a"), List.of("minecraft:calcite"));
+        var stoneB = new RecipeConflictDefinition(RecipeConflictDefinition.Type.STONECUTTING, List.of("test:stone_b"), List.of("minecraft:stone"));
+        for (var definition : List.of(craftA, craftB, stoneA, stoneB)) {
+            var own = new ArrayList<String>();
+            boolean conflict = RecipeConflictScanner.scan(entries, definition,
+                    entry -> RecipeConflictScanner.matchesType(definition, entry.recipe().getType()),
+                    Entry::id, entry -> own.add(entry.id()), entry -> StonecuttingRecipeConflictScanner.hasConflictingResult(
+                            entry.recipe(), entry.id(), ctx, definition, definition.targets()));
+            assertFalse(conflict, definition.toString());
+            assertEquals(definition.recipeIds(), own);
+        }
+        var externalStone = new Entry("test:external", new StubRecipe(RecipeType.STONECUTTING, List.of(displayOf(Items.CALCITE))));
+        assertTrue(StonecuttingRecipeConflictScanner.hasConflictingResult(externalStone.recipe(), externalStone.id(), ctx, stoneA, stoneA.targets()));
+        assertFalse(StonecuttingRecipeConflictScanner.hasConflictingResult(externalStone.recipe(), externalStone.id(), ctx, stoneB, stoneB.targets()));
+        assertFalse(StonecuttingRecipeConflictScanner.hasConflictingResult(externalStone.recipe(), externalStone.id(), ctx, craftA, craftA.targets()));
+        var externalCraft = new Entry("test:external_craft", new StubRecipe(RecipeType.CRAFTING, List.of(displayOf(Items.CALCITE))));
+        assertTrue(StonecuttingRecipeConflictScanner.hasConflictingResult(externalCraft.recipe(), externalCraft.id(), ctx, craftA, craftA.targets()));
+        assertFalse(StonecuttingRecipeConflictScanner.hasConflictingResult(externalCraft.recipe(), externalCraft.id(), ctx, craftB, craftB.targets()));
+        assertFalse(StonecuttingRecipeConflictScanner.hasConflictingResult(externalCraft.recipe(), externalCraft.id(), ctx, stoneA, stoneA.targets()));
     }
 
     @Test

@@ -19,7 +19,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * {@code calciteStonecuttingRecipe} 的冲突检测器（1.21.1 平台 override）。
@@ -71,7 +70,7 @@ public final class CalciteStonecuttingRecipeConflictDetector {
         }
         if (!ownPresent[0] && packSelected) {
             LOGGER.warn("[Carpet Ice Addition] Calcite stonecutting builtin pack is selected but its recipe is "
-                    + "absent from the recipe manager; lock state left unchanged");
+                    + "absent from the recipe manager; treating absence as no conflict");
         }
         return false;
     }
@@ -100,12 +99,6 @@ public final class CalciteStonecuttingRecipeConflictDetector {
                 acceptsDripstone(recipe));
     }
 
-    /**
-     * 一次产物解析的结果：产物栈，以及是否因异常无法解析（含首个异常，供告警引用）。
-     *
-     * <p>异常与「产物为 null / 空」是不同分支：前者在 {@link #hasConflictingResult} 中按
-     * fail-closed 计为冲突，后者是合法场景，不计冲突。
-     */
     private static boolean acceptsDripstone(Recipe<?> recipe) {
         try {
             NonNullList<Ingredient> ingredients = recipe.getIngredients();

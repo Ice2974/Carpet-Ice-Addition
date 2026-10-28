@@ -16,15 +16,11 @@ import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.item.crafting.SingleItemRecipe;
-import net.minecraft.world.item.crafting.display.RecipeDisplay;
-import net.minecraft.world.item.crafting.display.SlotDisplay;
 import net.minecraft.world.item.crafting.display.SlotDisplayContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * {@code calciteStonecuttingRecipe} 的冲突检测器（1.21.3 ~ 26.3）。
@@ -91,7 +87,7 @@ public final class CalciteStonecuttingRecipeConflictDetector {
         // 4) 内置包已选中但 id 缺失：仅告警
         if (!ownPresent[0] && packSelected) {
             LOGGER.warn("[Carpet Ice Addition] Calcite stonecutting builtin pack is selected but its recipe is "
-                    + "absent from the recipe manager; lock state left unchanged");
+                    + "absent from the recipe manager; treating absence as no conflict");
         }
         return false;
     }
@@ -135,12 +131,6 @@ public final class CalciteStonecuttingRecipeConflictDetector {
         }
     }
 
-    /**
-     * 一次产物解析的结果：解析出的非空结果栈，以及是否存在解析异常（含首个异常，供告警引用）。
-     *
-     * <p>异常与「解析结果为空」是不同分支：前者在 {@link #hasConflictingResult} 中按 fail-closed
-     * 计为冲突，后者是合法场景（如 display 为 null / resolveForStacks 返回空），不计冲突。
-     */
     /**
      * 撤销前判定：该 holder 的内容是否仍是本规则承诺（供解锁记录撤销使用）。
      *
