@@ -8,13 +8,16 @@ on:
     paths-ignore:
       - '**.md'
       - 'LICENSE'
+      - 'COPYING'
+      - 'COPYRIGHT'
   pull_request:
     branches:
       - main
     paths-ignore:
       - '**.md'
       - 'LICENSE'
-
+      - 'COPYING'
+      - 'COPYRIGHT'
 permissions:
   contents: read
 
