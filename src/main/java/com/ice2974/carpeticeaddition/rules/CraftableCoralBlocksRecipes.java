@@ -45,6 +45,10 @@ public final class CraftableCoralBlocksRecipes {
             "minecraft:dead_horn_coral_block"
     );
 
+    public static final RecipeConflictDefinition CONFLICT = new RecipeConflictDefinition(
+            RecipeConflictDefinition.Type.CRAFTING,
+            RECIPE_PATHS.stream().map(path -> NAMESPACE + ":" + path).toList(), RESULT_ITEM_IDS);
+
     private CraftableCoralBlocksRecipes() {
     }
 

@@ -33,12 +33,8 @@ public final class CraftableCoralBlocksValidator extends Validator<Boolean> {
         if (newValue == null) {
             return null;
         }
-        if (CraftableCoralBlocksState.isConflictLocked()) {
-            if (newValue) {
-                return null;
-            }
-            // 锁定期显式选择 false：记录为期望值，解除后保持 false
-            CraftableCoralBlocksState.setDesiredValue(Boolean.FALSE);
+        if (!CraftableCoralBlocksState.LOCK.validateRequestedValue(newValue)) {
+            return null;
         }
         return newValue;
     }

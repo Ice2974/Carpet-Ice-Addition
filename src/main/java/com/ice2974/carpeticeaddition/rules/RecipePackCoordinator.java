@@ -63,6 +63,7 @@ public final class RecipePackCoordinator {
     }
 
     private static final List<ManagedPack> PACKS = new ArrayList<>();
+    private static final List<RecipeConflictRegistrationValidator.Registration> CONFLICTS = new ArrayList<>();
 
     /**
      * 编排核心：在 {@link #initialize()} 中、全部 {@link #register(ManagedPack)} 完成之后以
@@ -79,11 +80,18 @@ public final class RecipePackCoordinator {
     // ------------------------------------------------------------------ 注册与初始化
 
     /** 注册一个受管内置数据包（必须在 {@link #initialize()} 之前调用）。 */
-    public static void register(ManagedPack pack) {
+    public static void register(ManagedPack pack, RecipeConflictDefinition conflict) {
         if (initialized) {
             throw new IllegalStateException("RecipePackCoordinator already initialized");
         }
+        if (pack == null || pack.packId() == null || pack.ruleName() == null || pack.lockedMessageKey() == null
+                || pack.lockedMessageKey().isBlank() || pack.locked() == null || pack.desired() == null
+                || pack.recomputeConflict() == null || pack.syncMenus() == null || pack.onPackDisabled() == null
+                || pack.onPlayerJoin() == null || pack.resetLockState() == null) {
+            throw new IllegalArgumentException("Incomplete managed recipe pack");
+        }
         PACKS.add(pack);
+        CONFLICTS.add(new RecipeConflictRegistrationValidator.Registration(pack.ruleName(), pack.packIdString(), conflict));
     }
 
     /** 注册全部内置数据包并挂载唯一的 START/END 监听器（幂等）。 */
@@ -91,6 +99,7 @@ public final class RecipePackCoordinator {
         if (initialized) {
             return;
         }
+        RecipeConflictRegistrationValidator.validate(CONFLICTS);
         initialized = true;
         var container = FabricLoader.getInstance()
                 .getModContainer(CarpetIceAdditionMod.MOD_ID)

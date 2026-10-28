@@ -56,8 +56,7 @@ class CalciteStonecuttingRecipeConflictDetectorTest {
 
     @AfterEach
     void resetLockState() {
-        CalciteStonecuttingRecipeState.setConflictLocked(false);
-        CalciteStonecuttingRecipeState.setDesiredValue(null);
+        CalciteStonecuttingRecipeState.LOCK.reset();
     }
 
     @Test
@@ -109,12 +108,13 @@ class CalciteStonecuttingRecipeConflictDetectorTest {
 
     @Test
     void recomputeWithUndeterminableServerKeepsLockStateAndDesiredValue() {
-        CalciteStonecuttingRecipeState.setConflictLocked(true);
-        CalciteStonecuttingRecipeState.setDesiredValue(Boolean.TRUE);
+        CalciteStonecuttingRecipeState.LOCK.apply(RecipeConflictLock.Detection.CONFLICT, () -> true, value -> {});
         // null server 与 overworld==null 共享同一早退守卫：无法判定 ≠ 无冲突，保持原状态
         CalciteStonecuttingRecipeConflictDetector.recomputeAndNotify(null);
         assertTrue(CalciteStonecuttingRecipeState.isConflictLocked());
-        assertEquals(Boolean.TRUE, CalciteStonecuttingRecipeState.getDesiredValue());
+        boolean[] restored = {false};
+        CalciteStonecuttingRecipeState.LOCK.apply(RecipeConflictLock.Detection.NO_CONFLICT, () -> false, value -> restored[0] = value);
+        assertTrue(restored[0]);
     }
 
     // ------------------------------------------------------------------ 桩与工具

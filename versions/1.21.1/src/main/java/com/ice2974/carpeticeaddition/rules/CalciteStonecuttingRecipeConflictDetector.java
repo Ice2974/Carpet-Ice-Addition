@@ -18,7 +18,6 @@ import net.minecraft.world.item.crafting.RecipeType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -36,12 +35,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public final class CalciteStonecuttingRecipeConflictDetector {
     private static final Logger LOGGER = LoggerFactory.getLogger("Carpet Ice Addition");
 
-    /**
-     * 「外部切石配方产物解析异常」的告警去重：冲突检测在每个静默点重跑，冲突持续期间会反复命中，
-     * 因此整个 JVM 运行期只告警一次（与 FeatureCompatibilityReporter 的去重风格一致）。
-     */
-    private static final AtomicBoolean UNRESOLVABLE_RECIPE_WARNED = new AtomicBoolean(false);
-
     private CalciteStonecuttingRecipeConflictDetector() {
     }
 
@@ -52,36 +45,31 @@ public final class CalciteStonecuttingRecipeConflictDetector {
         }
         RecipeManager manager = server.getRecipeManager();
         HolderLookup.Provider lookup = server.registryAccess();
-        Set<String> targets = new HashSet<>(CalciteStonecuttingRecipeData.RESULT_ITEM_IDS);
+        RecipeConflictDefinition definition = CalciteStonecuttingRecipeData.CONFLICT;
+        Set<String> targets = definition.targets();
 
-        boolean ownPresent = false;
-        boolean ownAcceptable = false;
-        for (RecipeHolder<?> entry : manager.getRecipes()) {
-            Recipe<?> recipe = entry.value();
-            ResourceLocation id = entry.id();
-            if (CalciteStonecuttingRecipeData.isOwnRecipe(id.getNamespace(), id.getPath())) {
-                ownPresent = true;
-                ownAcceptable = isOwnRecipeAcceptable(recipe, lookup);
-                continue;
-            }
-            if (hasConflictingResult(recipe, id.toString(), lookup, targets)) {
-                return true;
-            }
-        }
+        boolean[] ownPresent = {false};
+        boolean[] ownAcceptable = {false};
+        boolean conflict = RecipeConflictScanner.scan(manager.getRecipes(), definition,
+                entry -> true, entry -> entry.id().toString(), entry -> {
+                    ownPresent[0] = true;
+                    ownAcceptable[0] = isOwnRecipeAcceptable(entry.value(), lookup);
+                }, entry -> hasConflictingResult(entry.value(), entry.id().toString(), lookup, targets));
+        if (conflict) return true;
 
-        if (ownPresent && !ownAcceptable) {
+        if (ownPresent[0] && !ownAcceptable[0]) {
             LOGGER.warn("[Carpet Ice Addition] Builtin calcite stonecutting recipe id is present but its content "
                     + "does not match the rule contract; treating it as a conflict");
             return true;
         }
         String packId = RecipeDatapackRegistry.CALCITE_STONECUTTING_PACK.toString();
         boolean packSelected = RecipePackCoordinator.isBuiltinPackSelected(server, packId);
-        if (ownPresent && !packSelected) {
+        if (ownPresent[0] && !packSelected) {
             LOGGER.warn("[Carpet Ice Addition] Calcite stonecutting recipe id is provided while our builtin pack "
                     + "is not selected; treating it as a conflict");
             return true;
         }
-        if (!ownPresent && packSelected) {
+        if (!ownPresent[0] && packSelected) {
             LOGGER.warn("[Carpet Ice Addition] Calcite stonecutting builtin pack is selected but its recipe is "
                     + "absent from the recipe manager; lock state left unchanged");
         }
@@ -95,33 +83,12 @@ public final class CalciteStonecuttingRecipeConflictDetector {
      * 与 root 版语义一致。产物为 null / 空不计为冲突（合法场景）。
      */
     static boolean hasConflictingResult(Recipe<?> recipe, String recipeId, HolderLookup.Provider lookup, Set<String> targets) {
-        if (recipe.getType() != RecipeType.STONECUTTING) {
-            return false;
-        }
-        Resolution resolution = resolveResult(recipe, lookup);
-        if (resolution.sawFailure()) {
-            warnUnresolvableRecipe(recipeId, resolution.firstFailure());
-            return true;
-        }
-        ItemStack result = resolution.stack();
-        if (result == null || result.isEmpty()) {
-            return false;
-        }
-        ResourceLocation resultId = BuiltInRegistries.ITEM.getKey(result.getItem());
-        return resultId != null && targets.contains(resultId.toString());
-    }
-
-    /** 一次性告警「产物无法解析的外部切石配方」，包含配方 id 与异常类型；重复命中静默。 */
-    private static void warnUnresolvableRecipe(String recipeId, Throwable failure) {
-        if (UNRESOLVABLE_RECIPE_WARNED.compareAndSet(false, true)) {
-            LOGGER.warn("[Carpet Ice Addition] External stonecutting recipe '{}' failed to resolve its result ({})"
-                    + "; treating it as a conflict", recipeId, failure == null ? null : failure.getClass().getName());
-        }
+        return StonecuttingRecipeConflictScanner.hasConflictingResult(recipe, recipeId, lookup, CalciteStonecuttingRecipeData.CONFLICT, targets);
     }
 
     private static boolean isOwnRecipeAcceptable(Recipe<?> recipe, HolderLookup.Provider lookup) {
         boolean stonecuttingType = recipe.getType() == RecipeType.STONECUTTING;
-        ItemStack result = resolveResult(recipe, lookup).stack();
+        ItemStack result = StonecuttingRecipeConflictScanner.resolveResult(recipe, lookup).stack();
         if (result == null || result.isEmpty()) {
             return false;
         }
@@ -139,17 +106,6 @@ public final class CalciteStonecuttingRecipeConflictDetector {
      * <p>异常与「产物为 null / 空」是不同分支：前者在 {@link #hasConflictingResult} 中按
      * fail-closed 计为冲突，后者是合法场景，不计冲突。
      */
-    private record Resolution(ItemStack stack, boolean sawFailure, Throwable firstFailure) {
-    }
-
-    private static Resolution resolveResult(Recipe<?> recipe, HolderLookup.Provider lookup) {
-        try {
-            return new Resolution(recipe.getResultItem(lookup), false, null);
-        } catch (Throwable failure) {
-            return new Resolution(null, true, failure);
-        }
-    }
-
     private static boolean acceptsDripstone(Recipe<?> recipe) {
         try {
             NonNullList<Ingredient> ingredients = recipe.getIngredients();
@@ -182,25 +138,12 @@ public final class CalciteStonecuttingRecipeConflictDetector {
 
     /** 重新计算冲突锁定状态，并在状态迁移时广播提示与写日志。 */
     public static void recomputeAndNotify(MinecraftServer server) {
-        boolean conflict = detectConflict(server);
-        boolean wasLocked = CalciteStonecuttingRecipeState.isConflictLocked();
-
-        if (conflict) {
-            if (!wasLocked) {
-                CalciteStonecuttingRecipeState.setDesiredValue(CalciteStonecuttingRecipeSettings.calciteStonecuttingRecipe);
-            }
-            CalciteStonecuttingRecipeSettings.calciteStonecuttingRecipe = false;
-            CalciteStonecuttingRecipeState.setConflictLocked(true);
-            if (!wasLocked) {
-                broadcast(server, "carpet.rule.calciteStonecuttingRecipe.conflict.locked");
-            }
-        } else if (wasLocked) {
-            Boolean desired = CalciteStonecuttingRecipeState.getDesiredValue();
-            if (desired != null) {
-                CalciteStonecuttingRecipeSettings.calciteStonecuttingRecipe = desired;
-            }
-            CalciteStonecuttingRecipeState.setDesiredValue(null);
-            CalciteStonecuttingRecipeState.setConflictLocked(false);
+        RecipeConflictLock.Transition transition = CalciteStonecuttingRecipeState.LOCK.apply(
+                detectConflict(server) ? RecipeConflictLock.Detection.CONFLICT : RecipeConflictLock.Detection.NO_CONFLICT,
+                () -> CalciteStonecuttingRecipeSettings.calciteStonecuttingRecipe, value -> CalciteStonecuttingRecipeSettings.calciteStonecuttingRecipe = value);
+        if (transition == RecipeConflictLock.Transition.LOCKED) {
+            broadcast(server, "carpet.rule.calciteStonecuttingRecipe.conflict.locked");
+        } else if (transition == RecipeConflictLock.Transition.UNLOCKED) {
             broadcast(server, "carpet.rule.calciteStonecuttingRecipe.conflict.resolved");
         }
     }

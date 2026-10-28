@@ -30,12 +30,8 @@ public final class CalciteStonecuttingRecipeValidator extends Validator<Boolean>
         if (newValue == null) {
             return null;
         }
-        if (CalciteStonecuttingRecipeState.isConflictLocked()) {
-            if (newValue) {
-                return null;
-            }
-            // 锁定期显式选择 false：记录为期望值，解除后保持 false
-            CalciteStonecuttingRecipeState.setDesiredValue(Boolean.FALSE);
+        if (!CalciteStonecuttingRecipeState.LOCK.validateRequestedValue(newValue)) {
+            return null;
         }
         return newValue;
     }

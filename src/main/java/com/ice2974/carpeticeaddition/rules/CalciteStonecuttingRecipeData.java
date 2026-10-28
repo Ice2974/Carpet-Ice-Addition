@@ -38,6 +38,10 @@ public final class CalciteStonecuttingRecipeData {
      */
     public static final List<String> RESULT_ITEM_IDS = List.of(RESULT_ITEM_ID);
 
+    public static final RecipeConflictDefinition CONFLICT = new RecipeConflictDefinition(
+            RecipeConflictDefinition.Type.STONECUTTING,
+            RECIPE_PATHS.stream().map(path -> NAMESPACE + ":" + path).toList(), RESULT_ITEM_IDS);
+
     private CalciteStonecuttingRecipeData() {
     }
 

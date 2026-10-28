@@ -2,27 +2,11 @@ package com.ice2974.carpeticeaddition.rules;
 
 import com.ice2974.carpeticeaddition.settings.CraftableCoralBlocksSettings;
 import com.ice2974.carpeticeaddition.translation.TranslationFormatUtil;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.util.context.ContextMap;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.crafting.Recipe;
-import net.minecraft.world.item.crafting.RecipeHolder;
-import net.minecraft.world.item.crafting.RecipeManager;
-import net.minecraft.world.item.crafting.RecipeType;
-import net.minecraft.world.item.crafting.display.RecipeDisplay;
-import net.minecraft.world.item.crafting.display.SlotDisplay;
-import net.minecraft.world.item.crafting.display.SlotDisplayContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 /**
  * Detects conflicting external crafting recipes for craftableCoralBlocks.
@@ -37,66 +21,7 @@ public final class CraftableCoralBlocksConflictDetector {
      * 扫描 RecipeManager 判定是否存在外部 crafting 配方冲突。
      */
     public static boolean detectConflict(MinecraftServer server) {
-        if (server == null) {
-            return false;
-        }
-        ServerLevel world = server.overworld();
-        if (world == null) {
-            return false;
-        }
-        RecipeManager manager = server.getRecipeManager();
-        ContextMap ctx = SlotDisplayContext.fromLevel(world);
-        Set<String> targets = new HashSet<>(CraftableCoralBlocksRecipes.RESULT_ITEM_IDS);
-        for (RecipeHolder<?> entry : manager.getRecipes()) {
-            Recipe<?> recipe = entry.value();
-            if (recipe.getType() != RecipeType.CRAFTING) {
-                continue;
-            }
-            Identifier id = entry.id().identifier();
-            if (CraftableCoralBlocksRecipes.isCoralRecipe(id.getNamespace(), id.getPath())) {
-                continue;
-            }
-            try {
-                List<RecipeDisplay> displays = recipe.display();
-                if (displays == null || displays.isEmpty()) {
-                    continue;
-                }
-                for (RecipeDisplay display : displays) {
-                    try {
-                        SlotDisplay resultDisplay = display.result();
-                        if (resultDisplay == null) {
-                            continue;
-                        }
-                        List<ItemStack> results = resultDisplay.resolveForStacks(ctx);
-                        if (results == null) {
-                            continue;
-                        }
-                        for (ItemStack result : results) {
-                            try {
-                                if (result == null || result.isEmpty()) {
-                                    continue;
-                                }
-                                Item item = result.getItem();
-                                if (item == null) {
-                                    continue;
-                                }
-                                Identifier resultId = BuiltInRegistries.ITEM.getKey(item);
-                                if (targets.contains(resultId.toString())) {
-                                    return true;
-                                }
-                            } catch (Throwable ignored) {
-                                // 跳过无法解析的 result，继续检查同一 display 的其他 result
-                            }
-                        }
-                    } catch (Throwable ignored) {
-                        // 跳过无法提取的 display，继续检查同一 recipe 的其他 display
-                    }
-                }
-            } catch (Throwable ignored) {
-                // 跳过无法提取产物的 recipe
-            }
-        }
-        return false;
+        return CraftingRecipeConflictScanner.detectConflict(server, CraftableCoralBlocksRecipes.CONFLICT);
     }
 
     /**
@@ -113,28 +38,12 @@ public final class CraftableCoralBlocksConflictDetector {
      * 由调用方 try/catch 兜底，本方法不修改 conflictLocked / desiredValue / 字段，避免错误恢复或清空。
      */
     public static void recomputeAndNotify(MinecraftServer server) {
-        boolean conflict = detectConflict(server);
-        boolean wasLocked = CraftableCoralBlocksState.isConflictLocked();
-
-        if (conflict) {
-            if (!wasLocked) {
-                // 新锁定：保存冲突前字段期望值，供解除后恢复
-                CraftableCoralBlocksState.setDesiredValue(CraftableCoralBlocksSettings.craftableCoralBlocks);
-            }
-            // 直接字段写压 false（不触发 observer / 不保存 carpet.conf）
-            CraftableCoralBlocksSettings.craftableCoralBlocks = false;
-            CraftableCoralBlocksState.setConflictLocked(true);
-            if (!wasLocked) {
-                broadcast(server, "carpet.rule.craftableCoralBlocks.conflict.locked");
-            }
-        } else if (wasLocked) {
-            // 冲突解除：按 desiredValue 恢复字段，立即清空 desiredValue
-            Boolean desired = CraftableCoralBlocksState.getDesiredValue();
-            if (desired != null) {
-                CraftableCoralBlocksSettings.craftableCoralBlocks = desired;
-            }
-            CraftableCoralBlocksState.setDesiredValue(null);
-            CraftableCoralBlocksState.setConflictLocked(false);
+        RecipeConflictLock.Transition transition = CraftableCoralBlocksState.LOCK.apply(
+                detectConflict(server) ? RecipeConflictLock.Detection.CONFLICT : RecipeConflictLock.Detection.NO_CONFLICT,
+                () -> CraftableCoralBlocksSettings.craftableCoralBlocks, value -> CraftableCoralBlocksSettings.craftableCoralBlocks = value);
+        if (transition == RecipeConflictLock.Transition.LOCKED) {
+            broadcast(server, "carpet.rule.craftableCoralBlocks.conflict.locked");
+        } else if (transition == RecipeConflictLock.Transition.UNLOCKED) {
             broadcast(server, "carpet.rule.craftableCoralBlocks.conflict.resolved");
         }
     }

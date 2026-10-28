@@ -28,8 +28,8 @@ public final class RecipeDatapackRegistry {
 
     /** 注册全部受管内置数据包并挂载唯一的 reload 监听器（在 {@code onInitialize} 中调用）。 */
     public static void initialize() {
-        RecipePackCoordinator.register(coralPack());
-        RecipePackCoordinator.register(calcitePack());
+        RecipePackCoordinator.register(coralPack(), CraftableCoralBlocksRecipes.CONFLICT);
+        RecipePackCoordinator.register(calcitePack(), CalciteStonecuttingRecipeData.CONFLICT);
         RecipePackCoordinator.initialize();
     }
 
@@ -74,10 +74,7 @@ public final class RecipeDatapackRegistry {
                 CraftableCoralBlocksRecipeBookHelper::onReload,
                 CraftableCoralBlocksRecipeBookHelper::onPackDisable,
                 CraftableCoralBlocksRecipeBookHelper::onPlayerJoin,
-                () -> {
-                    CraftableCoralBlocksState.setConflictLocked(false);
-                    CraftableCoralBlocksState.setDesiredValue(null);
-                });
+                CraftableCoralBlocksState.LOCK::reset);
     }
 
     private static RecipePackCoordinator.ManagedPack calcitePack() {
@@ -94,9 +91,6 @@ public final class RecipeDatapackRegistry {
                 // 是否真的授予由「本包已收敛 + 规则生效 + 本包已选中 + 配方可解析」共同决定，
                 // 通用锁定提示仍由协调器统一处理。
                 CalciteStonecuttingMenuSyncHelper::onPlayerJoin,
-                () -> {
-                    CalciteStonecuttingRecipeState.setConflictLocked(false);
-                    CalciteStonecuttingRecipeState.setDesiredValue(null);
-                });
+                CalciteStonecuttingRecipeState.LOCK::reset);
     }
 }
