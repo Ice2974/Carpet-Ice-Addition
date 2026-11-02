@@ -127,11 +127,11 @@
 
 ## Git、Worktree 与 PR 工作流
 
-本节约束 Agent 在 Multica 中执行 Git 相关操作的方式。构建、编译与验证命令沿用「构建与验证」章节，本节不重复定义。
+本节约束 Agent 的 Git、Worktree 与 PR 操作方式。构建、编译与验证命令沿用「构建与验证」章节，本节不重复定义。
 
 ### Worktree 管理
 
-- Multica 负责创建、管理和清理 Worktree。Agent 必须在当前任务分配的 Worktree 内工作，不得直接修改原始工作目录。
+- Worktree 由任务编排环境创建、管理和清理，Agent 必须在当前任务分配的 Worktree 内工作，不得直接修改原始工作目录。
 - 开始任务时，先实际读取以下四条命令的输出，再动手修改：
   ```powershell
   git rev-parse --show-toplevel
@@ -139,9 +139,9 @@
   git status --short --branch
   git worktree list
   ```
-- 分支名称必须以实际 `git branch --show-current` 的结果为准，不得假设 Multica 一定使用某种固定命名。
-- 不得自行创建、重命名、删除或切换离开 Multica 管理的任务分支。
-- 不得手动执行 `git worktree add` / `git worktree remove` 去管理 Multica 的 Worktree。
+- 分支名称必须以实际 `git branch --show-current` 的结果为准，不得假设任务分支使用某种固定命名。
+- 不得自行创建、重命名、删除或切换离开当前任务分支。
+- 不得手动执行 `git worktree add` / `git worktree remove` 去管理任务 Worktree。
 - 同一任务恢复执行时，优先继续原 Worktree 和原分支，不得重新创建分支，也不得丢弃已有工作。
 - 开始新任务时，核实任务分支的基准以及 `origin/main` 状态。发现分支过期、存在冲突，或工作区有无法解释的修改时，先安全调查（`git log`、`git diff`、`git status`、`git stash list`、`git reflog` 等），不得擅自 `git reset`、`git clean` 或强制覆盖。
 
@@ -158,7 +158,7 @@
 - 采用逻辑里程碑提交：每完成一个完整、可验证的逻辑节点提交一次，不要求每个文件或每次小修改单独提交。
 - 提交前检查 diff（`git diff`、`git diff --staged`），并执行当前改动类型适用的验证。
 - 不要把一个任务的全部修改无差别合并成一个最终提交。
-- 不得依赖 Multica Worktree 收尾时的自动提交兜底。每次 Agent 执行结束前，应显式提交自己的完整工作，并检查 `git status` 确认工作区状态符合预期。
+- 不得依赖 Worktree 收尾时的自动提交兜底。每次 Agent 执行结束前，应显式提交自己的完整工作，并检查 `git status` 确认工作区状态符合预期。
 - 提交信息遵循 Conventional Commits，使用中文描述，专有名词及内部标识符保留英文，格式为 `type: 中文描述`。
 - 常用类型：`feat`、`fix`、`refactor`、`perf`、`test`、`docs`、`build`、`ci`、`chore`、`revert`。
 - 示例：
@@ -171,7 +171,7 @@
 ### PR 规范
 
 - 目标分支固定为 `main`。
-- 使用当前 Multica 原生 Worktree 分支作为 PR 的 head，不另建 `feat/...` 分支。
+- 使用当前任务分支作为 PR 的 head，不另建 `feat/...` 分支。
 - 完成初始实现和适用的本地自动化验证后，Push 当前任务分支并创建 Draft PR。
 - PR 标题、描述和说明使用中文，保留规则内部名、类名等英文技术标识符。
 - PR 描述必须包含：修改摘要、重要实现、测试结果、未执行的验证、待人工验收事项。
