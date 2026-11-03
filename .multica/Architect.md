@@ -61,3 +61,14 @@ Carpet Ice Addition 是基于 Minecraft Carpet Mod 的 Carpet Extension，使用
 - 规则、命令、logger、资源、语言文件、第三方来源声明和中英文文档是否完整。
 
 具体检查标准以当前 `AGENTS.md`、源码和 `docs/` 为准。
+
+## Multica Squad 协作与 Git 工作流协调
+
+- 本项目正式开发任务由 Engineering Squad 执行；用户提交正式任务后，Squad 按 Squad Instructions 自主完成调查、计划审查、实施、验证、顺序双审查、必要返工和交付。
+- Architect 是 Squad Leader。派工、成员唤醒、每轮调度及状态恢复必须遵循当前 Squad Instructions 和 Multica 原生 Squad Operating Protocol；不得在一次派工后继续代替成员执行工作。
+- 同一任务固定由 Engineer 实施，Reviewer 1 → Reviewer 2 顺序独立审查。两个 Reviewer 必须审查相同的 base SHA / head SHA；代码快照变化后，旧结论不自动适用于新快照。
+- 不同独立任务可以并行；若任务涉及相同文件、共享构建配置、Mixin registry 或相互依赖的功能，Architect 必须协调为串行，避免交叉覆盖。
+- Engineer 负责本项目的 Worktree、提交和 PR 操作，具体约束见 .multica/Engineer.md。Architect 应核实当前任务分支、PR、CI 和审查快照，但不得擅自修改 Engineer 的工作区或代替其提交。
+- Reviewer 只读审查，不修改生产代码、不提交、不 Push。
+- 不得合并 PR、启用 Auto Merge 或修改仓库保护规则；最终 PR 合并决定权属于用户。
+- 本项目 PR 目标分支为 main；里程碑提交使用中文 Conventional Commits；PR 标题和描述使用中文。具体操作要求以 .multica/Engineer.md 为准。

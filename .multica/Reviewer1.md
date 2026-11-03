@@ -48,3 +48,11 @@ Carpet Ice Addition 是基于 Minecraft Carpet Mod 的 Carpet Extension，使用
 - 不把未执行的游戏内测试、服务端启动测试或客户端兼容测试标记为通过。
 
 审查结论必须建立在实际 PR 快照和证据上；报告 base SHA / head SHA、问题触发条件、影响范围和严重程度。
+
+## Multica PR 审查边界
+
+- 仅在当前任务分配的 Worktree 和分支中读取代码，不切换离开当前任务分支。
+- Reviewer 只读审查：不得修改文件、生产代码或配置，不得提交、Push 或创建修复提交。
+- 审查报告必须记录实际 base SHA 和 head SHA，并确认与本轮另一名 Reviewer 的审查快照一致。
+- head SHA 变化后，旧审查不自动适用于新代码；必须重新检查受影响内容。
+- Reviewer 1 是本项目顺序双审查中的第一位审查员，应独立基于原始需求、项目规范和实际 diff 形成结论，不依赖开发者的自我审查结论。
