@@ -13,7 +13,9 @@ import net.minecraft.world.entity.ai.behavior.LookAndFollowTradingPlayerSink;
  * IDLE / WORK / PLAY / MEET 内的具体行为已由 VillagerTaskListProvider 构建层
  * 整表标记覆盖（含 JumpInBedTask、VillagerBreedTask、GiveGiftsToHeroTask、
  * HoldTradeOffersTask，不再列入本名单形成重复否决路径）。
- * 与生成链相关的行为（如 PanicTask、SleepTask、MoveToTargetTask）严禁加入本名单。
+ * 与生成链相关的行为（如 PanicTask、SleepTask、MoveToTargetTask）严禁加入本名单；
+ * 钟声唤醒链（钟声写入 → ReactToBell → HIDE 清理任务 → SleepInBed.stop / WakeUp 唤醒）同样严禁加入
+ * 本名单或任何任务标记，该 HIDE 清理任务承担清除 HEARD_BELL_TIME 的常规职责（各平台统一描述，不写死类名）。
  */
 public final class IronGolemVillagerSkipClasses {
 

@@ -310,7 +310,7 @@ When players break magma blocks with tools without Silk Touch, the magma block d
 
 Naming a villager iron_golem trims its AI to the minimum behavior set required by a scare-based iron farm.
 
-> The IDLE / MEET / PLAY / WORK activity task lists are skipped entirely (including gossip exchanges, following / watching trading players, etc.); villagers no longer run the 48-block POI scans and pathfinding for job sites or meeting points, while bed claiming (HOME) stays vanilla. Named villagers remain stationary during the day, keeping only the priority-99 schedule switching; at night they enter REST sleep according to the schedule, or trigger iron golem spawning through CORE's PANIC.
+> The IDLE / MEET / PLAY / WORK activity task lists are skipped entirely (including gossip exchanges, following / watching trading players, etc.); villagers no longer run the 48-block POI scans and pathfinding for job sites or meeting points, while bed claiming (HOME) stays vanilla. Named villagers remain stationary during the day, keeping only the priority-99 schedule switching; at night they enter REST sleep according to the schedule, or trigger iron golem spawning through CORE's PANIC. Ringing a bell makes villagers enter the vanilla HIDE activity and wake up, provided no nearby active raid blocks it; with a valid hiding place / usable bed available they leave hiding and go back to bed under the vanilla conditions.
 
 - Type: `boolean`
 - Default: `false`
