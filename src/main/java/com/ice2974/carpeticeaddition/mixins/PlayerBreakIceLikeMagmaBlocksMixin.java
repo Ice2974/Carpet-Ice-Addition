@@ -26,11 +26,31 @@ public abstract class PlayerBreakIceLikeMagmaBlocksMixin {
 
     @Unique private @Nullable BlockPos carpetIceAddition$pendingMagmaBreakPos;
     @Unique private boolean carpetIceAddition$pendingMagmaBreak;
+    @Unique private boolean carpetIceAddition$pendingMagmaBreakHasSilkTouch;
 
     @Inject(method = "destroyBlock", at = @At("HEAD"))
     private void carpetIceAddition$captureMagmaBlockBreak(BlockPos pos, CallbackInfoReturnable<Boolean> cir) {
-        this.carpetIceAddition$pendingMagmaBreakPos = pos;
-        this.carpetIceAddition$pendingMagmaBreak = this.player.level().getBlockState(pos).is(Blocks.MAGMA_BLOCK);
+        this.carpetIceAddition$pendingMagmaBreakPos = null;
+        this.carpetIceAddition$pendingMagmaBreak = false;
+        this.carpetIceAddition$pendingMagmaBreakHasSilkTouch = false;
+        if (!CarpetIceAdditionSettings.iceLikeMagmaBlocks || this.player.isCreative()) {
+            return;
+        }
+        try {
+            if (!this.player.level().getBlockState(pos).is(Blocks.MAGMA_BLOCK)) {
+                return;
+            }
+            // destroyBlock 会先消耗工具耐久，再返回；本次精准采集判定必须在工具损坏前保存。
+            ItemStack tool = this.player.getMainHandItem();
+            this.carpetIceAddition$pendingMagmaBreakHasSilkTouch = EnchantmentHelper.getEnchantmentsForCrafting(tool)
+                    .entrySet()
+                    .stream()
+                    .anyMatch(entry -> entry.getKey().is(Enchantments.SILK_TOUCH) && entry.getIntValue() > 0);
+            this.carpetIceAddition$pendingMagmaBreakPos = pos.immutable();
+            this.carpetIceAddition$pendingMagmaBreak = true;
+        } catch (Throwable throwable) {
+            CarpetIceAdditionMod.reportFeatureCompatibilityIssue("iceLikeMagmaBlocks", throwable);
+        }
     }
 
     @Inject(method = "destroyBlock", at = @At("RETURN"))
@@ -47,12 +67,6 @@ public abstract class PlayerBreakIceLikeMagmaBlocksMixin {
             if (brokenPos == null) {
                 return;
             }
-
-            ItemStack tool = this.player.getMainHandItem();
-            boolean hasSilkTouch = EnchantmentHelper.getEnchantmentsForCrafting(tool)
-                    .entrySet()
-                    .stream()
-                    .anyMatch(entry -> entry.getKey().is(Enchantments.SILK_TOUCH) && entry.getIntValue() > 0);
 
             BlockState belowState = this.player.level().getBlockState(brokenPos.below());
             // ≤26.2 blocksMotion() 无非弃用等价 API：语义 = 排除 COBWEB/BAMBOO_SAPLING + legacySolid 尺寸阈值判定，保留原调用以冻结该语义；
@@ -72,7 +86,7 @@ public abstract class PlayerBreakIceLikeMagmaBlocksMixin {
 
             if (!IceLikeMagmaBlocksHelper.shouldCreateLavaSource(
                     CarpetIceAdditionSettings.iceLikeMagmaBlocks,
-                    hasSilkTouch,
+                    this.carpetIceAddition$pendingMagmaBreakHasSilkTouch,
                     IceLikeMagmaBlocksHelper.hasIceLikeSupport(validSolidSupport, liquidSupport)
             )) {
                 return;
@@ -84,6 +98,7 @@ public abstract class PlayerBreakIceLikeMagmaBlocksMixin {
         } finally {
             this.carpetIceAddition$pendingMagmaBreakPos = null;
             this.carpetIceAddition$pendingMagmaBreak = false;
+            this.carpetIceAddition$pendingMagmaBreakHasSilkTouch = false;
         }
     }
 }

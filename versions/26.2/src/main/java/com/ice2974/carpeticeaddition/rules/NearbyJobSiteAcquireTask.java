@@ -16,7 +16,7 @@ import java.util.function.Predicate;
 
 /**
  * 近距离工作站认领与 POTENTIAL_JOB_SITE 清理任务（MC 26.x，Mojang 官方映射）。
- * villagerTradingOptimization 的无寻路职业链入口，双分支结构，不以 POTENTIAL_JOB_SITE 缺失作为任务级门控：
+ * villagerTradingOptimization 的无寻路职业链入口，不以 POTENTIAL_JOB_SITE 缺失作为任务级门控：
  * - POTENTIAL_JOB_SITE 缺失且 JOB_SITE 缺失（村民失站或失业）时，按原版 AcquirePoi 的 20~40 tick 随机周期，
  *   在补货判定距离（调用与 WorkAtPoi 相同的 BlockPos.closerToCenterThan(Position, double)，约 1.73 格）内
  *   搜索有空闲票据的工作站，经 PoiManager.take（含占票）确认后写入 POTENTIAL_JOB_SITE，
@@ -26,7 +26,8 @@ import java.util.function.Predicate;
  * - POTENTIAL_JOB_SITE 存在但已超出原版转换距离（2.0 格）或跨维度时（村民被水流、活塞、载具等移离），
  *   先经原版 releasePoi 释放票据，再清除记忆，避免票据与 POTENTIAL_JOB_SITE 永久卡住
  *   （原版依赖已被本规则删除的 GoToPotentialJobSite 超时释放）。
- * 已绑定 JOB_SITE 的健康村民每次仅做两次记忆存在性检查即短路，不产生 POI 查询；
+ * JOB_SITE 按同一随机周期校验，不受原版 ValidateNearbyPoi 的 16 格范围限制；
+ * 跨维度或已不匹配职业的绑定先释放票据再清除记忆，随后允许近距离重新认领，仍有效的远处绑定保留。
  * 节流状态仅保存在任务实例字段中，随 Brain 重建重置，不写 NBT 或其他持久化数据。
  */
 public class NearbyJobSiteAcquireTask extends Behavior<Villager> {
@@ -42,11 +43,13 @@ public class NearbyJobSiteAcquireTask extends Behavior<Villager> {
     private static final int RETRY_INTERVAL_JITTER = 20;
 
     private final Predicate<Holder<PoiType>> workstationPredicate;
+    private final Predicate<Holder<PoiType>> heldWorkstationPredicate;
     private long nextCheckTime;
 
     public NearbyJobSiteAcquireTask(Holder<VillagerProfession> profession) {
         super(ImmutableMap.of());
         this.workstationPredicate = profession.value().acquirableJobSite();
+        this.heldWorkstationPredicate = profession.value().heldJobSite();
     }
 
     @Override
@@ -55,7 +58,7 @@ public class NearbyJobSiteAcquireTask extends Behavior<Villager> {
             this.cleanupDisplacedPotentialSite(level, villager);
             return false;
         }
-        if (villager.isBaby() || villager.getBrain().hasMemoryValue(MemoryModuleType.JOB_SITE)) {
+        if (villager.isBaby()) {
             return false;
         }
         if (this.nextCheckTime == 0L) {
@@ -68,6 +71,10 @@ public class NearbyJobSiteAcquireTask extends Behavior<Villager> {
     @Override
     protected void start(ServerLevel level, Villager villager, long gameTime) {
         this.nextCheckTime = gameTime + RETRY_INTERVAL + level.getRandom().nextInt(RETRY_INTERVAL_JITTER);
+        this.cleanUpInvalidJobSite(level, villager);
+        if (villager.getBrain().hasMemoryValue(MemoryModuleType.JOB_SITE)) {
+            return;
+        }
         PoiManager poiManager = level.getPoiManager();
         poiManager.findAllClosestFirstWithType(
                         this.workstationPredicate, pos -> true, villager.blockPosition(), 2, PoiManager.Occupancy.HAS_SPACE)
@@ -77,6 +84,18 @@ public class NearbyJobSiteAcquireTask extends Behavior<Villager> {
                 .findFirst()
                 .ifPresent(pos -> villager.getBrain()
                         .setMemory(MemoryModuleType.POTENTIAL_JOB_SITE, GlobalPos.of(level.dimension(), pos)));
+    }
+
+    private void cleanUpInvalidJobSite(ServerLevel level, Villager villager) {
+        villager.getBrain()
+                .getMemory(MemoryModuleType.JOB_SITE)
+                .filter(pos -> pos.dimension() != level.dimension()
+                        || !level.getPoiManager().exists(pos.pos(), this.heldWorkstationPredicate))
+                .ifPresent(pos -> {
+                    // releasePoi 需要读取尚未清除的 GlobalPos，并在原绑定维度释放票据。
+                    villager.releasePoi(MemoryModuleType.JOB_SITE);
+                    villager.getBrain().eraseMemory(MemoryModuleType.JOB_SITE);
+                });
     }
 
     private void cleanupDisplacedPotentialSite(ServerLevel level, Villager villager) {

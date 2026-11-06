@@ -42,6 +42,8 @@ Cleanup results are shown as a multi-line summary with entity count, item count,
 
 Cleanup detail caches expire after about 10 minutes, after which the cleanup command must be run again. Console, command block, and RCON cleanup executions only show a plain truncated summary and do not provide clickable expansion.
 
+If configuration loading fails, defaults are used temporarily and further configuration writes are rejected to protect the existing blacklist and settings. Fix the configuration file, then restart the server or re-enter the world.
+
 ## /machineStatus
 
 ### Related Rule
@@ -80,7 +82,9 @@ Cleanup detail caches expire after about 10 minutes, after which the cleanup com
 | `Invalid` | The dimension is missing, the saved block state cannot be parsed, the block type changed, or the current block can no longer be compared safely |
 | `Running` | The target chunk is loaded, the current block state can be read, the block type is unchanged, and the current state differs from the saved shutdown state |
 | `Stopped` | The target chunk is loaded and the current block state exactly matches the saved shutdown state |
-| `Unloaded` | The dimension exists but the target chunk is not loaded; the command must not force-load it |
+| `Unloaded` | The dimension exists but the target chunk has not finished loading; the command neither force-loads chunks nor waits for loading chunks |
+
+If machine configuration loading fails, empty records are used temporarily and further record changes are rejected to protect existing data. Fix the configuration file, then restart the server or re-enter the world.
 
 ## /weakload
 

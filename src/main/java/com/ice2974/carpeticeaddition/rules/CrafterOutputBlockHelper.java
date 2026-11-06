@@ -3,8 +3,10 @@ package com.ice2974.carpeticeaddition.rules;
 import java.util.List;
 import net.minecraft.core.Direction;
 import net.minecraft.world.Container;
+import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.WorldlyContainer;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.entity.CrafterBlockEntity;
 
 public final class CrafterOutputBlockHelper {
     private CrafterOutputBlockHelper() {
@@ -16,10 +18,7 @@ public final class CrafterOutputBlockHelper {
             return false;
         }
 
-        ItemStack[] snapshot = new ItemStack[inventory.getContainerSize()];
-        for (int i = 0; i < snapshot.length; i++) {
-            snapshot[i] = inventory.getItem(i).copy();
-        }
+        Container snapshot = createSnapshot(inventory);
 
         for (ItemStack stack : stacks) {
             if (!tryInsertWholeStack(inventory, snapshot, slots, fromSide, stack)) {
@@ -29,7 +28,28 @@ public final class CrafterOutputBlockHelper {
         return true;
     }
 
-    private static boolean tryInsertWholeStack(Container inventory, ItemStack[] snapshot, int[] slots, Direction fromSide, ItemStack stack) {
+    private static Container createSnapshot(Container inventory) {
+        // A vanilla copy cannot preserve subclass overrides or their additional state.
+        // Keep custom crafters on the original admission path instead of bypassing it.
+        if (inventory.getClass() == CrafterBlockEntity.class) {
+            CrafterBlockEntity crafter = (CrafterBlockEntity) inventory;
+            // Vanilla crafter admission depends on the other slots after each insertion.
+            // Keep this copy detached from the world; never temporarily edit the target.
+            CrafterBlockEntity copy = new CrafterBlockEntity(crafter.getBlockPos(), crafter.getBlockState());
+            for (int slot = 0; slot < crafter.getContainerSize(); slot++) {
+                copy.setItem(slot, crafter.getItem(slot).copy());
+                copy.setSlotState(slot, !crafter.isSlotDisabled(slot));
+            }
+            return copy;
+        }
+        ItemStack[] stacks = new ItemStack[inventory.getContainerSize()];
+        for (int slot = 0; slot < stacks.length; slot++) {
+            stacks[slot] = inventory.getItem(slot).copy();
+        }
+        return new SimpleContainer(stacks);
+    }
+
+    private static boolean tryInsertWholeStack(Container inventory, Container snapshot, int[] slots, Direction fromSide, ItemStack stack) {
         if (stack.isEmpty()) {
             return true;
         }
@@ -46,18 +66,18 @@ public final class CrafterOutputBlockHelper {
         return true;
     }
 
-    private static boolean tryInsertOne(Container inventory, ItemStack[] snapshot, int[] slots, Direction fromSide, ItemStack single) {
+    private static boolean tryInsertOne(Container inventory, Container snapshot, int[] slots, Direction fromSide, ItemStack single) {
         for (int slot : slots) {
-            if (!canInsert(inventory, single, slot, fromSide)) {
+            if (!canInsert(inventory, snapshot, single, slot, fromSide)) {
                 continue;
             }
 
-            ItemStack slotStack = snapshot[slot];
+            ItemStack slotStack = snapshot.getItem(slot);
             if (slotStack.isEmpty()) {
                 if (inventory.getMaxStackSize(single) <= 0) {
                     continue;
                 }
-                snapshot[slot] = single.copy();
+                snapshot.setItem(slot, single.copy());
                 return true;
             }
 
@@ -75,8 +95,9 @@ public final class CrafterOutputBlockHelper {
         return false;
     }
 
-    private static boolean canInsert(Container inventory, ItemStack stack, int slot, Direction fromSide) {
-        return inventory.canPlaceItem(slot, stack)
+    private static boolean canInsert(Container inventory, Container snapshot, ItemStack stack, int slot, Direction fromSide) {
+        Container admission = snapshot instanceof CrafterBlockEntity ? snapshot : inventory;
+        return admission.canPlaceItem(slot, stack)
                 && (!(inventory instanceof WorldlyContainer sided) || sided.canPlaceItemThroughFace(slot, stack, fromSide));
     }
 

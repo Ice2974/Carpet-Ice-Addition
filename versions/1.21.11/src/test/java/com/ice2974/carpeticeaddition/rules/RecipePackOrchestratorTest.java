@@ -3,6 +3,8 @@ package com.ice2974.carpeticeaddition.rules;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -233,6 +235,97 @@ class RecipePackOrchestratorTest {
         assertFalse(h.orch.gate().isDegraded());
     }
 
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void convergedSuccessAllowsRepeatedExternalSelectionDriftCorrection(boolean desired) {
+        Harness h = new Harness();
+        h.packA.desired = !desired;
+        if (!desired) {
+            h.adapter.selected.add(h.packA.packId);
+        }
+        h.loadWorlds();
+        assertEquals(0, h.adapter.reloadRequests.size());
+
+        h.packA.desired = desired;
+        h.orch.onRuleChanged("ruleA", h.serverA, null);
+        assertEquals(RecipeReloadGate.Outcome.SUCCESS, h.orch.gate().ownOutcome());
+        h.orch.onReloadEnd(h.serverA, true);
+        assertEquals(1, h.adapter.reloadRequests.size());
+        assertTrue(h.orch.gate().isReady());
+
+        for (int cycle = 0; cycle < 2; cycle++) {
+            // 规则和冲突状态不变，仅由外部 reload 反转受管包的选中状态。
+            h.orch.onReloadStart(h.serverA, null);
+            if (desired) {
+                h.adapter.selected.remove(h.packA.packId);
+            } else {
+                h.adapter.selected.add(h.packA.packId);
+            }
+            h.orch.onReloadEnd(h.serverA, true);
+            assertEquals(cycle + 2, h.adapter.reloadRequests.size(), "每次独立漂移都允许一次纠正");
+            assertEquals(h.adapter.reloadRequests.get(0), h.adapter.reloadRequests.get(cycle + 1),
+                    "纠正目标与旧 SUCCESS 完全相同，不能靠目标变化绕过非进展判定");
+            assertEquals(desired, h.adapter.selected.contains(h.packA.packId));
+            assertEquals(desired, h.packA.desired);
+            assertFalse(h.orch.gate().isDesiredChangedSinceRequest());
+            assertTrue(h.orch.isReconcileInFlight(), "纠正请求仍需等待自己的 END");
+            assertFalse(h.orch.gate().isReady());
+
+            h.orch.onReloadEnd(h.serverA, true);
+            assertFalse(h.orch.isReconcileInFlight());
+            assertTrue(h.orch.gate().isReady());
+            assertFalse(h.orch.gate().isDegraded());
+            assertFalse(h.orch.gate().isRetryUsed());
+            assertEquals(0, h.orch.gate().failureCount());
+            h.externalReload(true);
+            assertEquals(cycle + 2, h.adapter.reloadRequests.size(), "未漂移的外部 reload 不产生冗余请求");
+        }
+    }
+
+    @Test
+    void successfulCorrectionThatDoesNotApplySelectionStillStopsAtNoProgress() {
+        Harness h = new Harness();
+        h.packA.desired = true;
+        h.loadWorlds();
+        h.orch.onReloadEnd(h.serverA, true);
+        assertTrue(h.orch.gate().isReady());
+
+        h.orch.onReloadStart(h.serverA, null);
+        h.adapter.selected.remove(h.packA.packId);
+        h.adapter.nextReloadIgnoresSelection = true;
+        h.orch.onReloadEnd(h.serverA, true);
+        assertEquals(2, h.adapter.reloadRequests.size(), "已收敛的旧请求不得阻止本次纠正");
+        assertEquals(RecipeReloadGate.Outcome.SUCCESS, h.orch.gate().ownOutcome());
+        assertFalse(h.adapter.selected.contains(h.packA.packId));
+        assertFalse(h.orch.gate().isDegraded(), "尚未到达纠正请求的静默点");
+
+        h.orch.onReloadEnd(h.serverA, true);
+        assertTrue(h.orch.gate().isDegraded(), "新请求 SUCCESS 但同目标仍未生效，必须停止循环");
+        assertFalse(h.orch.gate().isReady());
+        assertFalse(h.orch.isReconcileInFlight());
+        h.externalReload(true);
+        assertEquals(2, h.adapter.reloadRequests.size(), "外部事件不能解除真正的非进展终态");
+        assertEquals(0, h.orch.gate().failureCount());
+        assertFalse(h.orch.gate().isRetryUsed());
+    }
+
+    @Test
+    void successWithoutAnySelectionProgressStopsAfterFirstRequest() {
+        Harness h = new Harness();
+        h.packA.desired = true;
+        h.adapter.nextReloadIgnoresSelection = true;
+        h.loadWorlds();
+        assertEquals(RecipeReloadGate.Outcome.SUCCESS, h.orch.gate().ownOutcome());
+        assertEquals(1, h.adapter.reloadRequests.size());
+        h.orch.onReloadEnd(h.serverA, true);
+
+        assertTrue(h.orch.gate().isDegraded());
+        assertFalse(h.orch.gate().isReady());
+        assertFalse(h.adapter.selected.contains(h.packA.packId));
+        h.externalReload(true);
+        assertEquals(1, h.adapter.reloadRequests.size(), "无收敛记录时不得无限重复同目标请求");
+    }
+
     // ------------------------------------------------------------------ 逐包登录同步
 
     @Test
@@ -327,6 +420,7 @@ class RecipePackOrchestratorTest {
         boolean nextReloadThrows;
         boolean nextReloadFails;
         boolean nextReloadDelayed;
+        boolean nextReloadIgnoresSelection;
         CompletableFuture<Void> lastPendingFuture;
         /** 由 Harness 在编排核心构造后接线：每次 reloadResources 入口同步触发（镜像 START@HEAD）。 */
         Runnable onStart;
@@ -367,6 +461,10 @@ class RecipePackOrchestratorTest {
                 nextReloadDelayed = false;
                 lastPendingFuture = new CompletableFuture<>();
                 return lastPendingFuture;
+            }
+            if (nextReloadIgnoresSelection) {
+                nextReloadIgnoresSelection = false;
+                return CompletableFuture.completedFuture(null);
             }
             // 正常完成：reload 应用所请求的选中集合（真实 reloadResources 的效果）
             selected.clear();

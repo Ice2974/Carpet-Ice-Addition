@@ -4,6 +4,8 @@
 
 Recipe rules provide this mod's recipes through a corresponding built-in datapack. Enabling a rule selects that datapack; disabling it deselects the datapack and triggers a vanilla server resource reload. If another datapack or mod provides a recipe with the same output as one of those built-in recipes, the corresponding rule is automatically locked to `false` at runtime.
 
+After loading has completed, later resource reloads that change the built-in datapack selection are still reconciled with the rule's current effective state. Automatic retries stop if repeated reloads cannot apply the target selection.
+
 When locked:
 
 - the built-in datapack from this mod is deselected;
@@ -28,6 +30,8 @@ When locked:
 ### backpressureCrafter
 
 Prevents a crafter from crafting when the container it faces cannot fully accept the main recipe result. Recipe remainders keep their vanilla behavior.
+
+> When the target is another crafter, the capacity check accounts for slot counts changing during successive insertions and for disabled slots, without moving any items in the target container.
 
 - Type: `boolean`
 - Default: `false`
@@ -91,6 +95,8 @@ Add a suffix to bots in the Tab list, using `&` to represent section symbols.
 ### calciteStonecuttingRecipe
 
 Allows dripstone blocks to be converted into calcite using a stonecutter.
+
+> Rule changes and resource reloads also refresh recipe lists in open stonecutter menus and clear the previous selection. Input and cursor items are preserved, and clients do not need this mod installed.
 
 - Type: `boolean`
 - Default: `false`
@@ -301,6 +307,8 @@ Makes pickaxes the proper tools for breaking frosted ice.
 
 When players break magma blocks with tools without Silk Touch, the magma block does not drop, and a lava source is generated using ice-like support checks when the block below provides valid solid support or liquid support.
 
+> Silk Touch is checked before this mining operation consumes tool durability. Breaking the tool during that operation does not cause lava to appear.
+
 - Type: `boolean`
 - Default: `false`
 - Possible values: `false`, `true`
@@ -358,7 +366,8 @@ Checks saved machine states when a player enters a supported rollback command, a
 
 > Supported backup mod by default: Quick Backup Multi (`/qb`, `/quickbackupmulti`).\
 > Supported MCDR plugins by default: Quick Backup Multi (`!!qb`), Prime Backup (`!!pb`), Chunk Backup (`!!cb`).\
-> Rollback commands to detect can be configured in the global `config/carpet-ice-addition/machine_status_rollback_warning.json`.
+> Rollback commands to detect can be configured in the global `config/carpet-ice-addition/machine_status_rollback_warning.json`.\
+> An omitted or `null` `rollbackCommandPatterns` field uses the default patterns; an explicit `[]` matches no commands.
 
 - Type: `boolean`
 - Default: `false`
@@ -423,6 +432,8 @@ Prevents water from being consumed when using a vanilla water bucket while holdi
 
 Fixes the issue where a music disc can keep playing after being quickly inserted into and removed from a jukebox, which may also cause overlapping disc audio. See MC-112245.
 
+> Within one deferred dispatch period, starting then stopping cancels the pending start event; stopping then starting again preserves the last start event.
+
 - Type: `boolean`
 - Default: `false`
 - Possible values: `false`, `true`
@@ -476,6 +487,8 @@ Naming a villager trade trims its AI to the minimum behavior set required by a f
 
 > CORE keeps only drowning avoidance, workstation validity checks, and nearby workstation claiming without pathfinding (a workstation is claimed only when it lies within the restock check distance of about 1.73 blocks; once claimed, villagers can still bind the workstation, gain a profession, and reset to unemployed as usual)\
 > WORK keeps only the restocking behavior, with hard restock semantics such as daily restock counts, intervals, and cross-day resets matching vanilla. Villagers never pathfind or move toward workstations, and the task lists of all other activities (meeting, resting, idling, panicking, raiding, playing, etc.) are cleared.
+
+> Workstation bindings are checked periodically beyond vanilla's nearby validation range. Invalid or cross-dimension bindings are released before attempting to claim a nearby workstation; valid distant bindings are retained.
 
 - Type: `boolean`
 - Default: `false`

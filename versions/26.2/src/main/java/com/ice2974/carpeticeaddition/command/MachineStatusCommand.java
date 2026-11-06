@@ -31,6 +31,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.LevelChunk;
 
 import java.io.IOException;
 import java.util.Comparator;
@@ -131,8 +132,8 @@ public final class MachineStatusCommand {
     ) throws CommandSyntaxException {
         ensureMachineDoesNotExist(name);
         ServerLevel world = getWorld(context.getSource().getServer(), dimensionId);
-        ensureChunkLoaded(world, pos, dimensionId);
-        String shutdownState = serializeBlockState(world.getBlockState(pos));
+        LevelChunk chunk = requireLoadedChunk(world, pos, dimensionId);
+        String shutdownState = serializeBlockState(chunk.getBlockState(pos));
 
         try {
             MachineStatusConfigManager.addMachine(name, dimensionId.toString(), pos.getX(), pos.getY(), pos.getZ(), shutdownState);
@@ -194,10 +195,10 @@ public final class MachineStatusCommand {
         Identifier dimensionId = parseIdentifier(record.dimension());
         ServerLevel world = getWorld(context.getSource().getServer(), dimensionId);
         BlockPos pos = new BlockPos(record.x(), record.y(), record.z());
-        ensureChunkLoaded(world, pos, dimensionId);
+        LevelChunk chunk = requireLoadedChunk(world, pos, dimensionId);
 
         String oldState = record.shutdownBlockState();
-        String newState = serializeBlockState(world.getBlockState(pos));
+        String newState = serializeBlockState(chunk.getBlockState(pos));
         try {
             MachineStatusConfigManager.updateMachineState(name, newState);
         } catch (IOException exception) {
@@ -224,8 +225,8 @@ public final class MachineStatusCommand {
     ) throws CommandSyntaxException {
         getMachineOrThrow(name);
         ServerLevel world = getWorld(context.getSource().getServer(), dimensionId);
-        ensureChunkLoaded(world, pos, dimensionId);
-        String shutdownState = serializeBlockState(world.getBlockState(pos));
+        LevelChunk chunk = requireLoadedChunk(world, pos, dimensionId);
+        String shutdownState = serializeBlockState(chunk.getBlockState(pos));
 
         try {
             MachineStatusConfigManager.moveMachine(name, dimensionId.toString(), pos.getX(), pos.getY(), pos.getZ(), shutdownState);
@@ -353,7 +354,8 @@ public final class MachineStatusCommand {
         }
 
         BlockPos pos = new BlockPos(record.x(), record.y(), record.z());
-        if (!isChunkLoaded(world, pos)) {
+        LevelChunk chunk = getLoadedChunk(world, pos);
+        if (chunk == null) {
             return new MachineRuntimeStatus(
                     MachineStatusKind.UNLOADED,
                     tr("command.carpet-ice-addition.machine_status.current_state.chunk_not_loaded"),
@@ -362,7 +364,7 @@ public final class MachineStatusCommand {
             );
         }
 
-        String currentStateString = serializeBlockState(world.getBlockState(pos));
+        String currentStateString = serializeBlockState(chunk.getBlockState(pos));
         ParsedState savedState = MachineStatusStateUtil.parse(record.shutdownBlockState());
         ParsedState currentState = MachineStatusStateUtil.parse(currentStateString);
         if (savedState == null || currentState == null) {
@@ -425,14 +427,17 @@ public final class MachineStatusCommand {
         return world;
     }
 
-    private static void ensureChunkLoaded(ServerLevel world, BlockPos pos, Identifier dimensionId) throws CommandSyntaxException {
-        if (!isChunkLoaded(world, pos)) {
+    private static LevelChunk requireLoadedChunk(ServerLevel world, BlockPos pos, Identifier dimensionId) throws CommandSyntaxException {
+        LevelChunk chunk = getLoadedChunk(world, pos);
+        if (chunk == null) {
             throw CHUNK_NOT_LOADED.create(formatChunkTarget(dimensionId, pos));
         }
+        return chunk;
     }
 
-    private static boolean isChunkLoaded(ServerLevel world, BlockPos pos) {
-        return world.getChunkSource().hasChunk(pos.getX() >> 4, pos.getZ() >> 4);
+    private static LevelChunk getLoadedChunk(ServerLevel world, BlockPos pos) {
+        // A FULL ticket does not mean the chunk future has completed. Never wait or create tickets here.
+        return world.getChunkSource().getChunkNow(pos.getX() >> 4, pos.getZ() >> 4);
     }
 
     private static CompletableFuture<Suggestions> suggestUnusedMachineNames(CommandContext<CommandSourceStack> context, SuggestionsBuilder builder) {

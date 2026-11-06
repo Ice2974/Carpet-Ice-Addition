@@ -85,6 +85,7 @@ public final class RecipeReloadGate {
     private boolean retryRequested;
     private boolean degraded;
     private boolean desiredChangedSinceRequest;
+    private boolean ownRequestConverged;
     private OwnOp ownOp;
 
     private long anomalousEndWarnedAtEpoch = NO_EPOCH;
@@ -124,6 +125,7 @@ public final class RecipeReloadGate {
         retryRequested = false;
         degraded = false;
         desiredChangedSinceRequest = false;
+        ownRequestConverged = false;
         ownOp = null;
         anomalousEndWarnedAtEpoch = NO_EPOCH;
         deferredWarnedAtEpoch = NO_EPOCH;
@@ -235,6 +237,7 @@ public final class RecipeReloadGate {
         ownStartPending = true;
         ownOp = new OwnOp(targetKey, epoch, Outcome.PENDING, false);
         desiredChangedSinceRequest = false;
+        ownRequestConverged = false;
         reloadRequestCount++;
         return true;
     }
@@ -346,11 +349,16 @@ public final class RecipeReloadGate {
      *
      * <p>{@code ready} 只在「pass 钩子全成功 ∧ 未 degraded ∧ 选中集合已与期望一致」时为 true；
      * 进入 degraded 且目标状态未收敛时不得报告 ready。
+     * 成功请求的选中集合一旦收敛，就结束其非进展观察窗口；后续外部漂移不再受旧请求历史限制。
+     * 该窗口与钩子同步是否成功无关，且不清除诊断记录或改变失败预算。
      */
     public void onPlanEvaluated(boolean planChanged) {
         if (planChanged) {
             ready = false;
             return;
+        }
+        if (ownOutcome() == Outcome.SUCCESS) {
+            ownRequestConverged = true;
         }
         ready = hooksOk && !degraded;
     }
@@ -382,7 +390,7 @@ public final class RecipeReloadGate {
     }
 
     /**
-     * 非进展判定：四条件同时成立才判定为「成功但目标未生效」。
+     * 非进展判定：只在本次请求尚未收敛的观察窗口内检查，四条件同时成立才判定为「成功但目标未生效」。
      *
      * <p>{@code 目标相同 ∧ 期间无期望变化 ∧ 上次结局为 SUCCESS}。失败重试（结局 FAILURE）因此天然豁免，
      * 因为同目标重发正是重试语义。
@@ -390,6 +398,7 @@ public final class RecipeReloadGate {
     public boolean isNoProgress(String nextTargetKey) {
         OwnOp op = ownOp;
         return op != null
+                && !ownRequestConverged
                 && !desiredChangedSinceRequest
                 && op.outcome() == Outcome.SUCCESS
                 && op.targetKey().equals(nextTargetKey);

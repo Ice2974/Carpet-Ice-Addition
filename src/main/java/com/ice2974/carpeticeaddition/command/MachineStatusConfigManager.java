@@ -27,18 +27,21 @@ public final class MachineStatusConfigManager {
 
     private static Path configPath;
     private static State state = State.DEFAULT;
+    private static boolean writeProtected;
 
     private MachineStatusConfigManager() {
     }
 
     public static synchronized void initialize(Path saveRoot) {
         configPath = resolvePath(saveRoot);
+        writeProtected = false;
         state = load(configPath);
     }
 
     public static synchronized void shutdown() {
         configPath = null;
         state = State.DEFAULT;
+        writeProtected = false;
     }
 
     public static synchronized List<MachineRecord> snapshot() {
@@ -64,7 +67,7 @@ public final class MachineStatusConfigManager {
             int z,
             String shutdownBlockState
     ) throws IOException {
-        ensureInitialized();
+        ensureWritable();
         State updated = state.copy();
         updated.machines.put(name, new MachineRecord(name, dimension, x, y, z, shutdownBlockState));
         save(updated);
@@ -72,7 +75,7 @@ public final class MachineStatusConfigManager {
     }
 
     public static synchronized boolean removeMachine(String name) throws IOException {
-        ensureInitialized();
+        ensureWritable();
         if (!state.machines.containsKey(name)) {
             return false;
         }
@@ -84,7 +87,7 @@ public final class MachineStatusConfigManager {
     }
 
     public static synchronized MachineRecord renameMachine(String name, String newName) throws IOException {
-        ensureInitialized();
+        ensureWritable();
         MachineRecord existing = state.machines.get(name);
         if (existing == null) {
             return null;
@@ -100,7 +103,7 @@ public final class MachineStatusConfigManager {
     }
 
     public static synchronized MachineRecord updateMachineState(String name, String shutdownBlockState) throws IOException {
-        ensureInitialized();
+        ensureWritable();
         MachineRecord existing = state.machines.get(name);
         if (existing == null) {
             return null;
@@ -129,7 +132,7 @@ public final class MachineStatusConfigManager {
             int z,
             String shutdownBlockState
     ) throws IOException {
-        ensureInitialized();
+        ensureWritable();
         MachineRecord existing = state.machines.get(name);
         if (existing == null) {
             return null;
@@ -153,8 +156,16 @@ public final class MachineStatusConfigManager {
         }
     }
 
+    private static void ensureWritable() throws IOException {
+        ensureInitialized();
+        if (writeProtected) {
+            LOGGER.warn("Machine status config is write protected after a read failure. Fix the file and restart the server before editing it.");
+            throw new IOException("Machine status config is write protected after a read failure");
+        }
+    }
+
     private static State load(Path path) {
-        if (!Files.exists(path)) {
+        if (Files.notExists(path)) {
             return State.DEFAULT.copy();
         }
 
@@ -182,7 +193,8 @@ public final class MachineStatusConfigManager {
             }
             return loaded;
         } catch (Exception exception) {
-            LOGGER.error("Failed to read machine status config from {}. Using defaults.", path, exception);
+            writeProtected = true;
+            LOGGER.error("Failed to read machine status config from {}. Using defaults with writes disabled until the file is fixed and the server restarted.", path, exception);
             return State.DEFAULT.copy();
         }
     }

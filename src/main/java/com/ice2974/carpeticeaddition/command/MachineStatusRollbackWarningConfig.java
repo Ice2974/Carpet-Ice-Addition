@@ -158,7 +158,7 @@ public final class MachineStatusRollbackWarningConfig {
     }
 
     private static final class ConfigFileData {
-        private List<String> rollbackCommandPatterns = List.of();
+        private List<String> rollbackCommandPatterns;
 
         private ConfigFileData() {
         }

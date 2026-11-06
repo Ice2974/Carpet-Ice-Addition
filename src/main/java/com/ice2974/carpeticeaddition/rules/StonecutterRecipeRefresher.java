@@ -11,8 +11,8 @@ package com.ice2974.carpeticeaddition.rules;
  */
 public interface StonecutterRecipeRefresher {
     /**
-     * 强制重建当前切石机菜单的配方列表，并重置选中索引与结果槽（服务端调用有效，
-     * 重算后由 vanilla 的容器同步下发给客户端）。
+     * 强制重建服务端切石机菜单的配方列表，并重置选中索引与结果槽。
+     * 客户端缓存另由 {@link StonecutterRefresherDispatcher} 通过原版槽位同步失效并恢复。
      */
     void carpetIceAddition$refreshStonecutterRecipes();
 

@@ -29,18 +29,21 @@ public final class KillItemConfigManager {
 
     private static Path configPath;
     private static State state = State.DEFAULT;
+    private static boolean writeProtected;
 
     private KillItemConfigManager() {
     }
 
     public static synchronized void initialize(Path saveRoot) {
         configPath = resolvePath(saveRoot);
+        writeProtected = false;
         state = load(configPath);
     }
 
     public static synchronized void shutdown() {
         configPath = null;
         state = State.DEFAULT;
+        writeProtected = false;
     }
 
     public static synchronized Snapshot snapshot() {
@@ -52,7 +55,7 @@ public final class KillItemConfigManager {
     }
 
     public static synchronized boolean addBlacklistItem(String itemId) throws IOException {
-        ensureInitialized();
+        ensureWritable();
         State updated = state.copy();
         boolean changed = updated.blacklist.add(normalizeItemId(itemId));
         if (!changed) {
@@ -64,7 +67,7 @@ public final class KillItemConfigManager {
     }
 
     public static synchronized boolean removeBlacklistItem(String itemId) throws IOException {
-        ensureInitialized();
+        ensureWritable();
         State updated = state.copy();
         boolean changed = updated.blacklist.remove(normalizeItemId(itemId));
         if (!changed) {
@@ -76,7 +79,7 @@ public final class KillItemConfigManager {
     }
 
     public static synchronized boolean clearBlacklist() throws IOException {
-        ensureInitialized();
+        ensureWritable();
         if (state.blacklist.isEmpty()) {
             return false;
         }
@@ -88,7 +91,7 @@ public final class KillItemConfigManager {
     }
 
     public static synchronized boolean setClearNamedItems(boolean clearNamedItems) throws IOException {
-        ensureInitialized();
+        ensureWritable();
         if (state.clearNamedItems == clearNamedItems) {
             return false;
         }
@@ -120,8 +123,16 @@ public final class KillItemConfigManager {
         return normalized;
     }
 
+    private static void ensureWritable() throws IOException {
+        ensureInitialized();
+        if (writeProtected) {
+            LOGGER.warn("Killitem config is write protected after a read failure. Fix the file and restart the server before editing it.");
+            throw new IOException("Killitem config is write protected after a read failure");
+        }
+    }
+
     private static State load(Path path) {
-        if (!Files.exists(path)) {
+        if (Files.notExists(path)) {
             return State.DEFAULT.copy();
         }
 
@@ -140,7 +151,8 @@ public final class KillItemConfigManager {
             }
             return loaded;
         } catch (Exception exception) {
-            LOGGER.error("Failed to read killitem config from {}. Using defaults.", path, exception);
+            writeProtected = true;
+            LOGGER.error("Failed to read killitem config from {}. Using defaults with writes disabled until the file is fixed and the server restarted.", path, exception);
             return State.DEFAULT.copy();
         }
     }

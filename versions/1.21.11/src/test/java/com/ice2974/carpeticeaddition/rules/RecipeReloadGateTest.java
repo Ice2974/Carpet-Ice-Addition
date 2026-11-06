@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -388,6 +389,95 @@ class RecipeReloadGateTest {
         gate.onDesiredChanged();
         assertFalse(gate.isDegraded(), "规则值变化必须能恢复");
         assertTrue(gate.canStartReload(gate.epoch(), false));
+    }
+
+    @Test
+    void successfulConvergenceEndsNoProgressWindowButRetainsDiagnostics() {
+        RecipeReloadGate gate = boundGate();
+        gate.markRequestStarted("k", gate.epoch(), true);
+        gate.onReloadStart(gate.epoch());
+        gate.settleReturnedFuture(gate.epoch(), true, false);
+        gate.onReloadEnd(gate.epoch(), true);
+        RecipeReloadGate.OwnOp completed = gate.ownOp();
+
+        gate.onPassFinished(true);
+        gate.onPlanEvaluated(true);
+        assertTrue(gate.isNoProgress("k"), "SUCCESS 与 pass 成功不等于选中集合已收敛");
+        gate.onPlanEvaluated(false);
+        assertFalse(gate.isNoProgress("k"), "已成功并收敛的请求必须结束非进展观察窗口");
+        assertTrue(gate.isReady());
+        assertSame(completed, gate.ownOp(), "关闭观察窗口仍保留原请求与结局供诊断");
+        assertFalse(gate.isDesiredChangedSinceRequest(), "收敛不应伪造规则变化");
+        assertEquals(1, gate.reloadRequestCount());
+        assertEquals(0, gate.failureCount());
+        assertFalse(gate.isRetryUsed());
+
+        gate.onReloadStart(gate.epoch());
+        gate.onReloadEnd(gate.epoch(), true);
+        gate.onPassFinished(true);
+        gate.onPlanEvaluated(true);
+        assertFalse(gate.isNoProgress("k"), "后续外部漂移不得重新打开旧请求的观察窗口");
+        assertSame(completed, gate.ownOp());
+        assertTrue(gate.canStartReload(gate.epoch(), false));
+    }
+
+    @Test
+    void newRequestReopensNoProgressWindowAfterPreviousConvergence() {
+        RecipeReloadGate gate = boundGate();
+        gate.markRequestStarted("k", gate.epoch(), true);
+        gate.onReloadStart(gate.epoch());
+        gate.settleReturnedFuture(gate.epoch(), true, false);
+        gate.onReloadEnd(gate.epoch(), true);
+        gate.onPassFinished(true);
+        gate.onPlanEvaluated(false);
+
+        gate.markRequestStarted("k", gate.epoch(), true);
+        gate.onReloadStart(gate.epoch());
+        assertFalse(gate.isNoProgress("k"), "新请求仍在 PENDING 时不得判定非进展");
+        gate.settleReturnedFuture(gate.epoch(), true, false);
+        gate.onReloadEnd(gate.epoch(), true);
+        gate.onPassFinished(true);
+        gate.onPlanEvaluated(true);
+        assertTrue(gate.isNoProgress("k"), "新请求成功但目标未生效时仍必须抑制循环");
+        assertFalse(gate.isNoProgress("other"));
+        gate.markNoProgressStop();
+        assertTrue(gate.isDegraded());
+        assertFalse(gate.canStartReload(gate.epoch(), false));
+    }
+
+    @Test
+    void convergenceBeforeSuccessDoesNotClosePendingRequestWindow() {
+        RecipeReloadGate gate = boundGate();
+        gate.markRequestStarted("k", gate.epoch(), true);
+        gate.onReloadStart(gate.epoch());
+        gate.onReloadEnd(gate.epoch(), true);
+        gate.onPassFinished(true);
+        gate.onPlanEvaluated(false);
+        assertEquals(RecipeReloadGate.Outcome.PENDING, gate.ownOutcome());
+
+        gate.settleReturnedFuture(gate.epoch(), true, false);
+        gate.onPlanEvaluated(true);
+        assertTrue(gate.isNoProgress("k"), "未结算时的快照不能提前关闭后来 SUCCESS 的观察窗口");
+        gate.onPlanEvaluated(false);
+        assertFalse(gate.isNoProgress("k"));
+    }
+
+    @Test
+    void selectionConvergenceClosesWindowEvenWhenSyncPassFails() {
+        RecipeReloadGate gate = boundGate();
+        gate.markRequestStarted("k", gate.epoch(), true);
+        gate.onReloadStart(gate.epoch());
+        gate.settleReturnedFuture(gate.epoch(), true, false);
+        gate.onReloadEnd(gate.epoch(), true);
+        gate.onPassFinished(false);
+        gate.onPlanEvaluated(false);
+
+        assertFalse(gate.isNoProgress("k"), "钩子失败不应把已生效的选中集合视为未进展");
+        assertFalse(gate.isReady(), "钩子失败仍阻止 ready");
+        assertTrue(gate.isPendingSyncPass(), "同步欠账必须保留");
+        assertEquals(RecipeReloadGate.Outcome.SUCCESS, gate.ownOutcome());
+        assertFalse(gate.isRetryUsed());
+        assertFalse(gate.isDegraded());
     }
 
     // ---------------------------------------------------------------- 非服务器线程

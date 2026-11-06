@@ -17,6 +17,7 @@ import org.spongepowered.asm.mixin.Shadow;
  * {@code if (!stack.is(this.input.getItem())) { this.input = stack.copy(); this.setupRecipeList(stack); }} ——
  * 只比较 Item，玩家已放入滴水石块（物品未变）时调用它是空操作，陈旧配方缓存不会被重建。
  * 因此先清空缓存字段，再由 vanilla 自己完成「写回快照 + 重建列表 + 重置索引 + 清空结果槽」。
+ * 这只刷新服务端缓存；原版客户端的对应缓存由 dispatcher 单独通过槽位同步刷新。
  *
  * <p>空输入槽分支：此时槽内为空、缓存也为空，{@code EMPTY.is(AIR)} 为真 ⇒ 守卫不成立、不会重建；
  * 而空输入下列表本就已在「物品被移出」时被重建为空、索引已置 -1、结果槽已清空。此处仍显式清一次结果槽，

@@ -1,7 +1,15 @@
 package com.ice2974.carpeticeaddition.rules;
 
+import net.minecraft.network.protocol.game.ClientboundBundlePacket;
+import net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.StonecutterMenu;
+import net.minecraft.world.item.ItemStack;
+
+import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * 规则切换 / 资源 reload 后重置在线玩家当前打开的切石机菜单。
@@ -22,9 +30,26 @@ public final class StonecutterRefresherDispatcher {
 
     /** 强制重建已打开切石机菜单的配方列表（重置选中索引与结果槽）；异常交由调用方的隔离器处理。 */
     public static void refreshOpenStonecutterMenu(Player player) {
-        AbstractContainerMenu handler = player.containerMenu;
+        if (player instanceof ServerPlayer serverPlayer) {
+            refreshOpenStonecutterMenu(player.containerMenu, serverPlayer.connection::send);
+        }
+    }
+
+    static void refreshOpenStonecutterMenu(AbstractContainerMenu handler,
+                                         Consumer<ClientboundBundlePacket> sendBundle) {
         if (handler instanceof StonecutterRecipeRefresher refresher) {
             refresher.carpetIceAddition$refreshStonecutterRecipes();
+            // 原版客户端也按输入 Item 类型缓存配方；相同物品的全量同步不会重建缓存。
+            // 在同一 bundle 中清空并恢复客户端输入，避免网络分片暴露可操作的临时空槽。
+            // 服务端物品不移动；随后全量同步真实槽位/光标/选中索引并更新 remote 缓存。
+            if (handler.getSlot(StonecutterMenu.INPUT_SLOT).hasItem()) {
+                sendBundle.accept(new ClientboundBundlePacket(List.of(
+                        new ClientboundContainerSetSlotPacket(handler.containerId, handler.incrementStateId(),
+                                StonecutterMenu.INPUT_SLOT, ItemStack.EMPTY),
+                        new ClientboundContainerSetSlotPacket(handler.containerId, handler.incrementStateId(),
+                                StonecutterMenu.INPUT_SLOT, handler.getSlot(StonecutterMenu.INPUT_SLOT).getItem()))));
+            }
+            handler.sendAllDataToRemote();
         }
     }
 
