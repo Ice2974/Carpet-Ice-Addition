@@ -1,6 +1,5 @@
 package com.ice2974.carpeticeaddition.translation;
 
-import com.google.gson.Strictness;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import org.slf4j.Logger;
@@ -50,7 +49,7 @@ public final class CarpetIceAdditionTranslations {
         }
 
         try (JsonReader reader = new JsonReader(new InputStreamReader(stream, StandardCharsets.UTF_8.newDecoder()))) {
-            reader.setStrictness(Strictness.STRICT);
+            // Use JsonReader's default non-lenient mode; older Minecraft versions lack Gson's Strictness API.
             Map<String, String> translations = new HashMap<>();
             reader.beginObject();
             while (reader.hasNext()) {
