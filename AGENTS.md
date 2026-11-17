@@ -102,11 +102,8 @@
 
 - 面向玩家的命令反馈、错误提示、规则触发提示、回档警告、记录器输出等，如果使用本模组自定义翻译键，不要直接向玩家发送 `Text.translatable(...)` 或 `Component.translatable(...)`。
 - 服务端应先通过项目既有服务端翻译工具解析翻译键，再发送 literal / plain 文本给客户端；优先复用 `src/main/java/com/ice2974/carpeticeaddition/translation/TranslationFormatUtil.java` 或同目录既有工具。
-- 服务端翻译双重注册：Carpet 服务端翻译由 `CarpetIceAdditionMod.canHasTranslations(lang)` 委托给 `src/main/java/com/ice2974/carpeticeaddition/translation/CarpetIceAdditionTranslations.java`。所有新增或修改的玩家可见翻译键，必须同时登记在：
-  1. 共享资源文件：`src/main/resources/assets/carpet-ice-addition/lang/zh_cn.json` 与 `en_us.json`；
-  2. 服务端翻译字典类：`CarpetIceAdditionTranslations.java`（中文与英文两个 Map）。
-  若仅更新 JSON 资源，服务端 `Translations.tr(...)` 将无法解析该翻译键。
-- 中英文语言文件与 Java 翻译类仍是玩家可见文本来源，不要把长文本硬编码到命令类、Mixin 或平台专属实现中。
+- 服务端翻译由 `CarpetIceAdditionMod.canHasTranslations(lang)` 委托给 `CarpetIceAdditionTranslations`，从模组类路径加载共享语言 JSON。新增或修改玩家可见翻译键，只维护 `src/main/resources/assets/carpet-ice-addition/lang/` 下的 `zh_cn.json` 与 `en_us.json`，无需在 Java 中重复登记。
+- 中英文语言文件是玩家可见文本来源，不要把长文本硬编码到命令类、Mixin 或平台专属实现中。
 - 需要颜色、点击事件、hover 文本等样式时，先在服务端完成翻译和参数格式化，再在对应版本文本组件上应用样式。
 - 只有 vanilla / Minecraft 客户端必然存在的翻译键，才可以考虑继续使用客户端侧 translatable；本模组自定义键默认走服务端翻译。
 
