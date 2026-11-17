@@ -2,18 +2,19 @@ package com.ice2974.carpeticeaddition.mixins;
 
 import com.ice2974.carpeticeaddition.CarpetIceAdditionMod;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.world.entity.EntitySelector;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.BaseSpawner;
 import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Redirect;
 
 @Mixin(BaseSpawner.class)
 public abstract class MobSpawnerLogicMixin {
 
-    @Redirect(
+    @WrapOperation(
             method = "isNearPlayer",
             at = @At(
                     value = "INVOKE",
@@ -25,10 +26,11 @@ public abstract class MobSpawnerLogicMixin {
             double x,
             double y,
             double z,
-            double range
+            double range,
+            Operation<Boolean> original
     ) {
         if (!CarpetIceAdditionSettings.spawnersIgnoreInvisiblePlayers) {
-            return world.hasNearbyAlivePlayer(x, y, z, range);
+            return original.call(world, x, y, z, range);
         }
 
         try {
@@ -51,7 +53,7 @@ public abstract class MobSpawnerLogicMixin {
             return false;
         } catch (Throwable throwable) {
             CarpetIceAdditionMod.reportFeatureCompatibilityIssue("spawnersIgnoreInvisiblePlayers", throwable);
-            return world.hasNearbyAlivePlayer(x, y, z, range);
         }
+        return original.call(world, x, y, z, range);
     }
 }

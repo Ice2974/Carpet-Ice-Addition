@@ -62,6 +62,7 @@
 - 严禁把根 src（java 或 resources）注册为独立 Gradle 子项目；Java source root 必须停在标准的 src/main/java，禁止把 com/... package 目录直接注册为 source root。
 - 跨小版本差异优先通过宏、平台 override 或版本图 mapping 表达，不优先使用运行期字符串版本号判断来偷渡兼容。
 - 平台模块的 mixins 配置默认保持 `required=true`，除非任务明确要求调整。
+- 非必要不使用 `@Redirect`。包装原调用优先使用 `@WrapOperation` 并通过 `original.call(...)` 继续调用链；只调整调用结果时优先使用 `@ModifyExpressionValue`，只决定是否执行 `void` 调用时优先使用 `@WrapWithCondition`。仅在其他注入方式无法满足所需语义时使用 `@Redirect`，并在代码中说明原因。
 - `org.gradle.parallel=false` 是 preprocess 体系下 Gradle 9 跨项目解析独占锁问题的既有解，未经全量验证不要改回 `true`。
 
 ## 版本注册表与构建配置

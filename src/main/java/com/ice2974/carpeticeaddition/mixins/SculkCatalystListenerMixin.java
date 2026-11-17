@@ -1,5 +1,6 @@
 package com.ice2974.carpeticeaddition.mixins;
 
+import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
@@ -15,7 +16,6 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(targets = "net.minecraft.world.level.block.entity.SculkCatalystBlockEntity$CatalystListener")
@@ -46,12 +46,9 @@ public abstract class SculkCatalystListenerMixin {
 
     // 只跳过新 charge cursor 的创建：listen 中后续的 disableExperienceDropping()
     // （经验抑制）与 bloom() 均不依赖这次调用，照常执行。
-    @Redirect(method = "handleGameEvent", at = @At(value = "INVOKE",
+    @WrapWithCondition(method = "handleGameEvent", at = @At(value = "INVOKE",
             target = "Lnet/minecraft/world/level/block/SculkSpreader;addCursors(Lnet/minecraft/core/BlockPos;I)V"))
-    private void carpetIceAddition$skipSpreadIfWoolCovered(SculkSpreader spreadManager, BlockPos pos, int charge) {
-        if (CarpetIceAdditionSettings.woolSuppressesSculkSpread && this.carpetIceAddition$woolAboveCatalyst) {
-            return;
-        }
-        spreadManager.addCursors(pos, charge);
+    private boolean carpetIceAddition$shouldAddCursors(SculkSpreader spreadManager, BlockPos pos, int charge) {
+        return !CarpetIceAdditionSettings.woolSuppressesSculkSpread || !this.carpetIceAddition$woolAboveCatalyst;
     }
 }

@@ -1,6 +1,8 @@
 //#if MC<260000
 package com.ice2974.carpeticeaddition.mixins;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.ice2974.carpeticeaddition.villagerevents.VillagerEventSnapshot;
 import com.ice2974.carpeticeaddition.villagerevents.VillagerEventState;
 import com.ice2974.carpeticeaddition.villagerevents.VillagerEventsRuntime;
@@ -13,13 +15,12 @@ import com.ice2974.carpeticeaddition.villagerevents.VillagerEventsCompatibility;
 import carpet.CarpetServer;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Redirect;
 
 @Mixin(net.minecraft.world.entity.monster.zombie.Zombie.class)
 public abstract class ZombieVillagerEventsMixin {
-    @Redirect(method = "convertVillagerToZombieVillager", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/npc/villager/Villager;convertTo(Lnet/minecraft/world/entity/EntityType;Lnet/minecraft/world/entity/ConversionParams;Lnet/minecraft/world/entity/ConversionParams$AfterConversion;)Lnet/minecraft/world/entity/Mob;"))
+    @WrapOperation(method = "convertVillagerToZombieVillager", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/npc/villager/Villager;convertTo(Lnet/minecraft/world/entity/EntityType;Lnet/minecraft/world/entity/ConversionParams;Lnet/minecraft/world/entity/ConversionParams$AfterConversion;)Lnet/minecraft/world/entity/Mob;"))
     private <T extends Mob> Mob carpetIceAddition$observeInfection(Villager villager, EntityType<T> type,
-                                                                               ConversionParams context, ConversionParams.AfterConversion<T> finalizer) {
+                                                                               ConversionParams context, ConversionParams.AfterConversion<T> finalizer, Operation<Mob> original) {
         VillagerEventState state = null;
         VillagerEventSnapshot snapshot = null;
         boolean observing = false;
@@ -36,7 +37,7 @@ public abstract class ZombieVillagerEventsMixin {
         }
         Mob result = null;
         boolean returned = false;
-        try { result = villager.convertTo(type, context, finalizer); returned = true; return result; }
+        try { result = original.call(villager, type, context, finalizer); returned = true; return result; }
         finally {
             if (returned && observing) try {
                 if (state.carpetIceAddition$finishConversion(result instanceof ZombieVillager) && CarpetServer.minecraft_server != null) VillagerEventsRuntime.conversion(CarpetServer.minecraft_server, "zombified", snapshot);

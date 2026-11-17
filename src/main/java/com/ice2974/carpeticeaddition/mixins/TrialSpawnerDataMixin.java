@@ -1,24 +1,22 @@
 package com.ice2974.carpeticeaddition.mixins;
 
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.ice2974.carpeticeaddition.CarpetIceAdditionMod;
 import com.ice2974.carpeticeaddition.settings.CarpetIceAdditionSettings;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Redirect;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.block.entity.trialspawner.PlayerDetector;
 import net.minecraft.world.level.block.entity.trialspawner.TrialSpawnerStateData;
 
 @Mixin(TrialSpawnerStateData.class)
 public abstract class TrialSpawnerDataMixin {
 
-    @Redirect(
+    @ModifyExpressionValue(
             method = "tryDetectPlayers",
             at = @At(
                     value = "INVOKE",
@@ -26,14 +24,8 @@ public abstract class TrialSpawnerDataMixin {
             )
     )
     private List<UUID> carpetIceAddition$filterInvisiblePlayersFromTrialSpawnerDetection(
-            PlayerDetector detector,
-            ServerLevel world,
-            PlayerDetector.EntitySelector selector,
-            BlockPos pos,
-            double range,
-            boolean requireLineOfSight
+            List<UUID> detectedPlayers, ServerLevel world
     ) {
-        List<UUID> detectedPlayers = detector.detect(world, selector, pos, range, requireLineOfSight);
         if (!CarpetIceAdditionSettings.spawnersIgnoreInvisiblePlayers) {
             return detectedPlayers;
         }
